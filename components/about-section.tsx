@@ -24,7 +24,7 @@ export function AboutSection() {
             transition={{ duration: 0.6, delay: 0.2 }}
             viewport={{ once: true }}
           >
-            We are Angola's premier bus transportation service, operating a fleet of 9 Kinglong vehicles across the country.
+            We are Angola&apos;s premier bus transportation service, operating a fleet of 9 Kinglong vehicles across the country.
           </motion.p>
           
           <motion.p 

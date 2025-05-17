@@ -1,28 +1,22 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
   Calendar,
   DownloadIcon, 
-  Filter, 
-  SearchIcon, 
   BarChart,
   PieChart,
   LineChart,
   BarChart3,
   DollarSign,
-  Car,
   Wrench,
   TrendingUp,
-  ListFilter,
-  ChevronDownIcon,
   Info,
   Loader2,
   CreditCard
@@ -34,7 +28,6 @@ import {
   XAxis, 
   YAxis, 
   Tooltip as RechartsTooltip, 
-  Legend, 
   Line, 
   Bar, 
   ResponsiveContainer,
@@ -44,8 +37,6 @@ import {
 } from "recharts"
 import { maintenanceService } from "@/services/maintenanceService"
 import { vehicleService } from "@/services/vehicleService"
-import { partService } from "@/services/partService"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { format } from "date-fns"
 import { toast } from "@/components/ui/use-toast"
 
@@ -83,22 +74,6 @@ interface Part {
   name: string;
 }
 
-interface MonthlyData {
-  name: string;
-  value: number;
-}
-
-interface VehicleCost {
-  name: string;
-  value: number;
-}
-
-interface PartUsage {
-  name: string;
-  value: number;
-  color: string;
-}
-
 interface DateRange {
   from: Date | undefined;
   to: Date | undefined;
@@ -115,6 +90,9 @@ export default function ReportsPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
   
+  // UI state
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   // Filters
   const [selectedVehicle, setSelectedVehicle] = useState<string>("all");
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -123,9 +101,10 @@ export default function ReportsPage() {
   });
   const [activeMetric, setActiveMetric] = useState<"cost" | "frequency">("cost");
   
+  // Tab state - this replaces the activeTab variable that was causing the error
+  const [activeTab, setActiveTab] = useState("monthly");
+  
   // UI state
-  const [activeTab, setActiveTab] = useState<string>("monthly");
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(20);
   
@@ -317,25 +296,6 @@ export default function ReportsPage() {
   const totalLifetimeCost = useMemo(() => {
     return records.reduce((sum, record) => sum + (record.cost || 0), 0);
   }, [records]);
-
-  // Average cost per vehicle
-  const avgCostPerVehicle = useMemo(() => {
-    const vehiclePlates = new Set<string>();
-    filteredRecords.forEach(record => {
-      const plate = record.vehicles?.plate || record.vehiclePlate;
-      if (plate) vehiclePlates.add(plate);
-    });
-    
-    return vehiclePlates.size ? totalCost / vehiclePlates.size : 0;
-  }, [filteredRecords, totalCost]);
-
-  // Format number with commas
-  const formatNumber = (value: number) => {
-    return value.toLocaleString(undefined, { 
-      minimumFractionDigits: 0, 
-      maximumFractionDigits: 0
-    });
-  };
 
   const formatCost = (value: number) => {
     return value.toLocaleString(undefined, { 
@@ -592,12 +552,11 @@ export default function ReportsPage() {
           </div>
 
           {/* Chart Tabs */}
-          <Tabs defaultValue="monthly" className="w-full">
+          <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid grid-cols-2 lg:grid-cols-4 gap-2 h-auto">
               <TabsTrigger 
                 value="monthly" 
                 className="px-3 py-2 data-[state=active]:bg-black data-[state=active]:text-white"
-                onClick={() => setActiveTab("monthly")}
               >
                 <LineChart className="h-4 w-4 mr-2" />
                 Monthly Trend
@@ -605,7 +564,6 @@ export default function ReportsPage() {
               <TabsTrigger 
                 value="vehicles" 
                 className="px-3 py-2 data-[state=active]:bg-black data-[state=active]:text-white"
-                onClick={() => setActiveTab("vehicles")}
               >
                 <BarChart className="h-4 w-4 mr-2" />
                 Vehicle Comparison
@@ -613,7 +571,6 @@ export default function ReportsPage() {
               <TabsTrigger 
                 value="parts" 
                 className="px-3 py-2 data-[state=active]:bg-black data-[state=active]:text-white"
-                onClick={() => setActiveTab("parts")}
               >
                 <PieChart className="h-4 w-4 mr-2" />
                 Part Usage
@@ -621,7 +578,6 @@ export default function ReportsPage() {
               <TabsTrigger 
                 value="details" 
                 className="px-3 py-2 data-[state=active]:bg-black data-[state=active]:text-white"
-                onClick={() => setActiveTab("details")}
               >
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Detailed Analysis

@@ -12,6 +12,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, loading } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   

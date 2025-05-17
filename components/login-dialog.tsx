@@ -24,7 +24,7 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
@@ -47,14 +47,14 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       
       onOpenChange(false);
       router.push("/dashboard/maintenance");
-    } catch (error: any) {
-      setError(error.message || "Failed to sign in");
+    } catch (error: unknown) {
+      handleError(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
@@ -82,14 +82,14 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       });
       
       setTab("login");
-    } catch (error: any) {
-      setError(error.message || "Failed to sign up");
+    } catch (error: unknown) {
+      handleError(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleMagicLinkSignIn = async (e: React.FormEvent) => {
+  const handleMagicLinkSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
@@ -109,14 +109,14 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         description: "Please check your email for the login link",
         variant: "default",
       });
-    } catch (error: any) {
-      setError(error.message || "Failed to send magic link");
+    } catch (error: unknown) {
+      handleError(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
@@ -136,11 +136,17 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         description: "Please check your email for the password reset link",
         variant: "default",
       });
-    } catch (error: any) {
-      setError(error.message || "Failed to send password reset email");
+    } catch (error: unknown) {
+      handleError(error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Function to handle error display
+  const handleError = (error: unknown) => {
+    console.error("Authentication error:", error);
+    setError(error instanceof Error ? error.message : "An unexpected error occurred");
   };
 
   return (
@@ -158,7 +164,7 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
           </Button>
         </DialogHeader>
         
-        <Tabs value={tab} onValueChange={(value) => setTab(value as any)} className="mt-2">
+        <Tabs value={tab} onValueChange={(value) => setTab(value as "login" | "signup" | "magic" | "reset")} className="mt-2">
           <TabsList className="grid grid-cols-4 mb-4">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>

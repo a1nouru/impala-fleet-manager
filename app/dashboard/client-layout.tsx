@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React from 'react'
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/protected-route";
-import { Loader2 } from "lucide-react";
 
 export function DashboardLayoutClient({
   children,
@@ -13,7 +12,7 @@ export function DashboardLayoutClient({
   children: React.ReactNode;
 }>) {
   const router = useRouter();
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut } = useAuth();
   
   const handleLogout = async () => {
     try {

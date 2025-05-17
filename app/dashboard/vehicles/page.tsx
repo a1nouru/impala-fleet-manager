@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { vehicleService } from "@/services/vehicleService"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, PlusCircle, PencilIcon, TrashIcon, Car, Calendar, MoreHorizontal, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"

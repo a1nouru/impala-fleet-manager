@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -12,7 +12,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
-  Calendar, 
   Clock, 
   Filter, 
   Search, 
@@ -21,16 +20,13 @@ import {
   PlusCircle,
   DollarSign,
   CreditCard,
-  BanknoteIcon, 
   WrenchIcon, 
   CalendarIcon,
   Loader2,
-  MoreHorizontal,
   PencilIcon,
   TrashIcon,
   PlusIcon
 } from "lucide-react"
-import Image from "next/image"
 import { maintenanceService } from "@/services/maintenanceService"
 import { vehicleService } from "@/services/vehicleService"
 import { technicianService } from "@/services/technicianService"
@@ -453,25 +449,23 @@ export default function MaintenancePage() {
       // Wait for all custom parts to be saved
       await Promise.all(customPartPromises);
       
-      let updatedRecord;
-      
       // Either update or create a record based on isEditMode
       if (isEditMode && editRecordId) {
-        // Update the existing record
-        updatedRecord = await maintenanceService.updateMaintenanceRecord(
-          editRecordId,
-          maintenanceData, 
-          selectedParts
-        );
+        // Update the existing record - no need to store the result
+        // Just pass the data to the update API later
+        await maintenanceService.updateMaintenanceRecord(editRecordId, {
+          ...maintenanceData,
+          parts: selectedParts
+        });
       } else {
         // Create a new record with current user
         const currentUserEmail = user?.email || 'Unknown';
         const username = currentUserEmail.split('@')[0];
-        updatedRecord = await maintenanceService.createMaintenanceRecord(
-          maintenanceData, 
-          selectedParts,
-          username
-        );
+        await maintenanceService.createMaintenanceRecord({
+          ...maintenanceData,
+          created_by: username,
+          parts: selectedParts
+        });
       }
       
       // Refresh the records from the database
