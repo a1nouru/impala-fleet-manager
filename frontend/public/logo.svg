@@ -1,0 +1,13 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="80" cy="80" r="75" fill="#f0f9ff" stroke="#2563eb" stroke-width="5"/>
+  
+  <!-- R letter -->
+  <path d="M50 40H90C101.046 40 110 48.9543 110 60C110 71.0457 101.046 80 90 80H65L95 120H75L45 80V40H50Z" fill="#2563eb"/>
+  
+  <!-- Add a crown effect to the R -->
+  <path d="M55 35L60 25L70 35L80 25L90 35H55Z" fill="#fcd34d"/>
+  
+  <!-- Add a slight shadow for dimension -->
+  <path d="M65 80L95 120" stroke="#1e40af" stroke-width="8" stroke-linecap="round" opacity="0.2"/>
+</svg> 

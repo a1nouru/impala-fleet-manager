@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///Users/nourumuneza/go/src/royalexpress-fleet-manager/frontend/app/dashboard/page.tsx"],"sourcesContent":["\"use client\";\n\nimport { useEffect } from \"react\";\nimport { useRouter } from \"next/navigation\";\nimport { ChevronRight, Bus, Package, Wrench, Truck } from \"lucide-react\";\nimport Link from \"next/link\";\n\nexport default function Dashboard() {\n  const router = useRouter();\n\n  useEffect(() => {\n    // Redirect to maintenance page\n    router.replace(\"/dashboard/maintenance\");\n  }, [router]);\n\n  // This UI will only be shown briefly before redirection\n  return (\n    <div className=\"flex items-center justify-center h-screen bg-gray-100\">\n      <div className=\"animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary\"></div>\n    </div>\n  );\n} "],"names":[],"mappings":";;;;AAEA;AACA;;;AAHA;;;AAOe,SAAS;;IACtB,MAAM,SAAS,CAAA,GAAA,qIAAA,CAAA,YAAS,AAAD;IAEvB,CAAA,GAAA,6JAAA,CAAA,YAAS,AAAD;+BAAE;YACR,+BAA+B;YAC/B,OAAO,OAAO,CAAC;QACjB;8BAAG;QAAC;KAAO;IAEX,wDAAwD;IACxD,qBACE,6LAAC;QAAI,WAAU;kBACb,cAAA,6LAAC;YAAI,WAAU;;;;;;;;;;;AAGrB;GAdwB;;QACP,qIAAA,CAAA,YAAS;;;KADF","debugId":null}}]
+}

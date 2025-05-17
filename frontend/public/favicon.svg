@@ -1,0 +1,10 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="#f0f9ff" stroke="#2563eb" stroke-width="1"/>
+  
+  <!-- R letter -->
+  <path d="M10 8H18C20.2091 8 22 9.79086 22 12C22 14.2091 20.2091 16 18 16H13L19 24H15L9 16V8H10Z" fill="#2563eb"/>
+  
+  <!-- Add a crown effect to the R -->
+  <path d="M11 7L12 5L14 7L16 5L18 7H11Z" fill="#fcd34d"/>
+</svg> 

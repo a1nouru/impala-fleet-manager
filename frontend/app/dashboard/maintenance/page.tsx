@@ -1,0 +1,1242 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { 
+  Calendar, 
+  Clock, 
+  Filter, 
+  Search, 
+  AlertCircle, 
+  CheckCircle2, 
+  PlusCircle,
+  DollarSign,
+  CreditCard,
+  BanknoteIcon, 
+  WrenchIcon, 
+  CalendarIcon,
+  Loader2,
+  MoreHorizontal,
+  PencilIcon,
+  TrashIcon,
+  PlusIcon
+} from "lucide-react"
+import Image from "next/image"
+import { maintenanceService } from "@/services/maintenanceService"
+import { vehicleService } from "@/services/vehicleService"
+import { technicianService } from "@/services/technicianService"
+import { partService } from "@/services/partService"
+import { toast } from "@/components/ui/use-toast"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAuth } from "@/context/AuthContext"
+import { format } from "date-fns"
+
+// Type definitions
+interface Vehicle {
+  id: string;
+  plate: string;
+  model: string;
+}
+
+interface Technician {
+  id: string;
+  name: string;
+  email?: string;
+  active: boolean;
+}
+
+interface Part {
+  id: string;
+  name: string;
+}
+
+interface PartCategory {
+  category: string;
+  items: Part[];
+}
+
+interface CustomPartInput {
+  category: string;
+  value: string;
+  showInput: boolean;
+}
+
+interface MaintenanceRecord {
+  id: string;
+  date: string;
+  description: string;
+  status: string;
+  cost: number;
+  kilometers?: number;
+  vehicle_id?: string;
+  technician_id?: string;
+  vehiclePlate?: string;
+  technician?: string;
+  parts?: string[];
+  created_by?: string;
+  vehicles?: {
+    plate: string;
+    model: string;
+  };
+  technicians?: {
+    name: string;
+  };
+}
+
+// Status options
+const statuses = ["Scheduled", "In Progress", "Completed", "Cancelled"];
+
+export default function MaintenancePage() {
+  // State for data
+  const [records, setRecords] = useState<MaintenanceRecord[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [busParts, setBusParts] = useState<PartCategory[]>([]);
+  
+  // UI state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedParts, setSelectedParts] = useState<string[]>([]);
+  const [customParts, setCustomParts] = useState<CustomPartInput[]>([]);
+  const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "scheduled">("all");
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [plateFilter, setPlateFilter] = useState<string>("all");
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editRecordId, setEditRecordId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  
+  // Loading states
+  const [isLoading, setIsLoading] = useState({
+    records: true,
+    vehicles: true,
+    technicians: true,
+    parts: true,
+    submit: false
+  });
+
+  const [newRecord, setNewRecord] = useState({
+    vehiclePlate: "",
+    date: "",
+    status: "Scheduled", // Default to scheduled
+    technician: "",
+    cost: "",
+    description: "",
+    kilometers: "", // Add kilometers field
+  });
+
+  const { user } = useAuth();
+
+  // Fetch all required data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch maintenance records
+        const maintenanceData = await maintenanceService.getMaintenanceRecords();
+        setRecords(maintenanceData);
+        setIsLoading(prev => ({ ...prev, records: false }));
+        
+        // Fetch vehicles
+        const vehicleData = await vehicleService.getVehicles();
+        setVehicles(vehicleData);
+        setIsLoading(prev => ({ ...prev, vehicles: false }));
+        
+        // Fetch technicians
+        const technicianData = await technicianService.getTechnicians();
+        setTechnicians(technicianData);
+        setIsLoading(prev => ({ ...prev, technicians: false }));
+        
+        // Fetch parts by category
+        const partData = await partService.getPartsByCategory();
+        // Transform the data to match our expected format
+        const formattedParts = partData.map(category => ({
+          category: category.name,
+          items: category.parts.map(part => ({
+            id: part.id,
+            name: part.name
+          }))
+        }));
+        setBusParts(formattedParts);
+        setIsLoading(prev => ({ ...prev, parts: false }));
+
+        // Initialize customParts array with empty entries for each category
+        const initialCustomParts = partData.map(category => ({
+          category: category.name,
+          value: '',
+          showInput: false
+        }));
+        setCustomParts(initialCustomParts);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load data. Please try refreshing the page.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  // Format number with commas
+  const formatNumber = (value: string) => {
+    // Remove non-numeric characters except decimal point
+    const numericValue = value.replace(/[^\d.]/g, '');
+    
+    // Format with commas
+    const parts = numericValue.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    return parts.join('.');
+  };
+
+  // Parse formatted number to plain number
+  const parseFormattedNumber = (formattedValue: string) => {
+    return formattedValue.replace(/,/g, '');
+  };
+
+  // Calculate totals
+  const totalLifetimeCost = records.reduce((sum, record) => sum + (record.cost || 0), 0);
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const currentMonthRecords = records.filter(record => {
+    const recordDate = new Date(record.date);
+    return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
+  });
+  const currentMonthCost = currentMonthRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
+  const completedMonthRecords = currentMonthRecords.filter(record => record.status === "Completed");
+  const upcomingMaintenance = records.filter(record => record.status === "Scheduled").length;
+
+  // Filter records based on active tab, search term, and plate filter
+  const filteredRecords = records.filter(record => {
+    // First filter by tab (all vs scheduled)
+    if (activeTab === "scheduled" && record.status !== "Scheduled") {
+      return false;
+    }
+    
+    // Filter by plate if a plate filter is selected and not set to "all"
+    if (plateFilter !== "all" && 
+        (record.vehicles?.plate !== plateFilter && record.vehiclePlate !== plateFilter)) {
+      return false;
+    }
+    
+    // Then filter by search term
+    if (searchTerm && 
+        !record.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !(record.id && record.id.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        !(record.vehicles && record.vehicles.plate && 
+          record.vehicles.plate.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        !(record.parts && 
+          record.parts.some(partName => partName.toLowerCase().includes(searchTerm.toLowerCase())))
+      ) {
+      return false;
+    }
+    
+    return true;
+  });
+
+  // Check if all required fields are filled
+  const isFormValid = () => {
+    const requiredFields = [
+      'vehiclePlate', 
+      'date', 
+      'status', 
+      'technician', 
+      'cost', 
+      'description',
+      'kilometers'
+    ];
+    
+    return requiredFields.every(field => !!newRecord[field as keyof typeof newRecord]);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    // Handle special formatting for cost and kilometers
+    if (name === 'cost' || name === 'kilometers') {
+      const formattedValue = formatNumber(value);
+      setNewRecord(prev => ({ ...prev, [name]: formattedValue }));
+    } else {
+      setNewRecord(prev => ({ ...prev, [name]: value }));
+    }
+    
+    // Clear error for this field
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: false }));
+    }
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setNewRecord(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error for this field
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: false }));
+    }
+  };
+
+  const handlePartToggle = (partId: string, partName: string) => {
+    // Special handling for "Other" option
+    if (partName === "Other") {
+      // Find the category from the part ID (format: category-other)
+      const categoryName = partId.split('-')[0];
+      
+      // Toggle the custom input visibility for this category
+      setCustomParts(prev => prev.map(item => 
+        item.category.toLowerCase() === categoryName 
+          ? { ...item, showInput: !item.showInput } 
+          : item
+      ));
+      
+      return;
+    }
+    
+    // Regular toggle for normal parts
+    setSelectedParts(prev => {
+      if (prev.includes(partName)) {
+        return prev.filter(name => name !== partName);
+      } else {
+        return [...prev, partName];
+      }
+    });
+  };
+
+  // Handle custom part input change
+  const handleCustomPartChange = (categoryName: string, value: string) => {
+    setCustomParts(prev => prev.map(item => 
+      item.category === categoryName 
+        ? { ...item, value } 
+        : item
+    ));
+  };
+
+  // Add custom part to selected parts
+  const handleAddCustomPart = (categoryName: string) => {
+    const customPart = customParts.find(item => item.category === categoryName);
+    
+    if (customPart && customPart.value.trim()) {
+      // Add the custom part to selected parts
+      const newPartName = `${customPart.value.trim()} (Custom)`;
+      setSelectedParts(prev => [...prev, newPartName]);
+      
+      // Reset the custom part input
+      setCustomParts(prev => prev.map(item => 
+        item.category === categoryName 
+          ? { ...item, value: '', showInput: false } 
+          : item
+      ));
+    }
+  };
+
+  const handleEditRecord = (record: MaintenanceRecord) => {
+    // Set edit mode and store the record ID
+    setIsEditMode(true);
+    setEditRecordId(record.id);
+    
+    // Determine the vehicle plate - use vehicles.plate if available, otherwise vehiclePlate
+    const vehiclePlate = record.vehicles?.plate || record.vehiclePlate || "";
+    
+    // Determine the technician name - use technicians.name if available, otherwise technician 
+    const technicianName = record.technicians?.name || record.technician || "";
+    
+    // Populate the form with record data
+    setNewRecord({
+      vehiclePlate: vehiclePlate,
+      date: record.date,
+      status: record.status,
+      technician: technicianName,
+      cost: record.cost.toString(),
+      description: record.description,
+      kilometers: record.kilometers?.toString() || "",
+    });
+    
+    // Reset custom parts
+    setCustomParts(customParts.map(item => ({ ...item, value: '', showInput: false })));
+    
+    // Set selected parts
+    setSelectedParts(record.parts || []);
+    
+    // Open the dialog
+    setDialogOpen(true);
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, boolean> = {};
+    const requiredFields = [
+      'vehiclePlate', 
+      'date', 
+      'status', 
+      'technician', 
+      'cost', 
+      'description',
+      'kilometers'
+    ];
+    
+    requiredFields.forEach(field => {
+      if (!newRecord[field as keyof typeof newRecord]) {
+        errors[field] = true;
+      }
+    });
+    
+    // Check if date is in the future
+    if (newRecord.date) {
+      const selectedDate = new Date(newRecord.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (selectedDate > today) {
+        errors.date = true;
+        toast({
+          title: "Invalid Date",
+          description: "Maintenance date cannot be in the future",
+          variant: "destructive"
+        });
+      }
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsLoading(prev => ({ ...prev, submit: true }));
+    
+    try {
+      // Find the vehicle ID from the plate
+      const vehicle = vehicles.find(v => v.plate === newRecord.vehiclePlate);
+      
+      // Find the technician ID from the name
+      const technician = technicians.find(t => t.name === newRecord.technician);
+      
+      // Create the maintenance record object
+      const maintenanceData = {
+        vehicle_id: vehicle?.id,
+        date: newRecord.date,
+        description: newRecord.description,
+        technician_id: technician?.id,
+        status: newRecord.status,
+        cost: parseFloat(parseFormattedNumber(newRecord.cost)) || 0,
+        kilometers: parseFloat(parseFormattedNumber(newRecord.kilometers)) || 0,
+      };
+      
+      // Process custom parts and save them
+      const customPartPromises = selectedParts
+        .filter(partName => partName.endsWith(' (Custom)'))
+        .map(async partName => {
+          // Extract the category by searching through customParts state
+          const partNameWithoutSuffix = partName.slice(0, -9); // Remove " (Custom)" suffix
+          
+          // Find any category with this part name
+          for (const category of busParts) {
+            // Try to add the custom part to this category
+            await partService.addCustomPart(category.category, partNameWithoutSuffix);
+          }
+        });
+      
+      // Wait for all custom parts to be saved
+      await Promise.all(customPartPromises);
+      
+      let updatedRecord;
+      
+      // Either update or create a record based on isEditMode
+      if (isEditMode && editRecordId) {
+        // Update the existing record
+        updatedRecord = await maintenanceService.updateMaintenanceRecord(
+          editRecordId,
+          maintenanceData, 
+          selectedParts
+        );
+      } else {
+        // Create a new record with current user
+        const currentUserEmail = user?.email || 'Unknown';
+        const username = currentUserEmail.split('@')[0];
+        updatedRecord = await maintenanceService.createMaintenanceRecord(
+          maintenanceData, 
+          selectedParts,
+          username
+        );
+      }
+      
+      // Refresh the records from the database
+      const updatedRecords = await maintenanceService.getMaintenanceRecords();
+      setRecords(updatedRecords);
+      
+      // Refresh the parts list to include any new custom parts
+      const updatedPartsData = await partService.getPartsByCategory();
+      const formattedParts = updatedPartsData.map(category => ({
+        category: category.name,
+        items: category.parts.map(part => ({
+          id: part.id,
+          name: part.name
+        }))
+      }));
+      setBusParts(formattedParts);
+      
+      // Reset form
+      setDialogOpen(false);
+      resetForm();
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: isEditMode 
+          ? "Maintenance record updated successfully" 
+          : "Maintenance record created successfully"
+      });
+    } catch (error) {
+      console.error('Error with maintenance record:', error);
+      toast({
+        title: "Error",
+        description: isEditMode
+          ? "Failed to update maintenance record. Please try again."
+          : "Failed to create maintenance record. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(prev => ({ ...prev, submit: false }));
+    }
+  };
+
+  // Function to reset form state
+  const resetForm = () => {
+    setNewRecord({
+      vehiclePlate: "",
+      date: "",
+      status: "Scheduled",
+      technician: "",
+      cost: "",
+      description: "",
+      kilometers: "",
+    });
+    setSelectedParts([]);
+    setCustomParts(customParts.map(item => ({ ...item, value: '', showInput: false })));
+    setFormErrors({});
+    setIsEditMode(false);
+    setEditRecordId(null);
+  };
+  
+  // Handle dialog open state change
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      resetForm();
+    }
+  };
+
+  const isDataLoading = isLoading.records || isLoading.vehicles || isLoading.technicians || isLoading.parts;
+
+  const handleDeleteConfirm = async () => {
+    if (recordToDelete) {
+      try {
+        await maintenanceService.deleteMaintenanceRecord(recordToDelete);
+        const updatedRecords = await maintenanceService.getMaintenanceRecords();
+        setRecords(updatedRecords);
+        setDeleteDialogOpen(false);
+        toast({
+          title: "Success",
+          description: "Maintenance record deleted successfully"
+        });
+      } catch (error) {
+        console.error('Error deleting maintenance record:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete maintenance record. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+  
+  const handleResetConfirm = () => {
+    resetForm();
+    setResetDialogOpen(false);
+  };
+
+  return (
+    <div className="flex-1 p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-800">Maintenance</h1>
+        
+        <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+          <DialogTrigger asChild>
+            <Button 
+              className="bg-black hover:bg-gray-800 text-white" 
+              disabled={isDataLoading}
+              onClick={() => {
+                resetForm();
+                setIsEditMode(false);
+              }}
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Schedule Maintenance
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {isEditMode ? "Edit Maintenance Record" : "Schedule New Maintenance"}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditMode 
+                  ? "Update the details for this maintenance record. Click submit when you're done."
+                  : "Enter the details for the new maintenance activity. Click submit when you're done."
+                }
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="vehiclePlate" className="flex items-center">
+                    Vehicle <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Select
+                    value={newRecord.vehiclePlate}
+                    onValueChange={(value) => handleSelectChange("vehiclePlate", value)}
+                  >
+                    <SelectTrigger className={formErrors.vehiclePlate ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicles.map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={vehicle.plate}>
+                          {vehicle.plate}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.vehiclePlate && (
+                    <p className="text-xs text-red-500">Vehicle is required</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="flex items-center">
+                    Date <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="date"
+                    name="date"
+                    type="date"
+                    value={newRecord.date}
+                    onChange={handleInputChange}
+                    required
+                    max={format(new Date(), 'yyyy-MM-dd')}
+                    className={formErrors.date ? "border-red-500" : ""}
+                  />
+                  {formErrors.date && (
+                    <p className="text-xs text-red-500">Date is required</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Only past or current dates allowed
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="kilometers" className="flex items-center">
+                    Kilometers <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="kilometers"
+                    name="kilometers"
+                    type="text"
+                    placeholder="0"
+                    value={newRecord.kilometers}
+                    onChange={handleInputChange}
+                    required
+                    className={formErrors.kilometers ? "border-red-500" : ""}
+                  />
+                  {formErrors.kilometers && (
+                    <p className="text-xs text-red-500">Kilometers is required</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status" className="flex items-center">
+                    Status <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Select
+                    value={newRecord.status}
+                    onValueChange={(value) => handleSelectChange("status", value)}
+                  >
+                    <SelectTrigger className={formErrors.status ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statuses.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.status && (
+                    <p className="text-xs text-red-500">Status is required</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="technician" className="flex items-center">
+                    Technician <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Select
+                    value={newRecord.technician}
+                    onValueChange={(value) => handleSelectChange("technician", value)}
+                  >
+                    <SelectTrigger className={formErrors.technician ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Assign technician" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {technicians.map((tech) => (
+                        <SelectItem key={tech.id} value={tech.name}>
+                          {tech.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.technician && (
+                    <p className="text-xs text-red-500">Technician is required</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cost" className="flex items-center">
+                    Cost (Kz) <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="cost"
+                    name="cost"
+                    type="text"
+                    placeholder="0.00"
+                    value={newRecord.cost}
+                    onChange={handleInputChange}
+                    className={formErrors.cost ? "border-red-500" : ""}
+                  />
+                  {formErrors.cost && (
+                    <p className="text-xs text-red-500">Cost is required</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description" className="flex items-center">
+                  Description <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  placeholder="Describe the maintenance work..."
+                  rows={3}
+                  value={newRecord.description}
+                  onChange={handleInputChange}
+                  required
+                  className={formErrors.description ? "border-red-500" : ""}
+                />
+                {formErrors.description && (
+                  <p className="text-xs text-red-500">Description is required</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Parts</Label>
+                  <span className="text-sm text-muted-foreground">{selectedParts.length} selected</span>
+                </div>
+                <ScrollArea className="h-64 border rounded-md p-4">
+                  {isLoading.parts ? (
+                    <div className="flex justify-center items-center h-full">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <span className="ml-2">Loading parts...</span>
+                    </div>
+                  ) : (
+                    <Accordion type="multiple" className="w-full">
+                      {busParts.map((category) => (
+                        <AccordionItem key={category.category} value={category.category}>
+                          <AccordionTrigger className="px-2">{category.category}</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="grid grid-cols-1 gap-2">
+                              {category.items.map((part) => (
+                                <div key={part.id} className="flex items-center space-x-2">
+                                  <Checkbox 
+                                    id={part.id} 
+                                    checked={selectedParts.includes(part.name)}
+                                    onCheckedChange={() => handlePartToggle(part.id, part.name)}
+                                  />
+                                  <label 
+                                    htmlFor={part.id}
+                                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                  >
+                                    {part.name}
+                                  </label>
+                                </div>
+                              ))}
+                              
+                              {/* Add "Other" option */}
+                              <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`${category.category.toLowerCase()}-other`} 
+                                  checked={customParts.find(item => 
+                                    item.category === category.category && item.showInput
+                                  )?.showInput || false}
+                                  onCheckedChange={() => handlePartToggle(
+                                    `${category.category.toLowerCase()}-other`, 
+                                    "Other"
+                                  )}
+                                />
+                                <label 
+                                  htmlFor={`${category.category.toLowerCase()}-other`}
+                                  className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                >
+                                  Other
+                                </label>
+                              </div>
+                              
+                              {/* Custom part input */}
+                              {customParts.find(item => 
+                                item.category === category.category && item.showInput
+                              ) && (
+                                <div className="mt-2 pl-6">
+                                  <div className="flex items-center space-x-2">
+                                    <Input 
+                                      placeholder="Enter custom part name"
+                                      className="h-8 text-sm"
+                                      value={customParts.find(item => item.category === category.category)?.value || ''}
+                                      onChange={(e) => handleCustomPartChange(category.category, e.target.value)}
+                                    />
+                                    <Button 
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 px-2"
+                                      onClick={() => handleAddCustomPart(category.category)}
+                                      disabled={!customParts.find(item => 
+                                        item.category === category.category
+                                      )?.value.trim()}
+                                    >
+                                      <PlusIcon className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  )}
+                </ScrollArea>
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                <span className="text-black">*</span> Required fields
+              </div>
+            </div>
+            <DialogFooter>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                  disabled={isLoading.submit}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isDataLoading || isLoading.submit}
+                  onClick={() => setResetDialogOpen(true)}
+                >
+                  Reset
+                </Button>
+                <Button
+                  onClick={handleSubmit} 
+                  disabled={!isFormValid() || isLoading.submit}
+                  className="bg-black hover:bg-gray-800 text-white"
+                >
+                  {isLoading.submit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isEditMode ? "Update" : "Submit"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {isDataLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="text-xl ml-4">Loading maintenance data...</span>
+        </div>
+      ) : (
+        <>
+          {/* Financial Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-100">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-indigo-900">
+                  Total Lifetime Maintenance Cost
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-indigo-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-indigo-900">{totalLifetimeCost.toLocaleString()} Kz</div>
+                <p className="text-xs text-indigo-700">
+                  Accumulated cost across all maintenance records
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-emerald-900">
+                  Current Month Maintenance Cost
+                </CardTitle>
+                <CreditCard className="h-4 w-4 text-emerald-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-900">{currentMonthCost.toLocaleString()} Kz</div>
+                <p className="text-xs text-emerald-700">
+                  Total maintenance expenses for {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Maintenance Records
+                </CardTitle>
+                <WrenchIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{records.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Lifetime maintenance records
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Completed This Month
+                </CardTitle>
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{completedMonthRecords.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  {currentMonthRecords.length} records this month
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Upcoming Scheduled
+                </CardTitle>
+                <CalendarIcon className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{upcomingMaintenance}</div>
+                <p className="text-xs text-muted-foreground">
+                  Pending maintenance activities
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="p-4 border-b">
+              <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex space-x-3">
+                  <Button 
+                    variant={activeTab === "all" ? "default" : "outline"}
+                    onClick={() => setActiveTab("all")}
+                    className={`h-9 ${activeTab === "all" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
+                  >
+                    All Records
+                  </Button>
+                  <Button
+                    variant={activeTab === "scheduled" ? "default" : "outline"}
+                    onClick={() => setActiveTab("scheduled")}
+                    className={`h-9 ${activeTab === "scheduled" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
+                  >
+                    Scheduled
+                  </Button>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Search records..."
+                      className="pl-8 h-9 md:w-[200px] lg:w-[300px]"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  
+                  <Button variant="outline" size="sm" className="h-9" onClick={() => setFilterDialogOpen(true)}>
+                    <Filter className={`h-4 w-4 mr-2 ${plateFilter !== "all" ? "text-black" : ""}`} />
+                    Filter {plateFilter !== "all" && <span className="ml-1 text-black">• Active</span>}
+                  </Button>
+                  
+                  <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Filter Maintenance Records</DialogTitle>
+                        <DialogDescription>
+                          Filter records by vehicle plate number
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="plateFilter">Vehicle Plate</Label>
+                          <Select
+                            value={plateFilter}
+                            onValueChange={(value) => setPlateFilter(value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select vehicle plate" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Vehicles</SelectItem>
+                              {vehicles.map((vehicle) => (
+                                <SelectItem key={vehicle.id} value={vehicle.plate}>
+                                  {vehicle.plate}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                          setPlateFilter("all");
+                          setFilterDialogOpen(false);
+                        }}>
+                          Reset
+                        </Button>
+                        <Button onClick={() => setFilterDialogOpen(false)}>
+                          Apply Filter
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="px-4 py-3 text-left text-sm font-medium">
+                      Vehicle
+                      {plateFilter !== "all" && (
+                        <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-black/10 text-black border border-black/20">
+                          Filtered: {plateFilter}
+                        </div>
+                      )}
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Description</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Parts</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Technician</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Created By</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">Cost</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRecords.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No maintenance records found
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredRecords.map((record) => (
+                      <tr key={record.id} className="border-b hover:bg-muted/50">
+                        <td className="px-4 py-3 text-sm">{record.vehicles?.plate || record.vehiclePlate}</td>
+                        <td className="px-4 py-3 text-sm">{new Date(record.date).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-sm max-w-xs truncate">{record.description}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {record.parts && record.parts.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {record.parts.slice(0, 3).map((part, index) => (
+                                <span 
+                                  key={index} 
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
+                                >
+                                  <WrenchIcon className="h-3 w-3 mr-1" />
+                                  {part}
+                                </span>
+                              ))}
+                              {record.parts.length > 3 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span 
+                                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 cursor-pointer"
+                                      >
+                                        +{record.parts.length - 3} more
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <div className="space-y-1">
+                                        {record.parts.slice(3).map((part, index) => (
+                                          <div key={index} className="flex items-center">
+                                            <WrenchIcon className="h-3 w-3 mr-1 text-blue-500" />
+                                            {part}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">{record.technicians?.name || record.technician}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {record.created_by 
+                            ? record.created_by.split('@')[0] 
+                            : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            record.status === "Completed" 
+                              ? "bg-green-100 text-green-800" 
+                              : record.status === "In Progress"
+                              ? "bg-blue-100 text-blue-800"
+                              : record.status === "Scheduled"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-red-100 text-red-800"
+                          }`}>
+                            {record.status === "Completed" ? (
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                            ) : record.status === "Scheduled" ? (
+                              <Clock className="h-3 w-3 mr-1" />
+                            ) : record.status === "In Progress" ? (
+                              <Clock className="h-3 w-3 mr-1" />
+                            ) : (
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                            )}
+                            {record.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right">{record.cost.toLocaleString()} Kz</td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleEditRecord(record)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => {
+                                setRecordToDelete(record.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="flex items-center justify-between px-4 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing <span className="font-medium">{filteredRecords.length}</span> of{" "}
+                <span className="font-medium">{records.length}</span> records
+                {plateFilter !== "all" && (
+                  <span className="ml-1">
+                    (filtered by plate: <span className="font-medium">{plateFilter}</span>)
+                  </span>
+                )}
+              </div>
+              <div className="flex space-x-2">
+                <Button variant="outline" size="sm" disabled>
+                  Previous
+                </Button>
+                <Button variant="outline" size="sm" disabled>
+                  Next
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Reset dialog */}
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Form</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to reset the form? All unsaved changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleResetConfirm}>
+              Reset
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Maintenance Record</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this maintenance record? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm} className="bg-black hover:bg-gray-800 text-white">
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+} 
