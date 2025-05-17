@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///Users/nourumuneza/go/src/royalexpress-fleet-manager/frontend/app/dashboard/maintenance/layout.tsx"],"sourcesContent":["import type { Metadata } from \"next\"\n\nexport const metadata: Metadata = {\n  title: \"Maintenance | Royal Express Fleet Manager\",\n  description: \"Manage vehicle maintenance records and schedules\",\n}\n\nexport default function MaintenanceLayout({\n  children,\n}: Readonly<{\n  children: React.ReactNode\n}>) {\n  return (\n    <section className=\"w-full h-full\">\n      {children}\n    </section>\n  )\n} "],"names":[],"mappings":";;;;;;AAEO,MAAM,WAAqB;IAChC,OAAO;IACP,aAAa;AACf;AAEe,SAAS,kBAAkB,EACxC,QAAQ,EAGR;IACA,qBACE,8OAAC;QAAQ,WAAU;kBAChB;;;;;;AAGP","debugId":null}}]
-}

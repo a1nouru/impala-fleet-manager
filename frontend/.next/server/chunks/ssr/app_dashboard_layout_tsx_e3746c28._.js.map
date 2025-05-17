@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///Users/nourumuneza/go/src/royalexpress-fleet-manager/frontend/app/dashboard/layout.tsx"],"sourcesContent":["import type { Metadata } from \"next\";\n\nexport const metadata: Metadata = {\n  title: \"Dashboard | Royal Express Fleet Management\",\n  description: \"Manage your bus fleet, track maintenance, and monitor spare parts inventory.\",\n};\n\nexport default function DashboardLayout({\n  children,\n}: Readonly<{\n  children: React.ReactNode;\n}>) {\n  return (\n    <div className=\"min-h-screen\">\n      {children}\n    </div>\n  );\n} "],"names":[],"mappings":";;;;;;AAEO,MAAM,WAAqB;IAChC,OAAO;IACP,aAAa;AACf;AAEe,SAAS,gBAAgB,EACtC,QAAQ,EAGR;IACA,qBACE,8OAAC;QAAI,WAAU;kBACZ;;;;;;AAGP","debugId":null}}]
-}
