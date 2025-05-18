@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/check-env.js && next build",
-    "build:local": "node -r dotenv/config scripts/check-env.js && next build",
+    "build:local": "npx dotenv -e .env.local -- node scripts/check-env.js && next build",
     "start": "next start",
     "lint": "next lint",
     "check-env": "node scripts/check-env.js"
@@ -41,7 +41,8 @@
     "@types/node": "^20",
     "@types/react": "19.1.4",
     "@types/react-dom": "^19",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.5.0",
+    "dotenv-cli": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
     "tailwindcss": "^4",
