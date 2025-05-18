@@ -1,14 +1,47 @@
-import { supabase } from '../lib/supabase';
+// import { supabase } from '../lib/supabase';
+import supabaseClient from '../lib/supabaseClient';
 
+/**
+ * Authentication service for Supabase
+ */
 export const authService = {
-  // Sign up with email and password
+  /**
+   * Get the current session
+   */
+  getCurrentSession: async () => {
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error getting session:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get the current user
+   */
+  getCurrentUser: async () => {
+    try {
+      const { data, error } = await supabaseClient.auth.getUser();
+      if (error) throw error;
+      return data.user;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Sign up with email and password
+   */
   signUp: async (email, password) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabaseClient.auth.signUp({
         email,
         password,
       });
-      
       if (error) throw error;
       return data;
     } catch (error) {
@@ -17,14 +50,15 @@ export const authService = {
     }
   },
 
-  // Sign in with email and password
+  /**
+   * Sign in with email and password
+   */
   signIn: async (email, password) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
         password,
       });
-      
       if (error) throw error;
       return data;
     } catch (error) {
@@ -33,13 +67,17 @@ export const authService = {
     }
   },
 
-  // Sign in with magic link (passwordless)
+  /**
+   * Sign in with magic link
+   */
   signInWithMagicLink: async (email) => {
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabaseClient.auth.signInWithOtp({
         email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
-      
       if (error) throw error;
       return data;
     } catch (error) {
@@ -48,10 +86,12 @@ export const authService = {
     }
   },
 
-  // Sign out
+  /**
+   * Sign out
+   */
   signOut: async () => {
     try {
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabaseClient.auth.signOut();
       if (error) throw error;
       return true;
     } catch (error) {
@@ -60,25 +100,30 @@ export const authService = {
     }
   },
 
-  // Reset password
+  /**
+   * Reset password
+   */
   resetPassword: async (email) => {
     try {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+      const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error resetting password:', error);
+      console.error('Error sending password reset:', error);
       throw error;
     }
   },
 
-  // Update user password
+  /**
+   * Update password
+   */
   updatePassword: async (newPassword) => {
     try {
-      const { data, error } = await supabase.auth.updateUser({
+      const { data, error } = await supabaseClient.auth.updateUser({
         password: newPassword,
       });
-      
       if (error) throw error;
       return data;
     } catch (error) {
@@ -87,34 +132,10 @@ export const authService = {
     }
   },
 
-  // Get the current user session
-  getCurrentSession: async () => {
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error getting session:', error);
-      return null;
-    }
-  },
-
-  // Get the current user
-  getCurrentUser: async () => {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      return user;
-    } catch (error) {
-      console.error('Error getting user:', error);
-      return null;
-    }
-  },
-
-  // Listen to auth state changes
+  /**
+   * Subscribe to auth state changes
+   */
   onAuthStateChange: (callback) => {
-    return supabase.auth.onAuthStateChange((event, session) => {
-      callback(event, session);
-    });
-  }
+    return supabaseClient.auth.onAuthStateChange(callback);
+  },
 }; 
