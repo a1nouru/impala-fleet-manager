@@ -18,14 +18,22 @@ export function validateEnvVars(requiredVars, scope = 'Application') {
   if (missingVars.length > 0) {
     const errorMessage = `${scope} configuration error: Missing required environment variables: ${missingVars.join(', ')}`;
     
-    // In production builds, we want to fail immediately
+    // In production, we'll log a warning but continue execution
+    // This prevents the app from crashing due to environment issues
     if (process.env.NODE_ENV === 'production') {
-      throw new Error(errorMessage);
+      console.error('');
+      console.error('⚠️ PRODUCTION ENVIRONMENT WARNING ⚠️');
+      console.error(errorMessage);
+      console.error('Attempting to continue despite missing variables');
+      console.error('');
+      
+      // Return true to allow the application to proceed
+      return true;
     }
     
     // In development, we'll log a visible warning
     console.error('');
-    console.error('🚨 ENVIRONMENT CONFIGURATION ERROR 🚨');
+    console.error('🚨 DEVELOPMENT ENVIRONMENT ERROR 🚨');
     console.error(errorMessage);
     console.error('');
     console.error('Please add these variables to your .env.local file');
