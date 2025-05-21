@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -36,62 +36,101 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/context/AuthContext"
 import { format } from "date-fns"
 
-// Type definitions
-interface Vehicle {
-  id: string;
-  plate: string;
-  model: string;
+// Loading component for better user experience
+function LoadingState() {
+  return (
+    <div className="w-full h-full min-h-[50vh] flex flex-col items-center justify-center gap-4 bg-white rounded-lg shadow p-8">
+      <Loader2 className="h-16 w-16 text-blue-600 animate-spin" />
+      <div className="text-center">
+        <p className="text-xl font-semibold text-gray-800 mb-2">Loading Maintenance Data</p>
+        <p className="text-gray-500">Please wait while we fetch your maintenance records...</p>
+      </div>
+    </div>
+  )
 }
-
-interface Technician {
-  id: string;
-  name: string;
-  email?: string;
-  active: boolean;
-}
-
-interface Part {
-  id: string;
-  name: string;
-}
-
-interface PartCategory {
-  category: string;
-  items: Part[];
-}
-
-interface CustomPartInput {
-  category: string;
-  value: string;
-  showInput: boolean;
-}
-
-interface MaintenanceRecord {
-  id: string;
-  date: string;
-  description: string;
-  status: string;
-  cost: number;
-  kilometers?: number;
-  vehicle_id?: string;
-  technician_id?: string;
-  vehiclePlate?: string;
-  technician?: string;
-  parts?: string[];
-  created_by?: string;
-  vehicles?: {
-    plate: string;
-    model: string;
-  };
-  technicians?: {
-    name: string;
-  };
-}
-
-// Status options
-const statuses = ["Scheduled", "In Progress", "Completed", "Cancelled"];
 
 export default function MaintenancePage() {
+  // Add a loading state at the top level
+  const [isPageLoading, setIsPageLoading] = useState(true);
+
+  useEffect(() => {
+    // This will ensure that the loading state is shown immediately
+    setIsPageLoading(true);
+    
+    // Set a timeout to simulate quick loading for better UX
+    const loadTimer = setTimeout(() => {
+      setIsPageLoading(false);
+    }, 300);
+    
+    return () => clearTimeout(loadTimer);
+  }, []);
+  
+  // If the page is still loading, show the loader
+  if (isPageLoading) {
+    return <LoadingState />;
+  }
+
+  // Continue with the regular component
+  return <MaintenanceContent />;
+}
+
+// Separate the main content into its own component
+function MaintenanceContent() {
+  // Type definitions
+  interface Vehicle {
+    id: string;
+    plate: string;
+    model: string;
+  }
+
+  interface Technician {
+    id: string;
+    name: string;
+    email?: string;
+    active: boolean;
+  }
+
+  interface Part {
+    id: string;
+    name: string;
+  }
+
+  interface PartCategory {
+    category: string;
+    items: Part[];
+  }
+
+  interface CustomPartInput {
+    category: string;
+    value: string;
+    showInput: boolean;
+  }
+
+  interface MaintenanceRecord {
+    id: string;
+    date: string;
+    description: string;
+    status: string;
+    cost: number;
+    kilometers?: number;
+    vehicle_id?: string;
+    technician_id?: string;
+    vehiclePlate?: string;
+    technician?: string;
+    parts?: string[];
+    created_by?: string;
+    vehicles?: {
+      plate: string;
+      model: string;
+    };
+    technicians?: {
+      name: string;
+    };
+  }
+
+  // Status options
+  const statuses = ["Scheduled", "In Progress", "Completed", "Cancelled"];
+
   // State for data
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -119,8 +158,11 @@ export default function MaintenancePage() {
     vehicles: true,
     technicians: true,
     parts: true,
-    submit: false
+    submit: false,
+    pageReady: false
   });
+
+  const [dataInitialized, setDataInitialized] = useState(false);
 
   const [newRecord, setNewRecord] = useState({
     vehiclePlate: "",
@@ -136,26 +178,31 @@ export default function MaintenancePage() {
 
   // Fetch all required data on component mount
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
       try {
-        // Fetch maintenance records
-        const maintenanceData = await maintenanceService.getMaintenanceRecords();
-        setRecords(maintenanceData);
-        setIsLoading(prev => ({ ...prev, records: false }));
+        // Fetch all data in parallel for better performance
+        const [
+          maintenanceData, 
+          vehicleData, 
+          technicianData, 
+          partData
+        ] = await Promise.all([
+          maintenanceService.getMaintenanceRecords(),
+          vehicleService.getVehicles(),
+          technicianService.getTechnicians(),
+          partService.getPartsByCategory()
+        ]);
         
-        // Fetch vehicles
-        const vehicleData = await vehicleService.getVehicles();
-        setVehicles(vehicleData);
-        setIsLoading(prev => ({ ...prev, vehicles: false }));
+        if (!isMounted) return;
         
-        // Fetch technicians
-        const technicianData = await technicianService.getTechnicians();
-        setTechnicians(technicianData);
-        setIsLoading(prev => ({ ...prev, technicians: false }));
+        // Set the data in state
+        setRecords(maintenanceData || []);
+        setVehicles(vehicleData || []);
+        setTechnicians(technicianData || []);
         
-        // Fetch parts by category
-        const partData = await partService.getPartsByCategory();
-        // Transform the data to match our expected format
+        // Transform the parts data
         const formattedParts = partData.map(category => ({
           category: category.name,
           items: category.parts.map(part => ({
@@ -164,7 +211,6 @@ export default function MaintenancePage() {
           }))
         }));
         setBusParts(formattedParts);
-        setIsLoading(prev => ({ ...prev, parts: false }));
 
         // Initialize customParts array with empty entries for each category
         const initialCustomParts = partData.map(category => ({
@@ -173,19 +219,53 @@ export default function MaintenancePage() {
           showInput: false
         }));
         setCustomParts(initialCustomParts);
+        
+        // Update loading states
+        setIsLoading({
+          records: false,
+          vehicles: false,
+          technicians: false,
+          parts: false,
+          submit: false,
+          pageReady: true
+        });
+        
+        setDataInitialized(true);
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load data. Please try refreshing the page.",
-          variant: "destructive"
-        });
+        if (isMounted) {
+          toast({
+            title: "Error",
+            description: "Failed to load data. Please try refreshing the page.",
+            variant: "destructive"
+          });
+          
+          // Even with error, mark loading as done to prevent infinite loading
+          setIsLoading({
+            records: false,
+            vehicles: false,
+            technicians: false,
+            parts: false,
+            submit: false,
+            pageReady: true
+          });
+        }
       }
     };
     
     fetchData();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, []);
-
+  
+  // Skip the rest of the render if data isn't initialized
+  if (!isLoading.pageReady) {
+    return <LoadingState />;
+  }
+  
   // Format number with commas
   const formatNumber = (value: string) => {
     // Remove non-numeric characters except decimal point

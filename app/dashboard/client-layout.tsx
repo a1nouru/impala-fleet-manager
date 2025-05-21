@@ -1,10 +1,23 @@
 "use client";
 
-import React from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/protected-route";
+import { Loader2 } from "lucide-react";
+
+// Loading component for content area
+function ContentLoadingFallback() {
+  return (
+    <div className="flex-1 h-full flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
+        <p className="text-gray-600 text-lg">Loading dashboard content...</p>
+      </div>
+    </div>
+  );
+}
 
 export function DashboardLayoutClient({
   children,
@@ -13,6 +26,19 @@ export function DashboardLayoutClient({
 }>) {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Simulate preloading common resources
+  useEffect(() => {
+    const preloadResources = async () => {
+      // Set a short timeout to allow the UI to render first
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 100);
+    };
+    
+    preloadResources();
+  }, []);
   
   const handleLogout = async () => {
     try {
@@ -31,7 +57,13 @@ export function DashboardLayoutClient({
           onLogout={handleLogout} 
         />
         <div className="flex-1 overflow-auto">
-          {children}
+          {isLoading ? (
+            <ContentLoadingFallback />
+          ) : (
+            <Suspense fallback={<ContentLoadingFallback />}>
+              {children}
+            </Suspense>
+          )}
         </div>
       </div>
     </ProtectedRoute>

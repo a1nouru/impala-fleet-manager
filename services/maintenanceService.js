@@ -1,4 +1,5 @@
-import { supabase } from '../lib/supabase'
+// import { supabase } from '../lib/supabase'
+import supabaseClient from '../lib/supabaseClient'
 
 // Initialize local storage for maintenance records if it doesn't exist
 const initializeLocalStorage = () => {
@@ -13,7 +14,7 @@ export const maintenanceService = {
   // Get all maintenance records
   getMaintenanceRecords: async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('maintenance_records')
         .select(`
           *,
@@ -33,7 +34,7 @@ export const maintenanceService = {
   // Get maintenance record by ID with parts
   getMaintenanceById: async (id) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('maintenance_records')
         .select(`
           *,
@@ -66,7 +67,7 @@ export const maintenanceService = {
       };
       
       // Create the maintenance record
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('maintenance_records')
         .insert([recordWithParts])
         .select();
@@ -93,7 +94,7 @@ export const maintenanceService = {
       };
       
       // Update the maintenance record
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('maintenance_records')
         .update(recordWithParts)
         .eq('id', id)
@@ -114,7 +115,7 @@ export const maintenanceService = {
   // Delete a maintenance record
   deleteMaintenanceRecord: async (id) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('maintenance_records')
         .delete()
         .eq('id', id);
