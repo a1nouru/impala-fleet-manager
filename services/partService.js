@@ -1,4 +1,5 @@
-import { supabase } from '../lib/supabase'
+// import { supabase } from '../lib/supabase'
+import supabaseClient from '../lib/supabaseClient'
 import { busParts } from '../data/partsData'
 
 // Initialize local storage for custom parts if it doesn't exist

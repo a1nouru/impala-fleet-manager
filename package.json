@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev.js",
+    "dev:next": "next dev",
     "build": "node scripts/check-env.js && next build",
     "build:local": "npx dotenv -e .env.local -- node scripts/check-env.js && next build",
     "start": "next start",
     "lint": "next lint",
-    "check-env": "node scripts/check-env.js"
+    "check-env": "node scripts/check-env.js",
+    "clean": "node scripts/clean.js",
+    "fresh": "node scripts/clean.js && npm run dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

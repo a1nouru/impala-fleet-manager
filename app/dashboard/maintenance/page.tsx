@@ -297,6 +297,11 @@ function MaintenanceContent() {
 
   // Filter records based on active tab, search term, and plate filter
   const filteredRecords = records.filter(record => {
+    // Debug: Log the record and its parts to see what's coming from the database
+    if (record.id) {
+      console.debug(`Record ${record.id} parts:`, record.parts);
+    }
+    
     // First filter by tab (all vs scheduled)
     if (activeTab === "scheduled" && record.status !== "Scheduled") {
       return false;
@@ -428,10 +433,26 @@ function MaintenanceContent() {
     // Determine the technician name - use technicians.name if available, otherwise technician 
     const technicianName = record.technicians?.name || record.technician || "";
     
+    // Fix the date display to ensure it shows the correct date in local timezone
+    const formattedDate = (() => {
+      // If there's no date, return empty string
+      if (!record.date) return "";
+      
+      try {
+        // For a date string like "2024-05-19", this ensures it remains "2024-05-19"
+        // without timezone adjustments that could shift it to the previous day
+        const dateParts = record.date.split('T')[0];
+        return dateParts;
+      } catch (error) {
+        console.error('Error formatting date for edit:', error);
+        return record.date; // Fallback to original date
+      }
+    })();
+    
     // Populate the form with record data
     setNewRecord({
       vehiclePlate: vehiclePlate,
-      date: record.date,
+      date: formattedDate,
       status: record.status,
       technician: technicianName,
       cost: record.cost.toString(),
@@ -501,16 +522,28 @@ function MaintenanceContent() {
       // Find the technician ID from the name
       const technician = technicians.find(t => t.name === newRecord.technician);
       
+      // Fix timezone issue by ensuring the date is formatted correctly
+      // For dates selected in the date picker (YYYY-MM-DD format)
+      const dateForStorage = (() => {
+        // The date picker returns strings in format YYYY-MM-DD
+        // We'll keep this exact format to avoid any timezone conversion issues
+        return newRecord.date;
+      })();
+      
       // Create the maintenance record object
       const maintenanceData = {
         vehicle_id: vehicle?.id,
-        date: newRecord.date,
+        date: dateForStorage,
         description: newRecord.description,
         technician_id: technician?.id,
         status: newRecord.status,
         cost: parseFloat(parseFormattedNumber(newRecord.cost)) || 0,
         kilometers: parseFloat(parseFormattedNumber(newRecord.kilometers)) || 0,
       };
+      
+      // Log the selected parts for debugging
+      console.log('Selected parts before submission:', selectedParts);
+      console.log('Date being submitted:', dateForStorage);
       
       // Process custom parts and save them
       const customPartPromises = selectedParts
@@ -531,21 +564,23 @@ function MaintenanceContent() {
       
       // Either update or create a record based on isEditMode
       if (isEditMode && editRecordId) {
-        // Update the existing record - no need to store the result
-        // Just pass the data to the update API later
-        await maintenanceService.updateMaintenanceRecord(editRecordId, {
-          ...maintenanceData,
-          parts: selectedParts
-        });
+        // Update the existing record
+        await maintenanceService.updateMaintenanceRecord(
+          editRecordId, 
+          maintenanceData,
+          selectedParts // Pass parts array separately
+        );
       } else {
         // Create a new record with current user
         const currentUserEmail = user?.email || 'Unknown';
         const username = currentUserEmail.split('@')[0];
-        await maintenanceService.createMaintenanceRecord({
-          ...maintenanceData,
-          created_by: username,
-          parts: selectedParts
-        });
+        
+        // Pass the data to the service, keeping parts as a separate parameter
+        await maintenanceService.createMaintenanceRecord(
+          maintenanceData,
+          selectedParts, // Pass parts array separately 
+          username
+        );
       }
       
       // Refresh the records from the database
@@ -1146,11 +1181,34 @@ function MaintenanceContent() {
                     filteredRecords.map((record) => (
                       <tr key={record.id} className="border-b hover:bg-muted/50">
                         <td className="px-4 py-3 text-sm">{record.vehicles?.plate || record.vehiclePlate}</td>
-                        <td className="px-4 py-3 text-sm">{new Date(record.date).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {(() => {
+                            // Format the date while preserving the day
+                            try {
+                              // Use the date string directly without conversion if possible
+                              if (record.date.includes('-')) {
+                                const [year, month, day] = record.date.split('T')[0].split('-');
+                                return `${month}/${day}/${year}`;
+                              }
+                              
+                              // Parse date with workaround to avoid timezone shifts
+                              const dateStr = record.date.split('T')[0]; // Get just the YYYY-MM-DD part
+                              const [year, month, day] = dateStr.split('-').map(Number);
+                              
+                              // Month is 0-indexed in JS Date, so subtract 1
+                              return `${month}/${day}/${year}`;
+                            } catch (e) {
+                              // Fallback to old method if there's an error
+                              return new Date(record.date).toLocaleDateString();
+                            }
+                          })()}
+                        </td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">{record.description}</td>
                         <td className="px-4 py-3 text-sm">
                           {record.parts && record.parts.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
+                              {/* Add debug info */}
+                              {/* {JSON.stringify(record.parts)} */}
                               {record.parts.slice(0, 3).map((part, index) => (
                                 <span 
                                   key={index} 

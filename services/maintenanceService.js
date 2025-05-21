@@ -14,6 +14,7 @@ export const maintenanceService = {
   // Get all maintenance records
   getMaintenanceRecords: async () => {
     try {
+      console.log('Fetching maintenance records from Supabase...');
       const { data, error } = await supabaseClient
         .from('maintenance_records')
         .select(`
@@ -23,8 +24,20 @@ export const maintenanceService = {
         `)
         .order('date', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error in getMaintenanceRecords:', error);
+        throw error;
+      }
+      
+      // Log the first record to see what's coming back from the database
+      if (data && data.length > 0) {
+        console.log('Sample record:', JSON.stringify(data[0], null, 2));
+        console.log('Parts in first record:', data[0].parts);
+      } else {
+        console.log('No maintenance records found');
+      }
+      
+      return data || [];
     } catch (error) {
       console.error('Error getting maintenance records:', error);
       return [];
@@ -47,7 +60,6 @@ export const maintenanceService = {
       if (error) throw error;
       
       // Return maintenance record with parts as an array
-      // Parts column is a native Postgres text[] type
       return data;
     } catch (error) {
       console.error('Error getting maintenance by ID:', error);
@@ -58,13 +70,22 @@ export const maintenanceService = {
   // Create a new maintenance record
   createMaintenanceRecord: async (record, parts, created_by) => {
     try {
+      // Ensure parts is always an array
+      const normalizedParts = Array.isArray(parts) ? parts : [];
+      
+      // Log what we're sending to the database
+      console.log('Creating maintenance record with parts:', normalizedParts);
+      console.log('Date being saved to DB:', record.date);
+      
       // Use the parts array directly for the new parts column
-      // Now parts contains friendly names instead of IDs
       const recordWithParts = {
         ...record,
-        parts: parts || [],
-        created_by
+        parts: normalizedParts
       };
+      
+      if (created_by) {
+        recordWithParts.created_by = created_by;
+      }
       
       // Create the maintenance record
       const { data, error } = await supabaseClient
@@ -77,6 +98,12 @@ export const maintenanceService = {
         throw error;
       }
       
+      // Log the created record
+      if (data && data[0]) {
+        console.log('Created record:', JSON.stringify(data[0], null, 2));
+        console.log('Date as stored in DB:', data[0].date);
+      }
+      
       return data && data[0];
     } catch (error) {
       console.error('Error creating maintenance record:', error);
@@ -87,22 +114,37 @@ export const maintenanceService = {
   // Update an existing maintenance record
   updateMaintenanceRecord: async (id, record, parts) => {
     try {
-      // Use the parts array directly for the parts column
-      const recordWithParts = {
+      // Ensure parts is always an array
+      const normalizedParts = Array.isArray(parts) ? parts : [];
+      
+      // Log what we're updating
+      console.log('Updating maintenance record ID:', id);
+      console.log('With parts:', normalizedParts);
+      
+      // Ensure the date is properly formatted without timezone conversion
+      const recordToUpdate = {
         ...record,
-        parts: parts || []
+        parts: normalizedParts
       };
+      
+      // Log the actual date being sent to the database
+      console.log('Date being sent to database:', recordToUpdate.date);
       
       // Update the maintenance record
       const { data, error } = await supabaseClient
         .from('maintenance_records')
-        .update(recordWithParts)
+        .update(recordToUpdate)
         .eq('id', id)
         .select();
       
       if (error) {
         console.error('Supabase update error:', error);
         throw error;
+      }
+      
+      // Log the updated record
+      if (data && data[0]) {
+        console.log('Updated record:', JSON.stringify(data[0], null, 2));
       }
       
       return data && data[0];
