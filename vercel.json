@@ -11,5 +11,15 @@
       "src": "/(.*)",
       "dest": "/$1"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/health",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/warmup",
+      "schedule": "* * * * *"
+    }
   ]
 } 
