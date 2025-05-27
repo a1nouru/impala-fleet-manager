@@ -11,10 +11,10 @@ import { toast } from "@/components/ui/use-toast";
 // Loading component for content area
 function ContentLoadingFallback() {
   return (
-    <div className="flex-1 h-full flex flex-col items-center justify-center">
+    <div className="flex-1 h-full flex flex-col items-center justify-center p-4">
       <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
-        <p className="text-gray-600 text-lg">Loading dashboard content...</p>
+        <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600 animate-spin" />
+        <p className="text-gray-600 text-base sm:text-lg text-center">Loading dashboard content...</p>
       </div>
     </div>
   );
@@ -81,12 +81,17 @@ export function DashboardLayoutClient({
           userName={user?.email?.split('@')[0] || "User"} 
           onLogout={handleLogout} 
         />
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto md:ml-0">
+          {/* Mobile padding to account for hamburger menu */}
+          <div className="md:hidden h-14 sm:h-16" />
+          
           {isLoading ? (
             <ContentLoadingFallback />
           ) : (
             <Suspense fallback={<ContentLoadingFallback />}>
-              {children}
+              <div className="p-3 sm:p-4 md:p-6 lg:p-8 min-h-full">
+                {children}
+              </div>
             </Suspense>
           )}
         </div>

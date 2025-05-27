@@ -200,56 +200,59 @@ export default function VehiclesPage() {
     setEditVehicleId(null);
   };
 
-  // Handle dialog open state change
+  // Handle dialog open change
   const handleDialogOpenChange = (open: boolean) => {
     setDialogOpen(open);
-    
     if (!open) {
       resetForm();
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-4 text-lg">Loading vehicles...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex-1 p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-800">Vehicles</h1>
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">Vehicles</h1>
         
         <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
-            <Button
-              className="bg-primary"
-              onClick={() => {
-                resetForm();
-                setIsEditMode(false);
-              }}
-            >
+            <Button className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto">
               <PlusCircle className="h-4 w-4 mr-2" />
-              Add Vehicle
+              <span className="hidden sm:inline">Add Vehicle</span>
+              <span className="sm:hidden">Add Vehicle</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-lg">
                 {isEditMode ? "Edit Vehicle" : "Add New Vehicle"}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-sm">
                 {isEditMode 
                   ? "Update the vehicle details below."
-                  : "Enter the details of the new vehicle."
+                  : "Enter the details for the new vehicle."
                 }
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="plate" className="flex items-center">
-                  License Plate <span className="text-red-500 ml-1">*</span>
+                <Label htmlFor="plate" className="text-sm">
+                  License Plate <span className="text-red-500">*</span>
                 </Label>
-                <Input 
+                <Input
                   id="plate"
                   name="plate"
+                  placeholder="e.g., ABC-123"
                   value={newVehicle.plate}
                   onChange={handleInputChange}
-                  placeholder="Enter license plate"
                   className={formErrors.plate ? "border-red-500" : ""}
                 />
                 {formErrors.plate && (
@@ -257,214 +260,162 @@ export default function VehiclesPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="model" className="flex items-center">
-                  Model <span className="text-red-500 ml-1">*</span>
+                <Label htmlFor="model" className="text-sm">
+                  Vehicle Model <span className="text-red-500">*</span>
                 </Label>
-                <Input 
+                <Input
                   id="model"
                   name="model"
+                  placeholder="e.g., Toyota Hiace"
                   value={newVehicle.model}
                   onChange={handleInputChange}
-                  placeholder="Enter vehicle model"
                   className={formErrors.model ? "border-red-500" : ""}
                 />
                 {formErrors.model && (
-                  <p className="text-xs text-red-500">Model is required</p>
+                  <p className="text-xs text-red-500">Vehicle model is required</p>
                 )}
               </div>
-              <div className="text-xs text-muted-foreground mt-2">
-                <span className="text-red-500">*</span> Required fields
-              </div>
             </div>
-            <DialogFooter>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isEditMode ? "Update" : "Add"} Vehicle
-                </Button>
-              </div>
+            <DialogFooter className="flex-col sm:flex-row space-y-2 sm:space-y-0">
+              <Button 
+                variant="outline" 
+                onClick={() => setDialogOpen(false)}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isSubmitting}
+                className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {isEditMode ? "Updating..." : "Adding..."}
+                  </>
+                ) : (
+                  isEditMode ? "Update Vehicle" : "Add Vehicle"
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm">
-        <div className="p-4 border-b">
-          <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between">
-            <div className="text-lg font-medium">Vehicle Fleet</div>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search vehicles..."
-                className="pl-8 h-9 md:w-[300px]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Search vehicles by plate or model..."
+          className="pl-10"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
 
-        <div className="overflow-x-auto">
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="text-xl ml-4">Loading vehicles...</span>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-4 py-3 text-left text-sm font-medium">License Plate</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Model</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Added On</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredVehicles.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
-                      {vehicles.length === 0 
-                        ? "No vehicles found. Add your first vehicle!" 
-                        : "No vehicles match your search."}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredVehicles.map((vehicle) => (
-                    <tr key={vehicle.id} className="border-b hover:bg-muted/50">
-                      <td className="px-4 py-3 text-sm font-medium">{vehicle.plate}</td>
-                      <td className="px-4 py-3 text-sm">{vehicle.model}</td>
-                      <td className="px-4 py-3 text-sm">
-                        {vehicle.created_at 
-                          ? new Date(vehicle.created_at).toLocaleDateString() 
-                          : 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditVehicle(vehicle)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setVehicleToDelete(vehicle.id);
-                              setDeleteDialogOpen(true);
-                            }}
-                            className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+      {/* Vehicles Grid */}
+      {filteredVehicles.length === 0 ? (
+        <div className="text-center py-12">
+          <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {searchTerm ? "No vehicles found" : "No vehicles yet"}
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            {searchTerm 
+              ? "Try adjusting your search terms"
+              : "Get started by adding your first vehicle"
+            }
+          </p>
+          {!searchTerm && (
+            <Button 
+              onClick={() => setDialogOpen(true)}
+              className="bg-black hover:bg-gray-800 text-white"
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Vehicle
+            </Button>
           )}
         </div>
-
-        <div className="px-4 py-4 border-t">
-          <div className="text-sm text-muted-foreground">
-            Showing <span className="font-medium">{filteredVehicles.length}</span> of{" "}
-            <span className="font-medium">{vehicles.length}</span> vehicles
-          </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          {filteredVehicles.map((vehicle) => (
+            <Card key={vehicle.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-semibold">
+                  {vehicle.plate}
+                </CardTitle>
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditVehicle(vehicle)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                    <span className="sr-only">Edit</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setVehicleToDelete(vehicle.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                    className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    <span className="sr-only">Delete</span>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Car className="h-4 w-4 mr-2" />
+                    {vehicle.model}
+                  </div>
+                  {vehicle.created_at && (
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Added {new Date(vehicle.created_at).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </div>
+      )}
 
-      {/* Add some statistics cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Vehicles
-            </CardTitle>
-            <Car className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{vehicles.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Vehicles in the fleet
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Recently Added
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {vehicles.length > 0 && vehicles[0].created_at
-                ? new Date(vehicles[0].created_at).toLocaleDateString()
-                : 'N/A'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Date of most recent vehicle addition
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Vehicle Models
-            </CardTitle>
-            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {new Set(vehicles.map(v => v.model)).size}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Unique vehicle models in fleet
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Delete confirmation dialog */}
+      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="mx-4 w-[calc(100vw-2rem)]">
           <DialogHeader>
             <DialogTitle>Delete Vehicle</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this vehicle? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row space-y-2 sm:space-y-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
-              Delete
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteConfirm}
+              className="w-full sm:w-auto"
+            >
+              Delete Vehicle
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 } 

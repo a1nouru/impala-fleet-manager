@@ -679,14 +679,14 @@ function MaintenanceContent() {
   };
 
   return (
-    <div className="flex-1 p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-800">Maintenance</h1>
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">Maintenance</h1>
         
         <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
             <Button 
-              className="bg-black hover:bg-gray-800 text-white" 
+              className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto" 
               disabled={isDataLoading}
               onClick={() => {
                 resetForm();
@@ -694,15 +694,16 @@ function MaintenanceContent() {
               }}
             >
               <PlusCircle className="h-4 w-4 mr-2" />
-              Schedule Maintenance
+              <span className="hidden sm:inline">Schedule Maintenance</span>
+              <span className="sm:hidden">Add Maintenance</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 w-[calc(100vw-2rem)]">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-lg">
                 {isEditMode ? "Edit Maintenance Record" : "Schedule New Maintenance"}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-sm">
                 {isEditMode 
                   ? "Update the details for this maintenance record. Click submit when you're done."
                   : "Enter the details for the new maintenance activity. Click submit when you're done."
@@ -710,9 +711,9 @@ function MaintenanceContent() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="vehiclePlate" className="flex items-center">
+                  <Label htmlFor="vehiclePlate" className="flex items-center text-sm">
                     Vehicle <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Select
@@ -735,7 +736,7 @@ function MaintenanceContent() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="flex items-center">
+                  <Label htmlFor="date" className="flex items-center text-sm">
                     Date <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
@@ -756,7 +757,7 @@ function MaintenanceContent() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="kilometers" className="flex items-center">
+                  <Label htmlFor="kilometers" className="flex items-center text-sm">
                     Kilometers <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
@@ -774,7 +775,7 @@ function MaintenanceContent() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status" className="flex items-center">
+                  <Label htmlFor="status" className="flex items-center text-sm">
                     Status <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Select
@@ -797,7 +798,7 @@ function MaintenanceContent() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="technician" className="flex items-center">
+                  <Label htmlFor="technician" className="flex items-center text-sm">
                     Technician <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Select
@@ -820,7 +821,7 @@ function MaintenanceContent() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cost" className="flex items-center">
+                  <Label htmlFor="cost" className="flex items-center text-sm">
                     Cost (Kz) <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
@@ -838,7 +839,7 @@ function MaintenanceContent() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description" className="flex items-center">
+                <Label htmlFor="description" className="flex items-center text-sm">
                   Description <span className="text-red-500 ml-1">*</span>
                 </Label>
                 <Textarea
@@ -857,26 +858,26 @@ function MaintenanceContent() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
-                  <Label>Parts</Label>
+                  <Label className="text-sm">Parts</Label>
                   <span className="text-sm text-muted-foreground">{selectedParts.length} selected</span>
                 </div>
-                <ScrollArea className="h-64 border rounded-md p-4">
+                <ScrollArea className="h-48 sm:h-64 border rounded-md p-4">
                   {isLoading.parts ? (
                     <div className="flex justify-center items-center h-full">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      <span className="ml-2">Loading parts...</span>
+                      <span className="ml-2 text-sm">Loading parts...</span>
                     </div>
                   ) : (
                     <Accordion type="multiple" className="w-full">
                       {busParts.map((category) => (
                         <AccordionItem key={category.category} value={category.category}>
-                          <AccordionTrigger className="px-2">{category.category}</AccordionTrigger>
+                          <AccordionTrigger className="px-2 text-sm">{category.category}</AccordionTrigger>
                           <AccordionContent>
                             <div className="grid grid-cols-1 gap-2">
                               {category.items.map((part) => (
                                 <div key={part.id} className="flex items-center space-x-2">
                                   <Checkbox 
-                                    id={part.id} 
+                                    id={part.id}
                                     checked={selectedParts.includes(part.name)}
                                     onCheckedChange={() => handlePartToggle(part.id, part.name)}
                                   />
@@ -988,7 +989,7 @@ function MaintenanceContent() {
       ) : (
         <>
           {/* Financial Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
             <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-indigo-900">
@@ -997,7 +998,7 @@ function MaintenanceContent() {
                 <DollarSign className="h-4 w-4 text-indigo-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-indigo-900">{totalLifetimeCost.toLocaleString()} Kz</div>
+                <div className="text-xl md:text-2xl font-bold text-indigo-900">{totalLifetimeCost.toLocaleString()} Kz</div>
                 <p className="text-xs text-indigo-700">
                   Accumulated cost across all maintenance records
                 </p>
@@ -1012,7 +1013,7 @@ function MaintenanceContent() {
                 <CreditCard className="h-4 w-4 text-emerald-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-emerald-900">{currentMonthCost.toLocaleString()} Kz</div>
+                <div className="text-xl md:text-2xl font-bold text-emerald-900">{currentMonthCost.toLocaleString()} Kz</div>
                 <p className="text-xs text-emerald-700">
                   Total maintenance expenses for {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
                 </p>
@@ -1020,7 +1021,7 @@ function MaintenanceContent() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -1029,7 +1030,7 @@ function MaintenanceContent() {
                 <WrenchIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{records.length}</div>
+                <div className="text-xl md:text-2xl font-bold">{records.length}</div>
                 <p className="text-xs text-muted-foreground">
                   Lifetime maintenance records
                 </p>
@@ -1043,13 +1044,13 @@ function MaintenanceContent() {
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{completedMonthRecords.length}</div>
+                <div className="text-xl md:text-2xl font-bold">{completedMonthRecords.length}</div>
                 <p className="text-xs text-muted-foreground">
                   {currentMonthRecords.length} records this month
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="sm:col-span-2 lg:col-span-1">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
                   Upcoming Scheduled
@@ -1057,7 +1058,7 @@ function MaintenanceContent() {
                 <CalendarIcon className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{upcomingMaintenance}</div>
+                <div className="text-xl md:text-2xl font-bold">{upcomingMaintenance}</div>
                 <p className="text-xs text-muted-foreground">
                   Pending maintenance activities
                 </p>
@@ -1067,8 +1068,8 @@ function MaintenanceContent() {
 
           <div className="bg-white rounded-lg shadow-sm">
             <div className="p-4 border-b">
-              <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex space-x-3">
+              <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                   <Button 
                     variant={activeTab === "all" ? "default" : "outline"}
                     onClick={() => setActiveTab("all")}
@@ -1085,13 +1086,13 @@ function MaintenanceContent() {
                   </Button>
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
                       placeholder="Search records..."
-                      className="pl-8 h-9 md:w-[200px] lg:w-[300px]"
+                      className="pl-8 h-9 w-full sm:w-[200px] lg:w-[300px]"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -1099,11 +1100,13 @@ function MaintenanceContent() {
                   
                   <Button variant="outline" size="sm" className="h-9" onClick={() => setFilterDialogOpen(true)}>
                     <Filter className={`h-4 w-4 mr-2 ${plateFilter !== "all" ? "text-black" : ""}`} />
-                    Filter {plateFilter !== "all" && <span className="ml-1 text-black">• Active</span>}
+                    <span className="hidden sm:inline">Filter</span>
+                    <span className="sm:hidden">Filter</span>
+                    {plateFilter !== "all" && <span className="ml-1 text-black">• Active</span>}
                   </Button>
                   
                   <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-                    <DialogContent className="sm:max-w-[425px]">
+                    <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
                       <DialogHeader>
                         <DialogTitle>Filter Maintenance Records</DialogTitle>
                         <DialogDescription>
@@ -1131,14 +1134,14 @@ function MaintenanceContent() {
                           </Select>
                         </div>
                       </div>
-                      <DialogFooter>
+                      <DialogFooter className="flex-col sm:flex-row space-y-2 sm:space-y-0">
                         <Button variant="outline" onClick={() => {
                           setPlateFilter("all");
                           setFilterDialogOpen(false);
-                        }}>
+                        }} className="w-full sm:w-auto">
                           Reset
                         </Button>
-                        <Button onClick={() => setFilterDialogOpen(false)}>
+                        <Button onClick={() => setFilterDialogOpen(false)} className="w-full sm:w-auto">
                           Apply Filter
                         </Button>
                       </DialogFooter>
@@ -1148,7 +1151,8 @@ function MaintenanceContent() {
               </div>
             </div>
             
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -1173,7 +1177,7 @@ function MaintenanceContent() {
                 <tbody>
                   {filteredRecords.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                      <td colSpan={9} className="text-center py-8 text-muted-foreground">
                         No maintenance records found
                       </td>
                     </tr>
@@ -1307,12 +1311,145 @@ function MaintenanceContent() {
               </table>
             </div>
             
-            <div className="flex items-center justify-between px-4 py-4 border-t">
-              <div className="text-sm text-muted-foreground">
+            {/* Mobile Card View */}
+            <div className="lg:hidden">
+              {filteredRecords.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No maintenance records found
+                </div>
+              ) : (
+                <div className="space-y-4 p-4">
+                  {filteredRecords.map((record) => (
+                    <Card key={record.id} className="border border-gray-200">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-semibold text-lg">{record.vehicles?.plate || record.vehiclePlate}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {(() => {
+                                try {
+                                  if (record.date.includes('-')) {
+                                    const [year, month, day] = record.date.split('T')[0].split('-');
+                                    return `${month}/${day}/${year}`;
+                                  }
+                                  const dateStr = record.date.split('T')[0];
+                                  const [year, month, day] = dateStr.split('-').map(Number);
+                                  return `${month}/${day}/${year}`;
+                                } catch (e) {
+                                  return new Date(record.date).toLocaleDateString();
+                                }
+                              })()}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleEditRecord(record)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => {
+                                setRecordToDelete(record.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Description</p>
+                            <p className="text-sm text-gray-600">{record.description}</p>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Status</p>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                record.status === "Completed" 
+                                  ? "bg-green-100 text-green-800" 
+                                  : record.status === "In Progress"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : record.status === "Scheduled"
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}>
+                                {record.status === "Completed" ? (
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                ) : record.status === "Scheduled" ? (
+                                  <Clock className="h-3 w-3 mr-1" />
+                                ) : record.status === "In Progress" ? (
+                                  <Clock className="h-3 w-3 mr-1" />
+                                ) : (
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                )}
+                                {record.status}
+                              </span>
+                            </div>
+                            
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Cost</p>
+                              <p className="text-sm font-semibold text-gray-900">{record.cost.toLocaleString()} Kz</p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Technician</p>
+                            <p className="text-sm text-gray-600">{record.technicians?.name || record.technician}</p>
+                          </div>
+                          
+                          {record.parts && record.parts.length > 0 && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700 mb-1">Parts</p>
+                              <div className="flex flex-wrap gap-1">
+                                {record.parts.slice(0, 3).map((part, index) => (
+                                  <span 
+                                    key={index} 
+                                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
+                                  >
+                                    <WrenchIcon className="h-3 w-3 mr-1" />
+                                    {part}
+                                  </span>
+                                ))}
+                                {record.parts.length > 3 && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                    +{record.parts.length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {record.created_by && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Created By</p>
+                              <p className="text-sm text-gray-600">{record.created_by.split('@')[0]}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t space-y-2 sm:space-y-0">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
                 Showing <span className="font-medium">{filteredRecords.length}</span> of{" "}
                 <span className="font-medium">{records.length}</span> records
                 {plateFilter !== "all" && (
-                  <span className="ml-1">
+                  <span className="block sm:inline sm:ml-1">
                     (filtered by plate: <span className="font-medium">{plateFilter}</span>)
                   </span>
                 )}
