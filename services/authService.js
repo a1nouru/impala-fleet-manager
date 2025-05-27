@@ -91,8 +91,30 @@ export const authService = {
    */
   signOut: async () => {
     try {
+      // Clear Supabase session
       const { error } = await supabaseClient.auth.signOut();
       if (error) throw error;
+      
+      // Clear all browser storage to prevent session conflicts
+      if (typeof window !== 'undefined') {
+        // Clear localStorage
+        localStorage.removeItem('app-session-state');
+        localStorage.removeItem('supabase.auth.token');
+        
+        // Clear sessionStorage
+        sessionStorage.clear();
+        
+        // Clear any cached auth data
+        const authKeys = Object.keys(localStorage).filter(key => 
+          key.includes('supabase') || 
+          key.includes('auth') || 
+          key.includes('session')
+        );
+        authKeys.forEach(key => localStorage.removeItem(key));
+        
+        console.log('🧹 Browser storage cleared after logout');
+      }
+      
       return true;
     } catch (error) {
       console.error('Error signing out:', error);

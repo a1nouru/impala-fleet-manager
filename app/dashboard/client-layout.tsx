@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Loader2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 // Loading component for content area
 function ContentLoadingFallback() {
@@ -42,10 +43,34 @@ export function DashboardLayoutClient({
   
   const handleLogout = async () => {
     try {
+      console.log('🚪 Initiating logout...');
+      
+      // Show loading state
+      toast({
+        title: "Signing out...",
+        description: "Please wait while we sign you out",
+      });
+      
       await signOut();
+      
+      // Show success message
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out",
+        variant: "default",
+      });
+      
+      console.log('✅ Logout completed');
       router.push("/");
     } catch (error) {
       console.error("Error logging out:", error);
+      
+      // Show error message
+      toast({
+        title: "Logout error",
+        description: "There was an issue signing you out. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

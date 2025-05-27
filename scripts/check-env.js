@@ -17,19 +17,30 @@ const missingVars = requiredVars.filter(varName => {
   return !value || value.trim() === '';
 });
 
-// Special case for Vercel deployment - don't fail the build
+// Special case for deployment platforms - don't fail the build
 const isVercelDeployment = process.env.VERCEL === '1';
+const isRailwayDeployment = process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_PROJECT_ID;
+const isDeployment = isVercelDeployment || isRailwayDeployment;
 
 // Output results
 if (missingVars.length > 0) {
-  if (isVercelDeployment) {
-    // In Vercel deployments, warn but don't fail the build
-    console.warn('\n⚠️ VERCEL DEPLOYMENT WARNING ⚠️');
+  if (isDeployment) {
+    // In deployment environments, warn but don't fail the build
+    const platform = isVercelDeployment ? 'VERCEL' : isRailwayDeployment ? 'RAILWAY' : 'DEPLOYMENT';
+    console.warn(`\n⚠️ ${platform} DEPLOYMENT WARNING ⚠️`);
     console.warn('The following environment variables are missing:');
     missingVars.forEach(varName => {
       console.warn(`  - ${varName}`);
     });
-    console.warn('\nThese should be configured in your Vercel project settings.');
+    
+    if (isVercelDeployment) {
+      console.warn('\nThese should be configured in your Vercel project settings.');
+    } else if (isRailwayDeployment) {
+      console.warn('\nThese should be configured in your Railway project settings.');
+    } else {
+      console.warn('\nThese should be configured in your deployment platform settings.');
+    }
+    
     console.warn('Continuing with the build anyway...\n');
     console.log('✅ Proceeding with build despite missing environment variables');
   } else {

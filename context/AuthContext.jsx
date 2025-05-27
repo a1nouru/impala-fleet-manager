@@ -95,11 +95,25 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     try {
-      await authService.signOut();
+      // Set loading state to prevent UI issues
+      setLoading(true);
+      
+      // Clear local state immediately
       setUser(null);
       setSession(null);
+      
+      // Call the auth service to clear Supabase session and browser storage
+      await authService.signOut();
+      
+      console.log('✅ User signed out successfully');
     } catch (error) {
+      console.error('Error during sign out:', error);
+      // Even if there's an error, clear local state
+      setUser(null);
+      setSession(null);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 

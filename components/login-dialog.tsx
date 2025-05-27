@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { X, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { prepareForLogin, detectAuthConflicts } from "@/utils/authUtils";
 
 export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
@@ -23,6 +24,19 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const [error, setError] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+
+  // Prepare browser for login when dialog opens
+  useEffect(() => {
+    if (open) {
+      console.log('🔓 Login dialog opened - preparing browser...');
+      
+      // Check for auth conflicts and clear if needed
+      const hasConflicts = detectAuthConflicts();
+      if (hasConflicts) {
+        prepareForLogin();
+      }
+    }
+  }, [open]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
