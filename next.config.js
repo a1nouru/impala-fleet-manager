@@ -6,6 +6,59 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  
+  // Add headers to prevent caching issues during cold starts
+  async headers() {
+    return [
+      {
+        // Strict no-cache for API routes to prevent session/state conflicts
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
+      {
+        // No-cache for dynamic pages and admin routes
+        source: '/(admin|dashboard|profile)/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
+      {
+        // Allow short-term caching for static assets but prevent long-term caching issues
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=60, must-revalidate',
+          },
+        ],
+      },
+    ];
+  },
+  
   // Function to validate environment variables before build
   webpack: (config, { dev, isServer }) => {
     // We only want to run validation in non-dev environments to avoid

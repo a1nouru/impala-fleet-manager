@@ -5,10 +5,44 @@ export default function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
   // Log the request path (helpful for debugging)
-  console.log(`Middleware processing: ${path}`);
+  console.log(`🌐 Middleware processing: ${path}`);
   
-  // Continue with the request as normal
-  return NextResponse.next();
+  // Create response
+  const response = NextResponse.next();
+  
+  // Add cold start detection headers
+  const startTime = Date.now();
+  response.headers.set('X-Request-Start', startTime.toString());
+  response.headers.set('X-Middleware-Timestamp', new Date().toISOString());
+  
+  // Add session state protection headers for dynamic routes
+  if (path.startsWith('/admin') || path.startsWith('/dashboard') || path.startsWith('/profile')) {
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    // Add session state validation header
+    response.headers.set('X-Session-Validation', 'required');
+    
+    console.log(`🔒 Applied session protection headers for: ${path}`);
+  }
+  
+  // Add warmup detection for health/warmup endpoints
+  if (path.startsWith('/api/health') || path.startsWith('/api/warmup')) {
+    const userAgent = request.headers.get('user-agent') || '';
+    const isWarmupRequest = userAgent.includes('Warmup') || userAgent.includes('Vercel-Cron');
+    
+    if (isWarmupRequest) {
+      response.headers.set('X-Warmup-Request', 'true');
+      console.log(`🔥 Warmup request detected for: ${path}`);
+    }
+  }
+  
+  // Add performance monitoring headers
+  response.headers.set('X-Powered-By', 'Next.js + Vercel');
+  response.headers.set('X-Cold-Start-Prevention', 'active');
+  
+  return response;
 }
 
 // Configure middleware to run on specific paths
@@ -16,12 +50,13 @@ export const config = {
   matcher: [
     /*
      * Match all paths except for:
-     * 1. /api routes
-     * 2. /_next (Next.js internals)
-     * 3. /_static (inside /public)
-     * 4. /_vercel (Vercel internals)
-     * 5. Static files (/favicon.ico, /sitemap.xml, etc.)
+     * 1. /_next (Next.js internals)
+     * 2. /_static (inside /public)
+     * 3. /_vercel (Vercel internals)
+     * 4. Static files (/favicon.ico, /sitemap.xml, etc.)
+     * 
+     * Note: We now include /api routes for warmup detection
      */
-    '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
+    '/((?!_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
   ],
 }; 
