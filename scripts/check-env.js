@@ -5,6 +5,53 @@
  * It can be run before starting the application or during the build process
  */
 
+const fs = require('fs');
+const path = require('path');
+
+// Function to load environment variables from .env files
+function loadEnvFile(filePath) {
+  if (fs.existsSync(filePath)) {
+    const envContent = fs.readFileSync(filePath, 'utf8');
+    const lines = envContent.split('\n');
+    
+    lines.forEach(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine && !trimmedLine.startsWith('#')) {
+        const [key, ...valueParts] = trimmedLine.split('=');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join('=').trim();
+          // Only set if not already set (environment variables take precedence)
+          if (!process.env[key]) {
+            process.env[key] = value;
+          }
+        }
+      }
+    });
+    console.log(`✅ Loaded environment variables from ${path.basename(filePath)}`);
+    return true;
+  }
+  return false;
+}
+
+// Load environment files in order of precedence
+const envFiles = [
+  '.env.local',
+  '.env.production',
+  '.env'
+];
+
+let envFileLoaded = false;
+envFiles.forEach(file => {
+  const filePath = path.join(process.cwd(), file);
+  if (loadEnvFile(filePath)) {
+    envFileLoaded = true;
+  }
+});
+
+if (!envFileLoaded) {
+  console.log('ℹ️ No .env files found, checking system environment variables only');
+}
+
 // List of required environment variables
 const requiredVars = [
   'NEXT_PUBLIC_SUPABASE_URL',

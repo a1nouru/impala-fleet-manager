@@ -18,9 +18,9 @@ export default function AuthCallbackPage() {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Check if we have a valid session
-        const { session } = await authService.getCurrentSession();
+        const sessionData = await authService.getCurrentSession();
         
-        if (session) {
+        if (sessionData?.session) {
           setStatus('Authentication successful! Redirecting...');
           console.log('✅ Auth callback successful');
           
