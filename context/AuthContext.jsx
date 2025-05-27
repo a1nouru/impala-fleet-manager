@@ -26,34 +26,57 @@ export function AuthProvider({ children }) {
     async function loadUserData() {
       try {
         setLoading(true);
+        console.log('🔄 Loading user data...');
         
         // Get the current session
         const { session } = await authService.getCurrentSession();
+        console.log('📋 Session data:', session ? '✅ Found' : '❌ Not found');
         setSession(session);
         
         // If session exists, get user data
         if (session) {
           const user = await authService.getCurrentUser();
+          console.log('👤 User data:', user ? '✅ Found' : '❌ Not found');
           setUser(user);
+        } else {
+          setUser(null);
         }
       } catch (error) {
-        console.error('Error loading user data:', error);
+        console.error('❌ Error loading user data:', error);
+        setUser(null);
+        setSession(null);
       } finally {
         setLoading(false);
+        console.log('✅ Auth state loading complete');
       }
     }
     
     loadUserData();
 
-    // Subscribe to auth changes
+    // Subscribe to auth changes with enhanced logging
     const { data: authListener } = authService.onAuthStateChange(
       async (event, session) => {
+        console.log(`🔔 Auth state change: ${event}`, session ? '✅ Session exists' : '❌ No session');
+        
         setSession(session);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          const user = await authService.getCurrentUser();
-          setUser(user);
+          console.log('🔑 User signed in, fetching user data...');
+          try {
+            const user = await authService.getCurrentUser();
+            console.log('👤 User fetched:', user ? '✅ Success' : '❌ Failed');
+            setUser(user);
+            
+            // Force a small delay to ensure state updates
+            setTimeout(() => {
+              console.log('🎯 Auth state should be updated now');
+            }, 100);
+          } catch (error) {
+            console.error('❌ Error fetching user after sign in:', error);
+            setUser(null);
+          }
         } else if (event === 'SIGNED_OUT') {
+          console.log('🚪 User signed out');
           setUser(null);
           setSession(null);
         }
@@ -64,22 +87,40 @@ export function AuthProvider({ children }) {
     return () => {
       if (authListener && authListener.subscription) {
         authListener.subscription.unsubscribe();
+        console.log('🧹 Auth listener cleaned up');
       }
     };
   }, [mounted]);
+
+  // Enhanced sign in with better state management
+  const signIn = async (email, password) => {
+    try {
+      console.log('🔐 Attempting sign in...');
+      const result = await authService.signIn(email, password);
+      console.log('✅ Sign in successful:', result ? '✅ Data received' : '❌ No data');
+      
+      // Force refresh auth state after successful login
+      if (result?.session) {
+        console.log('🔄 Forcing auth state refresh...');
+        setSession(result.session);
+        
+        // Get fresh user data
+        const user = await authService.getCurrentUser();
+        setUser(user);
+        console.log('🎯 Auth state manually updated');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Sign in error:', error);
+      throw error;
+    }
+  };
 
   // Define auth actions
   const signUp = async (email, password) => {
     try {
       return await authService.signUp(email, password);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const signIn = async (email, password) => {
-    try {
-      return await authService.signIn(email, password);
     } catch (error) {
       throw error;
     }
@@ -133,6 +174,19 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Enhanced authentication check with logging
+  const isAuthenticated = !!user && !!session;
+  
+  // Debug logging for auth state
+  useEffect(() => {
+    console.log('🔍 Auth state debug:', {
+      user: user ? '✅ Present' : '❌ Missing',
+      session: session ? '✅ Present' : '❌ Missing',
+      isAuthenticated,
+      loading
+    });
+  }, [user, session, isAuthenticated, loading]);
+
   // Value to expose to consumers
   const value = {
     user,
@@ -144,7 +198,7 @@ export function AuthProvider({ children }) {
     signOut,
     resetPassword,
     updatePassword,
-    isAuthenticated: !!user,
+    isAuthenticated,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

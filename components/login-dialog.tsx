@@ -5,15 +5,16 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, RefreshCw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { prepareForLogin, detectAuthConflicts } from "@/utils/authUtils";
+import { runAuthDiagnostics, fixAuthIssues } from "@/utils/authDiagnostics";
 
 export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
-  const { signIn, signUp, signInWithMagicLink, resetPassword } = useAuth();
+  const { signIn, signUp, signInWithMagicLink, resetPassword, isAuthenticated, loading: authLoading } = useAuth();
   const { toast } = useToast();
   
   const [tab, setTab] = useState<"login" | "signup" | "magic" | "reset">("login");
@@ -24,6 +25,9 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const [error, setError] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [showRetry, setShowRetry] = useState(false);
+  const [diagnosticsRun, setDiagnosticsRun] = useState(false);
 
   // Prepare browser for login when dialog opens
   useEffect(() => {
@@ -35,13 +39,46 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       if (hasConflicts) {
         prepareForLogin();
       }
+      
+      // Reset state
+      setLoginAttempts(0);
+      setShowRetry(false);
+      setError("");
+      setDiagnosticsRun(false);
     }
   }, [open]);
+
+  // Monitor authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      console.log('🎉 Authentication successful - closing dialog and redirecting');
+      onOpenChange(false);
+      
+      // Small delay to ensure state is fully updated
+      setTimeout(() => {
+        router.push("/dashboard/maintenance");
+      }, 100);
+    }
+  }, [isAuthenticated, authLoading, onOpenChange, router]);
+
+  // Handle stuck authentication after multiple attempts
+  useEffect(() => {
+    if (loginAttempts >= 2 && !isAuthenticated && !isLoading && !diagnosticsRun) {
+      console.log('⚠️ Multiple login attempts detected, running diagnostics...');
+      setShowRetry(true);
+      
+      // Run diagnostics automatically
+      runAuthDiagnostics().then(() => {
+        setDiagnosticsRun(true);
+      });
+    }
+  }, [loginAttempts, isAuthenticated, isLoading, diagnosticsRun]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+    setLoginAttempts(prev => prev + 1);
 
     try {
       // Simple validation
@@ -51,18 +88,63 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         return;
       }
 
-      await signIn(email, password);
+      console.log(`🔐 Login attempt #${loginAttempts + 1}`);
+      const result = await signIn(email, password);
       
-      toast({
-        title: "Logged in successfully",
-        description: "Welcome back to Royal Express Fleet Manager",
-        variant: "default",
-      });
-      
-      onOpenChange(false);
-      router.push("/dashboard/maintenance");
+      if (result?.session) {
+        console.log('✅ Login successful, session created');
+        
+        toast({
+          title: "Logged in successfully",
+          description: "Welcome back to Royal Express Fleet Manager",
+          variant: "default",
+        });
+        
+        // Wait a moment for auth state to update
+        setTimeout(() => {
+          if (!isAuthenticated) {
+            console.log('⚠️ Auth state not updated, forcing refresh...');
+            window.location.reload();
+          }
+        }, 1000);
+      } else {
+        throw new Error('No session returned from login');
+      }
     } catch (error: unknown) {
       handleError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRetryLogin = async () => {
+    console.log('🔄 Retrying login with fresh browser state...');
+    
+    setIsLoading(true);
+    
+    try {
+      // Run diagnostics and fix issues
+      await fixAuthIssues();
+      
+      // Clear everything and start fresh
+      prepareForLogin();
+      setLoginAttempts(0);
+      setShowRetry(false);
+      setError("");
+      setDiagnosticsRun(false);
+      
+      toast({
+        title: "Browser state refreshed",
+        description: "Please try logging in again",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error during retry:', error);
+      
+      // If all else fails, force a page reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } finally {
       setIsLoading(false);
     }
@@ -191,6 +273,23 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
               {error}
             </div>
           )}
+
+          {showRetry && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-yellow-800 text-sm mb-2">
+                Login seems to be stuck? Try refreshing your browser session.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetryLogin}
+                className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh & Retry
+              </Button>
+            </div>
+          )}
           
           <TabsContent value="login">
             <form onSubmit={handleLogin} className="py-2 space-y-4">
@@ -213,17 +312,23 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
               <Button 
                 type="submit" 
                 className="w-full mt-4 h-12 bg-blue-600 text-white hover:bg-blue-700" 
-                disabled={isLoading}
+                disabled={isLoading || authLoading}
               >
-                {isLoading ? (
+                {isLoading || authLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Logging in...
+                    {authLoading ? "Checking authentication..." : "Logging in..."}
                   </>
                 ) : (
                   "Log in"
                 )}
               </Button>
+              
+              {loginAttempts > 0 && (
+                <p className="text-xs text-gray-500 text-center">
+                  Attempt {loginAttempts} of 3
+                </p>
+              )}
             </form>
           </TabsContent>
           
