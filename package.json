@@ -11,7 +11,9 @@
     "lint": "next lint",
     "check-env": "node scripts/check-env.js",
     "clean": "node scripts/clean.js",
-    "fresh": "node scripts/clean.js && npm run dev"
+    "fresh": "node scripts/clean.js && npm run dev",
+    "kill-dev": "node scripts/kill-dev.js",
+    "reset": "node scripts/kill-dev.js && node scripts/clean.js && npm run dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

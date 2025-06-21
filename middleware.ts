@@ -4,16 +4,23 @@ export default function middleware(request: NextRequest) {
   // Get the pathname from the URL
   const path = request.nextUrl.pathname;
   
-  // Log the request path (helpful for debugging)
-  console.log(`🌐 Middleware processing: ${path}`);
+  // Only log in development if it's not a static asset or internal Next.js route
+  const isDev = process.env.NODE_ENV === 'development';
+  const isStaticAsset = path.startsWith('/_next') || path.includes('.') || path.startsWith('/favicon');
+  
+  if (isDev && !isStaticAsset) {
+    console.log(`🌐 Middleware processing: ${path}`);
+  }
   
   // Create response
   const response = NextResponse.next();
   
-  // Add cold start detection headers
-  const startTime = Date.now();
-  response.headers.set('X-Request-Start', startTime.toString());
-  response.headers.set('X-Middleware-Timestamp', new Date().toISOString());
+  // Add cold start detection headers (primarily for production)
+  if (!isDev) {
+    const startTime = Date.now();
+    response.headers.set('X-Request-Start', startTime.toString());
+    response.headers.set('X-Middleware-Timestamp', new Date().toISOString());
+  }
   
   // Add session state protection headers for dynamic routes
   if (path.startsWith('/admin') || path.startsWith('/dashboard') || path.startsWith('/profile')) {
@@ -24,11 +31,13 @@ export default function middleware(request: NextRequest) {
     // Add session state validation header
     response.headers.set('X-Session-Validation', 'required');
     
-    console.log(`🔒 Applied session protection headers for: ${path}`);
+    if (isDev && !isStaticAsset) {
+      console.log(`🔒 Applied session protection headers for: ${path}`);
+    }
   }
   
-  // Add warmup detection for health/warmup endpoints
-  if (path.startsWith('/api/health') || path.startsWith('/api/warmup')) {
+  // Add warmup detection for health/warmup endpoints (production only)
+  if (!isDev && (path.startsWith('/api/health') || path.startsWith('/api/warmup'))) {
     const userAgent = request.headers.get('user-agent') || '';
     const isWarmupRequest = userAgent.includes('Warmup') || userAgent.includes('Vercel-Cron');
     
@@ -38,9 +47,11 @@ export default function middleware(request: NextRequest) {
     }
   }
   
-  // Add performance monitoring headers
-  response.headers.set('X-Powered-By', 'Next.js + Vercel');
-  response.headers.set('X-Cold-Start-Prevention', 'active');
+  // Add performance monitoring headers (production only)
+  if (!isDev) {
+    response.headers.set('X-Powered-By', 'Next.js + Vercel');
+    response.headers.set('X-Cold-Start-Prevention', 'active');
+  }
   
   return response;
 }
