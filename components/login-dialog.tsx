@@ -23,6 +23,7 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const [error, setError] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [hasShownSuccessToast, setHasShownSuccessToast] = useState(false);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -31,25 +32,27 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       setError("");
       setMagicLinkSent(false);
       setResetEmailSent(false);
+      setHasShownSuccessToast(false);
     }
   }, [open]);
 
   // Monitor authentication state changes
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
+    if (isAuthenticated && !authLoading && !hasShownSuccessToast) {
       console.log('🎉 Authentication successful - closing dialog and redirecting');
       onOpenChange(false);
       
-      // Show session timeout info toast
+      // Show session timeout info toast only once
       toast({
         title: "Login successful",
         description: "Your session will expire after 30 minutes of inactivity",
         variant: "default",
       });
       
+      setHasShownSuccessToast(true);
       router.push("/dashboard/maintenance");
     }
-  }, [isAuthenticated, authLoading, onOpenChange, router, toast]);
+  }, [isAuthenticated, authLoading, hasShownSuccessToast, onOpenChange, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -68,11 +71,7 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       
       if (result?.session) {
         console.log('✅ Login successful');
-        toast({
-          title: "Logged in successfully",
-          description: "Welcome back to Royal Express Fleet Manager",
-          variant: "default",
-        });
+        // Note: Success toast is now handled in useEffect to avoid duplicates
       } else {
         throw new Error('Login failed - no session created');
       }
