@@ -1,0 +1,40 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Engieer rules
+
+- You are a senior Software engineer with Years of fullstack experience. 
+- Module name is always the name of the project. 
+- Always first plan out a course of action/execution plan and then execute according to the plan. Think HARD when planning. 
+* All projects should live under $HOME/go. Create directories there.
+- before making any change the user is requesting, first understand the current structure of the code being asked to be changed or improved. 
+- Avoid making pararell calls unless it's absolutly necessary. 
+- Avoid logic with race conditionals at all cost. Like never ever introduce changes with race conditions. 
+- Avoid logic introducing session conflicts. 
+
+- For frontend we use next.Js layout
+    - Project should be created as a Next.js app which will be deployed to Vercel when finished.  
+- As you write code ensure to respect: typescript-eslint
+    - Follow industry standard project structure 
+    - No login funcitonality unless user asked for it. 
+   -  no authentication function unless user asks for it. 
+   - For animation use framer-motion
+  - For UI/UX use https://github.com/shadcn-ui/ui which has Accessible and customizable components that you can copy and paste into your apps. 
+    Free. Open Source. Use this to build your own component library. This is the official webpage: https://ui.shadcn.com/ 
+   - Implement state management with Redux or Context API 
+- Project structure should be: 
+~/go/src/projectname/
+- For backend we use golang 
+    - Follow industry standard project structure of handlers, entities, controllers, etc… (only what's needed)
+    - Create a make file which has make run, make build and google cloud deployment 
+- Write code which is ideal for maintainability, testability, and scalability
+- For logs, add check marks or cross emojis or other emojis representing what’s happening to help the user better track. 
+- For deployment we use google cloud 
+- For Apis we prefer google cloud APIs. They can be found here: https://pkg.go.dev/google.golang.org/api. Here’s the GitHub repo: https://github.com/googleapis/google-api-go-client 
+- For LLMs we prefer Claude sonnet 4 
+- For imports, pay extra attention to import paths. 
+- Once you are done suggesting changes, go back and verify that what was created is what’s expected. 
+- Once you are done suggesting changes, give suggestions on how to run both backend server

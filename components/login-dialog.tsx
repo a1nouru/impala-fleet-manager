@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
@@ -39,9 +39,17 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     if (isAuthenticated && !authLoading) {
       console.log('🎉 Authentication successful - closing dialog and redirecting');
       onOpenChange(false);
+      
+      // Show session timeout info toast
+      toast({
+        title: "Login successful",
+        description: "Your session will expire after 30 minutes of inactivity",
+        variant: "default",
+      });
+      
       router.push("/dashboard/maintenance");
     }
-  }, [isAuthenticated, authLoading, onOpenChange, router]);
+  }, [isAuthenticated, authLoading, onOpenChange, router, toast]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

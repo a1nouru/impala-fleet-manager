@@ -1,8 +1,8 @@
-import { supabase } from '../lib/supabase'
+import supabaseClient from '../lib/supabaseClient'
 
 export const technicianService = {
   getTechnicians: async () => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('technicians')
       .select('*')
       .eq('active', true)

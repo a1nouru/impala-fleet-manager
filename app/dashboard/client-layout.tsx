@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useState } from 'react'
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { useAuth } from "@/context/AuthContext";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -28,6 +29,9 @@ export function DashboardLayoutClient({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Add activity tracker to extend session automatically
+  useActivityTracker();
   
   // Simulate preloading common resources
   useEffect(() => {
