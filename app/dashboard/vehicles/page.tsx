@@ -9,6 +9,7 @@ import { Search, PlusCircle, PencilIcon, TrashIcon, Car, Calendar, MoreHorizonta
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
+import { useTranslation } from "@/hooks/useTranslation"
 
 // Vehicle interface based on the DB schema
 interface Vehicle {
@@ -20,6 +21,8 @@ interface Vehicle {
 }
 
 export default function VehiclesPage() {
+  const { t } = useTranslation();
+
   // State for vehicles data
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -220,14 +223,13 @@ export default function VehiclesPage() {
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">Vehicles</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">{t('vehicles.title')}</h1>
         
         <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
-            <Button className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Add Vehicle</span>
-              <span className="sm:hidden">Add Vehicle</span>
+            <Button className="gap-2">
+              <PlusCircle className="h-4 w-4" />
+              {t('vehicles.addVehicle')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
@@ -305,13 +307,12 @@ export default function VehiclesPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         <Input
-          type="search"
-          placeholder="Search vehicles by plate or model..."
-          className="pl-10"
+          placeholder={t('vehicles.searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
         />
       </div>
 

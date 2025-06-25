@@ -104,5 +104,51 @@
   "dialog": {
     "addDescription": "Enter the details for the new maintenance activity. Click submit when you're done.",
     "editDescription": "Update the details for this maintenance record. Click submit when you're done."
+  },
+  "noMaintenanceRecords": "No maintenance records found",
+  "totalLifetimeCost": "Total Lifetime Maintenance Cost",
+  "currentMonthCost": "Current Month Maintenance Cost",
+  "accumulatedCost": "Accumulated cost across all maintenance records",
+  "totalExpenses": "Total maintenance expenses for",
+  "lifetimeRecords": "Lifetime maintenance records",
+  "recordsThisMonth": "records this month",
+  "pendingActivities": "Pending maintenance activities",
+  "allRecords": "All Records",
+  "scheduled": "Scheduled",
+  "searchPlaceholder": "Search records...",
+  "dialog": {
+    "title": "Schedule Maintenance",
+    "addDescription": "Add a detailed description of the maintenance work to be performed",
+    "vehicle": "Vehicle",
+    "date": "Date",
+    "kilometers": "Kilometers",
+    "status": "Status",
+    "technician": "Technician",
+    "cost": "Cost (Kz)",
+    "description": "Description",
+    "selectVehicle": "Select vehicle",
+    "selectStatus": "Select status",
+    "assignTechnician": "Assign technician",
+    "pastCurrentDatesOnly": "Only past or current dates allowed",
+    "describeWork": "Describe the maintenance work..."
+  },
+  "status": {
+    "scheduled": "Scheduled",
+    "completed": "Completed", 
+    "cancelled": "Cancelled",
+    "pending": "Pending",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "table": {
+    "vehicle": "Vehicle",
+    "date": "Date",
+    "description": "Description",
+    "parts": "Parts",
+    "technician": "Technician",
+    "createdBy": "Created By",
+    "status": "Status",
+    "cost": "Cost",
+    "actions": "Actions"
   }
 } 

@@ -104,5 +104,51 @@
   "dialog": {
     "addDescription": "Introduza os detalhes para a nova atividade de manutenção. Clique em submeter quando terminar.",
     "editDescription": "Atualize os detalhes para este registo de manutenção. Clique em submeter quando terminar."
+  },
+  "noMaintenanceRecords": "Nenhum registo de manutenção encontrado",
+  "totalLifetimeCost": "Custo Total de Manutenção Vitalício",
+  "currentMonthCost": "Custo de Manutenção do Mês Atual",
+  "accumulatedCost": "Custo acumulado em todos os registos de manutenção",
+  "totalExpenses": "Despesas totais de manutenção para",
+  "lifetimeRecords": "Registos de manutenção vitalícios",
+  "recordsThisMonth": "registos este mês",
+  "pendingActivities": "Atividades de manutenção pendentes",
+  "allRecords": "Todos os Registos",
+  "scheduled": "Agendado",
+  "searchPlaceholder": "Pesquisar registos...",
+  "dialog": {
+    "title": "Agendar Manutenção",
+    "addDescription": "Adicione uma descrição detalhada do trabalho de manutenção a ser realizado",
+    "vehicle": "Veículo",
+    "date": "Data",
+    "kilometers": "Quilómetros",
+    "status": "Estado",
+    "technician": "Técnico",
+    "cost": "Custo (Kz)",
+    "description": "Descrição",
+    "selectVehicle": "Selecionar veículo",
+    "selectStatus": "Selecionar estado",
+    "assignTechnician": "Atribuir técnico",
+    "pastCurrentDatesOnly": "Apenas datas passadas ou atuais são permitidas",
+    "describeWork": "Descreva o trabalho de manutenção..."
+  },
+  "status": {
+    "scheduled": "Agendado",
+    "completed": "Concluído",
+    "cancelled": "Cancelado",
+    "pending": "Pendente",
+    "active": "Ativo",
+    "inactive": "Inativo"
+  },
+  "table": {
+    "vehicle": "Veículo",
+    "date": "Data",
+    "description": "Descrição",
+    "parts": "Peças",
+    "technician": "Técnico",
+    "createdBy": "Criado Por",
+    "status": "Estado",
+    "cost": "Custo",
+    "actions": "Ações"
   }
 } 

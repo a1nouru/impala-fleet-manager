@@ -1,3 +1,5 @@
+"use client";
+
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import Backend from 'i18next-http-backend'
@@ -10,10 +12,9 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    debug: process.env.NODE_ENV === 'development',
-    
     fallbackLng: 'en',
     defaultNS: 'common',
+    ns: ['common', 'auth', 'maintenance'],
     
     lng: isClient ? localStorage.getItem('preferred-language') || 'en' : 'en',
     
@@ -38,6 +39,8 @@ i18n
     supportedLngs: ['en', 'pt'],
     
     load: 'languageOnly',
+    
+    debug: false,
   })
 
 export default i18n 

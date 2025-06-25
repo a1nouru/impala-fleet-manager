@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   userName: string;
@@ -115,7 +116,7 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
       </div>
       
       <nav className="flex-1 p-4">
-        <div className="space-y-1">
+        <div className="space-y-2">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             
@@ -123,10 +124,21 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
               return (
                 <button 
                   key={item.label}
-                  className="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
+                  className={cn(
+                    "text-gray-300 hover:bg-gray-700 hover:text-white",
+                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
+                    item.active ? "bg-gray-900 text-white" : ""
+                  )}
                   disabled
                 >
-                  <Icon className="mr-3 h-5 w-5" />
+                  <Icon
+                    className={cn(
+                      "text-gray-400 group-hover:text-gray-300",
+                      "mr-3 flex-shrink-0 h-6 w-6",
+                      item.active ? "text-white" : ""
+                    )}
+                    aria-hidden="true"
+                  />
                   {item.label}
                 </button>
               );
@@ -136,22 +148,33 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
               <Link 
                 key={item.label}
                 href={item.href} 
-                className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  item.active 
-                    ? "bg-black/10 text-black" 
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
+                className={cn(
+                  "text-gray-300 hover:bg-gray-700 hover:text-white",
+                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
+                  item.active ? "bg-gray-900 text-white" : ""
+                )}
               >
-                <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                <Icon
+                  className={cn(
+                    "text-gray-400 group-hover:text-gray-300",
+                    "mr-3 flex-shrink-0 h-6 w-6",
+                    item.active ? "text-white" : ""
+                  )}
+                  aria-hidden="true"
+                />
                 <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
         </div>
+        
+        {/* Language Switcher */}
+        <div className="mt-8 pt-8 border-t border-gray-700">
+          <LanguageSwitcher />
+        </div>
       </nav>
       
       <div className="p-4 space-y-3 border-t">
-        <LanguageSwitcher />
         <button 
           onClick={onLogout}
           className="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-black hover:bg-gray-100 transition-colors"

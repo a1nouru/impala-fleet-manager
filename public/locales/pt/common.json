@@ -1,68 +1,89 @@
 {
   "navigation": {
-    "vehicles": "Veículos",
+    "dashboard": "Painel",
     "maintenance": "Manutenção",
-    "inventory": "Inventário",
+    "vehicles": "Veículos",
     "reports": "Relatórios",
-    "settings": "Definições",
-    "dashboard": "Painel de Controlo"
+    "settings": "Configurações"
   },
   "buttons": {
+    "add": "Adicionar",
+    "edit": "Editar",
+    "delete": "Eliminar",
     "save": "Guardar",
     "cancel": "Cancelar",
-    "delete": "Eliminar",
-    "edit": "Editar",
-    "add": "Adicionar",
+    "confirm": "Confirmar",
     "close": "Fechar",
     "submit": "Submeter",
-    "confirm": "Confirmar",
-    "back": "Voltar",
-    "next": "Seguinte",
-    "login": "Iniciar Sessão",
-    "logout": "Terminar Sessão",
-    "search": "Pesquisar",
     "filter": "Filtrar",
-    "clear": "Limpar",
-    "refresh": "Actualizar"
+    "export": "Exportar",
+    "search": "Pesquisar"
+  },
+  "reports": {
+    "title": "Relatórios de Manutenção",
+    "exportReport": "Exportar Relatório",
+    "reportFilters": "Filtros de Relatório",
+    "vehicle": "Veículo",
+    "allVehicles": "Todos os Veículos",
+    "dateRange": "Intervalo de Datas",
+    "metricType": "Tipo de Métrica",
+    "costAnalysis": "Análise de Custos",
+    "totalMaintenanceCost": "Custo Total de Manutenção",
+    "filteredCost": "Custo Filtrado",
+    "maintenanceRecords": "Registos de Manutenção",
+    "uniquePartsUsed": "Peças Únicas Utilizadas",
+    "allVehiclesLifetime": "Todos os veículos (vida útil)",
+    "allVehicles2": "Todos os veículos",
+    "topUsed": "Mais utilizado",
+    "monthlyTrend": "Tendência Mensal",
+    "vehicleComparison": "Comparação de Veículos",
+    "partUsage": "Utilização de Peças",
+    "detailedAnalysis": "Análise Detalhada"
+  },
+  "vehicles": {
+    "title": "Veículos",
+    "addVehicle": "Adicionar Veículo",
+    "searchPlaceholder": "Pesquisar veículos por matrícula ou modelo..."
   },
   "status": {
-    "loading": "A carregar...",
-    "error": "Erro",
-    "success": "Sucesso",
-    "warning": "Aviso",
-    "info": "Informação",
+    "active": "Ativo",
+    "inactive": "Inativo",
     "pending": "Pendente",
     "completed": "Concluído",
-    "scheduled": "Agendado",
-    "active": "Activo",
-    "inactive": "Inactivo"
+    "cancelled": "Cancelado",
+    "scheduled": "Agendado"
   },
   "labels": {
     "name": "Nome",
     "email": "Email",
-    "password": "Palavra-passe",
-    "confirmPassword": "Confirmar Palavra-passe",
+    "phone": "Telefone",
+    "address": "Morada",
     "date": "Data",
     "time": "Hora",
+    "status": "Estado",
+    "actions": "Ações",
     "description": "Descrição",
     "cost": "Custo",
-    "total": "Total",
-    "quantity": "Quantidade",
-    "category": "Categoria",
-    "type": "Tipo",
-    "status": "Estado"
+    "vehicle": "Veículo",
+    "technician": "Técnico",
+    "parts": "Peças",
+    "kilometers": "Quilómetros",
+    "createdBy": "Criado Por"
   },
   "messages": {
-    "noData": "Não há dados disponíveis",
-    "errorOccurred": "Ocorreu um erro",
-    "operationSuccessful": "Operação concluída com sucesso",
-    "confirmDelete": "Tem a certeza de que deseja eliminar este item?",
-    "unsavedChanges": "Tem alterações não guardadas. Deseja sair sem guardar?",
-    "sessionExpired": "A sua sessão expirou. Por favor, inicie sessão novamente.",
-    "accessDenied": "Acesso negado"
+    "loading": "A carregar...",
+    "noData": "Sem dados disponíveis",
+    "error": "Ocorreu um erro",
+    "success": "Operação concluída com sucesso",
+    "confirmDelete": "Tem a certeza que deseja eliminar este item?",
+    "searchRecords": "Pesquisar registos...",
+    "selectVehicle": "Selecionar veículo",
+    "assignTechnician": "Atribuir técnico",
+    "pastCurrentDatesOnly": "Apenas datas passadas ou atuais são permitidas",
+    "describeMaintenanceWork": "Descreva o trabalho de manutenção..."
   },
   "company": {
-    "name": "Royal Express",
-    "title": "Gestor de Frota"
+    "name": "Royal Express Gestor de Frota",
+    "tagline": "Gestão Profissional de Veículos"
   }
 } 

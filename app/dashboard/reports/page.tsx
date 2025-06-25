@@ -39,6 +39,7 @@ import { maintenanceService } from "@/services/maintenanceService"
 import { vehicleService } from "@/services/vehicleService"
 import { format } from "date-fns"
 import { toast } from "@/components/ui/use-toast"
+import { useTranslation } from "@/hooks/useTranslation"
 
 // Type definitions
 interface Vehicle {
@@ -353,10 +354,12 @@ export default function ReportsPage() {
     });
   };
 
+  const { t } = useTranslation();
+
   return (
     <div className="flex-1 p-3 sm:p-6 space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Maintenance Reports</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">{t('reports.title')}</h1>
         
         <div className="flex gap-2">
           <Button 
@@ -366,8 +369,8 @@ export default function ReportsPage() {
             disabled={isDataLoading || filteredRecords.length === 0}
           >
             <DownloadIcon className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Export Report</span>
-            <span className="sm:hidden">Export</span>
+            <span className="hidden sm:inline">{t('reports.exportReport')}</span>
+            <span className="sm:hidden">{t('buttons.export')}</span>
           </Button>
         </div>
       </div>
@@ -375,26 +378,26 @@ export default function ReportsPage() {
       {isDataLoading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-lg sm:text-xl ml-4">Loading report data...</span>
+          <span className="text-lg sm:text-xl ml-4">{t('messages.loading')}</span>
         </div>
       ) : (
         <>
           {/* Filters and Controls */}
           <div className="bg-white rounded-lg shadow-sm">
             <div className="p-3 sm:p-4 space-y-4">
-              <h2 className="text-base sm:text-lg font-medium">Report Filters</h2>
+              <h2 className="text-base sm:text-lg font-medium">{t('reports.reportFilters')}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="vehicleFilter">Vehicle</Label>
+                  <Label htmlFor="vehicleFilter">{t('reports.vehicle')}</Label>
                   <Select
                     value={selectedVehicle}
                     onValueChange={setSelectedVehicle}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select vehicle" />
+                      <SelectValue placeholder={t('messages.selectVehicle')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Vehicles</SelectItem>
+                      <SelectItem value="all">{t('reports.allVehicles')}</SelectItem>
                       {vehicles.map((vehicle) => (
                         <SelectItem key={vehicle.id} value={vehicle.plate}>
                           {vehicle.plate}
@@ -405,7 +408,7 @@ export default function ReportsPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="dateRange">Date Range</Label>
+                  <Label htmlFor="dateRange">{t('reports.dateRange')}</Label>
                   <Button
                     variant="outline"
                     className="w-full justify-start text-left font-normal text-sm"
@@ -462,7 +465,7 @@ export default function ReportsPage() {
                 </div>
                 
                 <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                  <Label htmlFor="metricType">Metric Type</Label>
+                  <Label htmlFor="metricType">{t('reports.metricType')}</Label>
                   <Select
                     value={activeMetric}
                     onValueChange={(value) => setActiveMetric(value as "cost" | "frequency")}
@@ -471,7 +474,7 @@ export default function ReportsPage() {
                       <SelectValue placeholder="Select metric" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cost">Cost Analysis</SelectItem>
+                      <SelectItem value="cost">{t('reports.costAnalysis')}</SelectItem>
                       <SelectItem value="frequency">Frequency Analysis</SelectItem>
                     </SelectContent>
                   </Select>
@@ -485,14 +488,14 @@ export default function ReportsPage() {
             <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-indigo-900">
-                  Total Maintenance Cost
+                  {t('reports.totalMaintenanceCost')}
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-indigo-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl sm:text-2xl font-bold text-indigo-900">{formatCost(totalLifetimeCost)}</div>
                 <p className="text-xs text-indigo-700">
-                  All vehicles (lifetime)
+                  {t('reports.allVehiclesLifetime')}
                 </p>
               </CardContent>
             </Card>
@@ -500,7 +503,7 @@ export default function ReportsPage() {
             <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-emerald-900">
-                  Filtered Cost
+                  {t('reports.filteredCost')}
                 </CardTitle>
                 <CreditCard className="h-4 w-4 text-emerald-600" />
               </CardHeader>
@@ -509,7 +512,7 @@ export default function ReportsPage() {
                   {formatCost(totalCost)}
                 </div>
                 <p className="text-xs text-emerald-700">
-                  {selectedVehicle === "all" ? "All vehicles" : selectedVehicle}
+                  {selectedVehicle === "all" ? t('reports.allVehicles2') : selectedVehicle}
                   {dateRange.from && (
                     <span className="block mt-1">
                       {format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "now"}
@@ -522,7 +525,7 @@ export default function ReportsPage() {
             <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-amber-900">
-                  Maintenance Records
+                  {t('reports.maintenanceRecords')}
                 </CardTitle>
                 <Wrench className="h-4 w-4 text-amber-600" />
               </CardHeader>
@@ -539,14 +542,14 @@ export default function ReportsPage() {
             <Card className="bg-gradient-to-br from-rose-50 to-pink-50 border-rose-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-rose-900">
-                  Unique Parts Used
+                  {t('reports.uniquePartsUsed')}
                 </CardTitle>
                 <TrendingUp className="h-4 w-4 text-rose-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl sm:text-2xl font-bold text-rose-900">{parts.length}</div>
                 <p className="text-xs text-rose-700">
-                  Top used: {partsData[0]?.name || "N/A"}
+                  {t('reports.topUsed')}: {partsData[0]?.name || "N/A"}
                 </p>
               </CardContent>
             </Card>
@@ -560,7 +563,7 @@ export default function ReportsPage() {
                 className="px-2 sm:px-3 py-2 text-xs sm:text-sm data-[state=active]:bg-black data-[state=active]:text-white"
               >
                 <LineChart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Monthly Trend</span>
+                <span className="hidden sm:inline">{t('reports.monthlyTrend')}</span>
                 <span className="sm:hidden">Monthly</span>
               </TabsTrigger>
               <TabsTrigger 
@@ -568,7 +571,7 @@ export default function ReportsPage() {
                 className="px-2 sm:px-3 py-2 text-xs sm:text-sm data-[state=active]:bg-black data-[state=active]:text-white"
               >
                 <BarChart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Vehicle Comparison</span>
+                <span className="hidden sm:inline">{t('reports.vehicleComparison')}</span>
                 <span className="sm:hidden">Vehicles</span>
               </TabsTrigger>
               <TabsTrigger 
@@ -576,7 +579,7 @@ export default function ReportsPage() {
                 className="px-2 sm:px-3 py-2 text-xs sm:text-sm data-[state=active]:bg-black data-[state=active]:text-white"
               >
                 <PieChart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Part Usage</span>
+                <span className="hidden sm:inline">{t('reports.partUsage')}</span>
                 <span className="sm:hidden">Parts</span>
               </TabsTrigger>
               <TabsTrigger 
@@ -584,7 +587,7 @@ export default function ReportsPage() {
                 className="px-2 sm:px-3 py-2 text-xs sm:text-sm data-[state=active]:bg-black data-[state=active]:text-white"
               >
                 <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Detailed Analysis</span>
+                <span className="hidden sm:inline">{t('reports.detailedAnalysis')}</span>
                 <span className="sm:hidden">Details</span>
               </TabsTrigger>
             </TabsList>

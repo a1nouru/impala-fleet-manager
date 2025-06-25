@@ -79,7 +79,7 @@ export default function MaintenancePage() {
 
 // Separate the main content into its own component
 function MaintenanceContent() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('maintenance');
   
   // Type definitions
   interface Vehicle {
@@ -785,27 +785,22 @@ function MaintenanceContent() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status" className="flex items-center text-sm">
-                    Status <span className="text-red-500 ml-1">*</span>
+                  <Label htmlFor="status" className="text-sm font-medium">
+                    {t('dialog.status')} <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={newRecord.status}
-                    onValueChange={(value) => handleSelectChange("status", value)}
+                    onValueChange={(value) => setNewRecord(prev => ({ ...prev, status: value }))}
                   >
-                    <SelectTrigger className={formErrors.status ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select status" />
+                    <SelectTrigger className={`${formErrors.status ? 'border-red-500' : ''}`}>
+                      <SelectValue placeholder={t('dialog.selectStatus')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {statuses.map((status) => (
-                        <SelectItem key={status.value} value={status.value}>
-                          {status.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="scheduled">{t('status.scheduled')}</SelectItem>
+                      <SelectItem value="completed">{t('status.completed')}</SelectItem>
+                      <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
                     </SelectContent>
                   </Select>
-                  {formErrors.status && (
-                    <p className="text-xs text-red-500">Status is required</p>
-                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="technician" className="flex items-center text-sm">
