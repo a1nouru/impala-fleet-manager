@@ -1,0 +1,108 @@
+{
+  "title": "Manutenção",
+  "subtitle": "Gestão de Manutenção de Veículos",
+  "loading": {
+    "title": "Carregando Dados de Manutenção",
+    "subtitle": "Por favor, aguarde enquanto buscamos os seus registos de manutenção..."
+  },
+  "scheduleMaintenance": "Agendar Manutenção",
+  "addMaintenance": "Adicionar Registo de Manutenção",
+  "editMaintenance": "Editar Registo de Manutenção",
+  "maintenanceRecord": "Registo de Manutenção",
+  "maintenanceRecords": "Registos de Manutenção",
+  "lifetimeCost": {
+    "title": "Custo Total de Manutenção",
+    "subtitle": "Custo acumulado de todos os registos de manutenção"
+  },
+  "currentMonth": {
+    "title": "Custo de Manutenção do Mês Actual",
+    "subtitle": "Total de despesas de manutenção para {{month}} {{year}}"
+  },
+  "totalRecords": {
+    "title": "Total de Registos de Manutenção",
+    "subtitle": "Registos de manutenção históricos"
+  },
+  "completedThisMonth": {
+    "title": "Concluídos Este Mês",
+    "subtitle": "{{count}} registos este mês"
+  },
+  "upcomingScheduled": {
+    "title": "Agendados",
+    "subtitle": "{{count}} itens de manutenção agendados"
+  },
+  "form": {
+    "vehiclePlate": "Matrícula do Veículo",
+    "selectVehicle": "Seleccionar um veículo",
+    "date": "Data",
+    "status": "Estado",
+    "selectStatus": "Seleccionar estado",
+    "technician": "Técnico",
+    "selectTechnician": "Seleccionar técnico",
+    "cost": "Custo (Kz)",
+    "costPlaceholder": "Introduzir custo em Kwanza",
+    "kilometers": "Quilómetros",
+    "kilometersPlaceholder": "Quilómetros actuais do veículo",
+    "description": "Descrição",
+    "descriptionPlaceholder": "Descrever o trabalho de manutenção...",
+    "parts": "Peças Utilizadas",
+    "selectParts": "Seleccionar peças utilizadas nesta manutenção",
+    "customPart": "Peça Personalizada",
+    "addCustomPart": "Adicionar Peça Personalizada",
+    "other": "Outro"
+  },
+  "filters": {
+    "searchPlaceholder": "Pesquisar por descrição, ID ou matrícula...",
+    "allVehicles": "Todos os Veículos",
+    "allRecords": "Todos os Registos",
+    "scheduledOnly": "Apenas Agendados"
+  },
+  "table": {
+    "id": "ID",
+    "vehicle": "Veículo", 
+    "plate": "Matrícula",
+    "date": "Data",
+    "description": "Descrição",
+    "technician": "Técnico",
+    "cost": "Custo",
+    "status": "Estado",
+    "kilometers": "Quilómetros",
+    "parts": "Peças",
+    "actions": "Acções",
+    "noRecords": "Nenhum registo de manutenção encontrado"
+  },
+  "statusOptions": {
+    "pending": "Pendente",
+    "inProgress": "Em Progresso", 
+    "completed": "Concluído",
+    "scheduled": "Agendado",
+    "cancelled": "Cancelado"
+  },
+  "actions": {
+    "viewDetails": "Ver Detalhes",
+    "editRecord": "Editar Registo",
+    "deleteRecord": "Eliminar Registo",
+    "markCompleted": "Marcar como Concluído",
+    "schedule": "Agendar"
+  },
+  "messages": {
+    "recordAdded": "Registo de manutenção adicionado com sucesso",
+    "recordUpdated": "Registo de manutenção actualizado com sucesso", 
+    "recordDeleted": "Registo de manutenção eliminado com sucesso",
+    "errorAdding": "Erro ao adicionar registo de manutenção",
+    "errorUpdating": "Erro ao actualizar registo de manutenção",
+    "errorDeleting": "Erro ao eliminar registo de manutenção",
+    "errorLoading": "Erro ao carregar dados de manutenção",
+    "confirmDelete": "Tem a certeza de que deseja eliminar este registo de manutenção?",
+    "allFieldsRequired": "Todos os campos são obrigatórios",
+    "invalidCost": "Por favor, introduza um custo válido",
+    "invalidKilometers": "Por favor, introduza quilómetros válidos"
+  },
+  "status": {
+    "inProgress": "Em Andamento",
+    "cancelled": "Cancelado"
+  },
+  "dialog": {
+    "addDescription": "Introduza os detalhes para a nova atividade de manutenção. Clique em submeter quando terminar.",
+    "editDescription": "Atualize os detalhes para este registo de manutenção. Clique em submeter quando terminar."
+  }
+} 

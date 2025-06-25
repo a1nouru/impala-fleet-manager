@@ -16,6 +16,8 @@ import {
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/hooks/useTranslation";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface SidebarProps {
   userName: string;
@@ -25,6 +27,7 @@ interface SidebarProps {
 export function Sidebar({ userName, onLogout }: SidebarProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -52,32 +55,32 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
     {
       href: "/dashboard/vehicles",
       icon: Bus,
-      label: "Vehicles",
+      label: t("navigation.vehicles"),
       active: pathname === "/dashboard/vehicles"
     },
     {
       href: "#",
       icon: Package,
-      label: "Inventory",
+      label: t("navigation.inventory"),
       active: false,
       disabled: true
     },
     {
       href: "/dashboard/maintenance",
       icon: Wrench,
-      label: "Maintenance",
+      label: t("navigation.maintenance"),
       active: pathname === "/dashboard/maintenance"
     },
     {
       href: "/dashboard/reports",
       icon: FileBarChart,
-      label: "Reports",
+      label: t("navigation.reports"),
       active: pathname === "/dashboard/reports"
     },
     {
       href: "#",
       icon: Settings,
-      label: "Settings",
+      label: t("navigation.settings"),
       active: false,
       disabled: true
     }
@@ -89,13 +92,13 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
         <div className="flex flex-col items-center justify-center">
           <Image 
             src="/logo.svg" 
-            alt="Royal Express" 
+            alt={t("company.name")} 
             width={90} 
             height={90} 
             className="mb-2 filter-black" 
             priority
           />
-          <span className="text-black font-bold text-lg text-center">Royal Express</span>
+          <span className="text-black font-bold text-lg text-center">{t("company.name")}</span>
         </div>
       </div>
       
@@ -106,7 +109,7 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium truncate">{userName}</p>
-            <p className="text-xs text-gray-500">Fleet Manager</p>
+            <p className="text-xs text-gray-500">{t("company.title")}</p>
           </div>
         </div>
       </div>
@@ -147,13 +150,14 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
         </div>
       </nav>
       
-      <div className="p-4 border-t">
+      <div className="p-4 space-y-3 border-t">
+        <LanguageSwitcher />
         <button 
           onClick={onLogout}
           className="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-black hover:bg-gray-100 transition-colors"
         >
           <LogOut className="mr-3 h-5 w-5 flex-shrink-0" />
-          <span className="truncate">Logout</span>
+          <span className="truncate">{t("buttons.logout")}</span>
         </button>
       </div>
     </>

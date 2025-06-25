@@ -1,0 +1,108 @@
+{
+  "title": "Maintenance",
+  "subtitle": "Vehicle Maintenance Management",
+  "loading": {
+    "title": "Loading Maintenance Data",
+    "subtitle": "Please wait while we fetch your maintenance records..."
+  },
+  "scheduleMaintenance": "Schedule Maintenance",
+  "addMaintenance": "Add Maintenance Record",
+  "editMaintenance": "Edit Maintenance Record",
+  "maintenanceRecord": "Maintenance Record",
+  "maintenanceRecords": "Maintenance Records",
+  "lifetimeCost": {
+    "title": "Total Lifetime Maintenance Cost",
+    "subtitle": "Accumulated cost across all maintenance records"
+  },
+  "currentMonth": {
+    "title": "Current Month Maintenance Cost",
+    "subtitle": "Total maintenance expenses for {{month}} {{year}}"
+  },
+  "totalRecords": {
+    "title": "Total Maintenance Records",
+    "subtitle": "Lifetime maintenance records"
+  },
+  "completedThisMonth": {
+    "title": "Completed This Month",
+    "subtitle": "{{count}} records this month"
+  },
+  "upcomingScheduled": {
+    "title": "Upcoming Scheduled",
+    "subtitle": "{{count}} scheduled maintenance items"
+  },
+  "form": {
+    "vehiclePlate": "Vehicle Plate",
+    "selectVehicle": "Select a vehicle",
+    "date": "Date",
+    "status": "Status",
+    "selectStatus": "Select status",
+    "technician": "Technician",
+    "selectTechnician": "Select technician",
+    "cost": "Cost (Kz)",
+    "costPlaceholder": "Enter cost in Kwanza",
+    "kilometers": "Kilometers",
+    "kilometersPlaceholder": "Current vehicle kilometers",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe the maintenance work...",
+    "parts": "Parts Used",
+    "selectParts": "Select parts used in this maintenance",
+    "customPart": "Custom Part",
+    "addCustomPart": "Add Custom Part",
+    "other": "Other"
+  },
+  "filters": {
+    "searchPlaceholder": "Search by description, ID, or plate...",
+    "allVehicles": "All Vehicles",
+    "allRecords": "All Records",
+    "scheduledOnly": "Scheduled"
+  },
+  "table": {
+    "id": "ID",
+    "vehicle": "Vehicle", 
+    "plate": "Plate",
+    "date": "Date",
+    "description": "Description",
+    "technician": "Technician",
+    "cost": "Cost",
+    "status": "Status",
+    "kilometers": "Kilometers",
+    "parts": "Parts",
+    "actions": "Actions",
+    "noRecords": "No maintenance records found"
+  },
+  "statusOptions": {
+    "pending": "Pending",
+    "inProgress": "In Progress", 
+    "completed": "Completed",
+    "scheduled": "Scheduled",
+    "cancelled": "Cancelled"
+  },
+  "actions": {
+    "viewDetails": "View Details",
+    "editRecord": "Edit Record",
+    "deleteRecord": "Delete Record",
+    "markCompleted": "Mark as Completed",
+    "schedule": "Schedule"
+  },
+  "messages": {
+    "recordAdded": "Maintenance record added successfully",
+    "recordUpdated": "Maintenance record updated successfully", 
+    "recordDeleted": "Maintenance record deleted successfully",
+    "errorAdding": "Error adding maintenance record",
+    "errorUpdating": "Error updating maintenance record",
+    "errorDeleting": "Error deleting maintenance record",
+    "errorLoading": "Error loading maintenance data",
+    "confirmDelete": "Are you sure you want to delete this maintenance record?",
+    "allFieldsRequired": "All fields are required",
+    "invalidCost": "Please enter a valid cost",
+    "invalidKilometers": "Please enter valid kilometers"
+  },
+  "status": {
+    "inProgress": "In Progress",
+    "cancelled": "Cancelled"
+  },
+  "dialog": {
+    "addDescription": "Enter the details for the new maintenance activity. Click submit when you're done.",
+    "editDescription": "Update the details for this maintenance record. Click submit when you're done."
+  }
+} 

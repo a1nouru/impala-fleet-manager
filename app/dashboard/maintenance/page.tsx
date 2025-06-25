@@ -35,15 +35,18 @@ import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/context/AuthContext"
 import { format } from "date-fns"
+import { useTranslation } from "@/hooks/useTranslation"
 
 // Loading component for better user experience
 function LoadingState() {
+  const { t } = useTranslation();
+  
   return (
     <div className="w-full h-full min-h-[50vh] flex flex-col items-center justify-center gap-4 bg-white rounded-lg shadow p-8">
       <Loader2 className="h-16 w-16 text-blue-600 animate-spin" />
       <div className="text-center">
-        <p className="text-xl font-semibold text-gray-800 mb-2">Loading Maintenance Data</p>
-        <p className="text-gray-500">Please wait while we fetch your maintenance records...</p>
+        <p className="text-xl font-semibold text-gray-800 mb-2">{t("maintenance.loading.title")}</p>
+        <p className="text-gray-500">{t("maintenance.loading.subtitle")}</p>
       </div>
     </div>
   )
@@ -76,6 +79,8 @@ export default function MaintenancePage() {
 
 // Separate the main content into its own component
 function MaintenanceContent() {
+  const { t } = useTranslation();
+  
   // Type definitions
   interface Vehicle {
     id: string;
@@ -128,8 +133,13 @@ function MaintenanceContent() {
     };
   }
 
-  // Status options
-  const statuses = ["Scheduled", "In Progress", "Completed", "Cancelled"];
+  // Status options - translate these dynamically
+  const statuses = [
+    { value: "Scheduled", label: t("status.scheduled") },
+    { value: "In Progress", label: t("maintenance.status.inProgress") }, 
+    { value: "Completed", label: t("status.completed") },
+    { value: "Cancelled", label: t("maintenance.status.cancelled") }
+  ];
 
   // State for data
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
@@ -694,19 +704,19 @@ function MaintenanceContent() {
               }}
             >
               <PlusCircle className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Schedule Maintenance</span>
-              <span className="sm:hidden">Add Maintenance</span>
+              <span className="hidden sm:inline">{t("maintenance.scheduleMaintenance")}</span>
+              <span className="sm:hidden">{t("maintenance.addMaintenance")}</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 w-[calc(100vw-2rem)]">
             <DialogHeader>
               <DialogTitle className="text-lg">
-                {isEditMode ? "Edit Maintenance Record" : "Schedule New Maintenance"}
+                {isEditMode ? t("maintenance.editMaintenance") : t("maintenance.scheduleMaintenance")}
               </DialogTitle>
               <DialogDescription className="text-sm">
                 {isEditMode 
-                  ? "Update the details for this maintenance record. Click submit when you're done."
-                  : "Enter the details for the new maintenance activity. Click submit when you're done."
+                  ? t("maintenance.dialog.editDescription")
+                  : t("maintenance.dialog.addDescription")
                 }
               </DialogDescription>
             </DialogHeader>
@@ -787,8 +797,8 @@ function MaintenanceContent() {
                     </SelectTrigger>
                     <SelectContent>
                       {statuses.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
+                        <SelectItem key={status.value} value={status.value}>
+                          {status.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
