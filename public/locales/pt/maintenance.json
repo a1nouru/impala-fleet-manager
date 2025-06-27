@@ -3,11 +3,13 @@
   "subtitle": "Gestão de Manutenção de Veículos",
   "loading": {
     "title": "Carregando Dados de Manutenção",
-    "subtitle": "Por favor, aguarde enquanto buscamos os seus registos de manutenção..."
+    "subtitle": "Por favor, aguarde enquanto buscamos os seus registos de manutenção...",
+    "loadingData": "A carregar dados de manutenção...",
+    "requiredFields": "Campos obrigatórios"
   },
   "scheduleMaintenance": "Agendar Manutenção",
-  "addMaintenance": "Adicionar Registo de Manutenção",
-  "editMaintenance": "Editar Registo de Manutenção",
+  "addMaintenance": "Adicionar Manutenção",
+  "editMaintenance": "Editar Manutenção",
   "maintenanceRecord": "Registo de Manutenção",
   "maintenanceRecords": "Registos de Manutenção",
   "lifetimeCost": {
@@ -47,14 +49,32 @@
     "parts": "Peças Utilizadas",
     "selectParts": "Seleccionar peças utilizadas nesta manutenção",
     "customPart": "Peça Personalizada",
-    "addCustomPart": "Adicionar Peça Personalizada",
-    "other": "Outro"
+    "addCustomPart": "Adicionar peça personalizada",
+    "other": "Outro",
+    "vehicle": "Veículo",
+    "vehicleRequired": "Veículo é obrigatório",
+    "dateRequired": "Data é obrigatória",
+    "technicianRequired": "Técnico é obrigatório",
+    "costRequired": "Custo é obrigatório",
+    "descriptionRequired": "Descrição é obrigatória",
+    "selected": "selecionadas",
+    "loadingParts": "A carregar peças...",
+    "assignTechnician": "Atribuir técnico",
+    "selectVehiclePlate": "Selecionar matrícula do veículo"
   },
   "filters": {
-    "searchPlaceholder": "Pesquisar por descrição, ID ou matrícula...",
+    "searchPlaceholder": "Pesquisar registos...",
     "allVehicles": "Todos os Veículos",
     "allRecords": "Todos os Registos",
-    "scheduledOnly": "Apenas Agendados"
+    "scheduledOnly": "Apenas Agendados",
+    "filter": "Filtrar",
+    "filterTitle": "Filtrar Registos de Manutenção",
+    "filterDescription": "Filtrar registos por número de matrícula do veículo",
+    "vehiclePlate": "Matrícula do Veículo",
+    "selectVehicle": "Selecionar veículo",
+    "reset": "Repor",
+    "applyFilter": "Aplicar Filtro",
+    "filtered": "Filtrado"
   },
   "table": {
     "id": "ID",
@@ -68,7 +88,8 @@
     "kilometers": "Quilómetros",
     "parts": "Peças",
     "actions": "Acções",
-    "noRecords": "Nenhum registo de manutenção encontrado"
+    "noRecords": "Nenhum registo de manutenção encontrado",
+    "createdBy": "Criado Por"
   },
   "statusOptions": {
     "pending": "Pendente",
@@ -99,11 +120,17 @@
   },
   "status": {
     "inProgress": "Em Andamento",
-    "cancelled": "Cancelado"
+    "cancelled": "Cancelado",
+    "scheduled": "Agendado",
+    "completed": "Concluído",
+    "active": "Ativo",
+    "inactive": "Inativo"
   },
   "dialog": {
-    "addDescription": "Introduza os detalhes para a nova atividade de manutenção. Clique em submeter quando terminar.",
-    "editDescription": "Atualize os detalhes para este registo de manutenção. Clique em submeter quando terminar."
+    "addDescription": "Insira os detalhes para o novo registo de manutenção.",
+    "editDescription": "Atualize os detalhes do registo de manutenção abaixo.",
+    "status": "Estado",
+    "selectStatus": "Selecionar estado"
   },
   "noMaintenanceRecords": "Nenhum registo de manutenção encontrado",
   "totalLifetimeCost": "Custo Total de Manutenção Vitalício",
@@ -116,39 +143,22 @@
   "allRecords": "Todos os Registos",
   "scheduled": "Agendado",
   "searchPlaceholder": "Pesquisar registos...",
-  "dialog": {
-    "title": "Agendar Manutenção",
-    "addDescription": "Adicione uma descrição detalhada do trabalho de manutenção a ser realizado",
-    "vehicle": "Veículo",
-    "date": "Data",
-    "kilometers": "Quilómetros",
-    "status": "Estado",
-    "technician": "Técnico",
-    "cost": "Custo (Kz)",
-    "description": "Descrição",
-    "selectVehicle": "Selecionar veículo",
-    "selectStatus": "Selecionar estado",
-    "assignTechnician": "Atribuir técnico",
-    "pastCurrentDatesOnly": "Apenas datas passadas ou atuais são permitidas",
-    "describeWork": "Descreva o trabalho de manutenção..."
+  "summary": {
+    "totalLifetimeCost": "Custo Total de Manutenção Vitalício",
+    "currentMonthCost": "Custo de Manutenção do Mês Atual",
+    "totalRecords": "Total de Registos de Manutenção",
+    "completedThisMonth": "Concluídos Este Mês",
+    "upcomingScheduled": "Agendados Próximos",
+    "accumulatedCost": "Custo acumulado em todos os registos de manutenção",
+    "totalExpensesFor": "Total de despesas de manutenção para",
+    "lifetimeRecords": "Registos de manutenção vitalícios",
+    "recordsThisMonth": "registos este mês",
+    "pendingActivities": "Atividades de manutenção pendentes"
   },
-  "status": {
-    "scheduled": "Agendado",
-    "completed": "Concluído",
-    "cancelled": "Cancelado",
-    "pending": "Pendente",
-    "active": "Ativo",
-    "inactive": "Inativo"
-  },
-  "table": {
-    "vehicle": "Veículo",
-    "date": "Data",
-    "description": "Descrição",
-    "parts": "Peças",
-    "technician": "Técnico",
-    "createdBy": "Criado Por",
-    "status": "Estado",
-    "cost": "Custo",
-    "actions": "Ações"
+  "buttons": {
+    "cancel": "Cancelar",
+    "reset": "Repor",
+    "update": "Atualizar",
+    "submit": "Submeter"
   }
 } 

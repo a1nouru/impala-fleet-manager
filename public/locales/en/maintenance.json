@@ -3,11 +3,13 @@
   "subtitle": "Vehicle Maintenance Management",
   "loading": {
     "title": "Loading Maintenance Data",
-    "subtitle": "Please wait while we fetch your maintenance records..."
+    "subtitle": "Please wait while we fetch your maintenance records...",
+    "loadingData": "Loading maintenance data...",
+    "requiredFields": "Required fields"
   },
   "scheduleMaintenance": "Schedule Maintenance",
-  "addMaintenance": "Add Maintenance Record",
-  "editMaintenance": "Edit Maintenance Record",
+  "addMaintenance": "Add Maintenance",
+  "editMaintenance": "Edit Maintenance",
   "maintenanceRecord": "Maintenance Record",
   "maintenanceRecords": "Maintenance Records",
   "lifetimeCost": {
@@ -31,34 +33,48 @@
     "subtitle": "{{count}} scheduled maintenance items"
   },
   "form": {
-    "vehiclePlate": "Vehicle Plate",
-    "selectVehicle": "Select a vehicle",
+    "vehicle": "Vehicle",
+    "vehicleRequired": "Vehicle is required",
     "date": "Date",
-    "status": "Status",
-    "selectStatus": "Select status",
-    "technician": "Technician",
-    "selectTechnician": "Select technician",
-    "cost": "Cost (Kz)",
-    "costPlaceholder": "Enter cost in Kwanza",
+    "dateRequired": "Date is required",
+    "pastCurrentDatesOnly": "Only past or current dates allowed",
     "kilometers": "Kilometers",
-    "kilometersPlaceholder": "Current vehicle kilometers",
+    "kilometersRequired": "Kilometers is required",
+    "technician": "Technician",
+    "technicianRequired": "Technician is required",
+    "assignTechnician": "Assign technician",
+    "cost": "Cost (Kz)",
+    "costRequired": "Cost is required",
     "description": "Description",
-    "descriptionPlaceholder": "Describe the maintenance work...",
-    "parts": "Parts Used",
-    "selectParts": "Select parts used in this maintenance",
-    "customPart": "Custom Part",
-    "addCustomPart": "Add Custom Part",
-    "other": "Other"
+    "descriptionRequired": "Description is required",
+    "describeWork": "Describe the maintenance work...",
+    "parts": "Parts",
+    "selected": "selected",
+    "loadingParts": "Loading parts...",
+    "other": "Other",
+    "addCustomPart": "Add custom part",
+    "selectVehicle": "Select vehicle",
+    "vehiclePlate": "Vehicle Plate",
+    "selectVehiclePlate": "Select vehicle plate",
+    "status": "Status",
+    "selectStatus": "Select status"
   },
   "filters": {
-    "searchPlaceholder": "Search by description, ID, or plate...",
-    "allVehicles": "All Vehicles",
     "allRecords": "All Records",
-    "scheduledOnly": "Scheduled"
+    "scheduled": "Scheduled",
+    "searchPlaceholder": "Search records...",
+    "filter": "Filter",
+    "active": "Active",
+    "filterTitle": "Filter Maintenance Records",
+    "filterDescription": "Filter records by vehicle plate number",
+    "allVehicles": "All Vehicles",
+    "reset": "Reset",
+    "applyFilter": "Apply Filter",
+    "filtered": "Filtered"
   },
   "table": {
     "id": "ID",
-    "vehicle": "Vehicle", 
+    "vehicle": "Vehicle",
     "plate": "Plate",
     "date": "Date",
     "description": "Description",
@@ -68,7 +84,8 @@
     "kilometers": "Kilometers",
     "parts": "Parts",
     "actions": "Actions",
-    "noRecords": "No maintenance records found"
+    "noRecords": "No maintenance records found",
+    "createdBy": "Created By"
   },
   "statusOptions": {
     "pending": "Pending",
@@ -99,11 +116,17 @@
   },
   "status": {
     "inProgress": "In Progress",
-    "cancelled": "Cancelled"
+    "cancelled": "Cancelled",
+    "scheduled": "Scheduled",
+    "completed": "Completed",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "dialog": {
-    "addDescription": "Enter the details for the new maintenance activity. Click submit when you're done.",
-    "editDescription": "Update the details for this maintenance record. Click submit when you're done."
+    "addDescription": "Enter the details for the new maintenance record.",
+    "editDescription": "Update the maintenance record details below.",
+    "status": "Status",
+    "selectStatus": "Select status"
   },
   "noMaintenanceRecords": "No maintenance records found",
   "totalLifetimeCost": "Total Lifetime Maintenance Cost",
@@ -116,39 +139,22 @@
   "allRecords": "All Records",
   "scheduled": "Scheduled",
   "searchPlaceholder": "Search records...",
-  "dialog": {
-    "title": "Schedule Maintenance",
-    "addDescription": "Add a detailed description of the maintenance work to be performed",
-    "vehicle": "Vehicle",
-    "date": "Date",
-    "kilometers": "Kilometers",
-    "status": "Status",
-    "technician": "Technician",
-    "cost": "Cost (Kz)",
-    "description": "Description",
-    "selectVehicle": "Select vehicle",
-    "selectStatus": "Select status",
-    "assignTechnician": "Assign technician",
-    "pastCurrentDatesOnly": "Only past or current dates allowed",
-    "describeWork": "Describe the maintenance work..."
+  "summary": {
+    "totalLifetimeCost": "Total Lifetime Maintenance Cost",
+    "currentMonthCost": "Current Month Maintenance Cost",
+    "totalRecords": "Total Maintenance Records",
+    "completedThisMonth": "Completed This Month",
+    "upcomingScheduled": "Upcoming Scheduled",
+    "accumulatedCost": "Accumulated cost across all maintenance records",
+    "totalExpensesFor": "Total maintenance expenses for",
+    "lifetimeRecords": "Lifetime maintenance records",
+    "recordsThisMonth": "records this month",
+    "pendingActivities": "Pending maintenance activities"
   },
-  "status": {
-    "scheduled": "Scheduled",
-    "completed": "Completed", 
-    "cancelled": "Cancelled",
-    "pending": "Pending",
-    "active": "Active",
-    "inactive": "Inactive"
-  },
-  "table": {
-    "vehicle": "Vehicle",
-    "date": "Date",
-    "description": "Description",
-    "parts": "Parts",
-    "technician": "Technician",
-    "createdBy": "Created By",
-    "status": "Status",
-    "cost": "Cost",
-    "actions": "Actions"
+  "buttons": {
+    "cancel": "Cancel",
+    "reset": "Reset",
+    "update": "Update",
+    "submit": "Submit"
   }
 } 
