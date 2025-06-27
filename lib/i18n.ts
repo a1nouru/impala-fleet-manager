@@ -14,7 +14,7 @@ i18n
   .init({
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'auth', 'maintenance'],
+    ns: ['common', 'maintenance'],
     
     lng: isClient ? localStorage.getItem('preferred-language') || 'en' : 'en',
     
@@ -41,6 +41,10 @@ i18n
     load: 'languageOnly',
     
     debug: false,
+    
+    // Prevent loading undefined namespaces
+    saveMissing: false,
+    saveMissingTo: 'fallback',
   })
 
 export default i18n 
