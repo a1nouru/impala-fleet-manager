@@ -1,123 +1,137 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { authService } from '../services/authService';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 // Create auth context
 const AuthContext = createContext();
 
+// Custom hook for using auth context  
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
 // Auth provider component
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
+  const [authService, setAuthService] = useState(null);
 
-  // Only run on client-side
+  // FIXED: Dynamically import authService to prevent SSR issues
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // SIMPLIFIED auth state initialization - no complex timeout management
-  useEffect(() => {
-    if (!mounted) return;
-
-    async function loadUserData() {
+    const loadAuthService = async () => {
       try {
-        console.log('🔄 Loading auth state...');
-        setLoading(true);
-        
-        const { session } = await authService.getCurrentSession();
-        setSession(session);
-        
-        if (session) {
-          const user = await authService.getCurrentUser();
-          setUser(user);
-          console.log('✅ Auth loaded:', user ? 'User found' : 'No user');
-        } else {
-          setUser(null);
-          console.log('❌ No session found');
-        }
+        const { authService: service } = await import('@/services/authService');
+        setAuthService(service);
+        console.log('✅ AuthService loaded successfully');
       } catch (error) {
-        console.error('❌ Auth load error:', error);
-        setUser(null);
-        setSession(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    loadUserData();
-
-    // SIMPLIFIED auth state change listener - no complex timeout logic
-    const { data: authListener } = authService.onAuthStateChange(
-      async (event, session) => {
-        console.log(`🔔 Auth event: ${event}`);
-        
-        setSession(session);
-        
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          if (session) {
-            try {
-              const user = await authService.getCurrentUser();
-              setUser(user);
-              console.log('✅ User updated:', user ? 'Success' : 'Failed');
-            } catch (error) {
-              console.error('❌ User fetch error:', error);
-              setUser(null);
-            }
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setSession(null);
-          console.log('🚪 User signed out');
-        }
-        
-        setLoading(false);
-      }
-    );
-    
-    return () => {
-      if (authListener?.subscription) {
-        authListener.subscription.unsubscribe();
+        console.error('❌ Failed to load authService:', error);
       }
     };
-  }, [mounted]);
+    
+    loadAuthService();
+  }, []);
 
-  // SIMPLIFIED sign in - no manual state forcing
-  const signIn = async (email, password) => {
+  // SIMPLIFIED: Load user data when authService is available
+  const loadUserData = async () => {
+    if (!authService) return;
+    
     try {
-      console.log('🔐 Signing in...');
-      setLoading(true);
+      console.log('🔍 Loading user data...');
+      const session = await authService.getCurrentSession();
       
+      if (session?.user) {
+        console.log('✅ User session found:', session.user.email);
+        setUser(session.user);
+      } else {
+        console.log('❌ No user session found');
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('❌ Error loading user data:', error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!authService) return;
+
+    loadUserData();
+
+    // FIXED: Use authService.onAuthStateChange instead of accessing .supabase directly
+    const { data: { subscription } } = authService.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔄 Auth state change:', event);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('✅ User signed in:', session.user.email);
+          setUser(session.user);
+          setLoading(false);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('🚪 User signed out');
+          setUser(null);
+          setLoading(false);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('🔄 Token refreshed for:', session.user.email);
+          setUser(session.user);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [authService]);
+
+  // SIMPLIFIED: Authentication functions with proper error handling
+  const signIn = async (email, password) => {
+    if (!authService) throw new Error('AuthService not available');
+    
+    setLoading(true);
+    try {
+      console.log('🔐 Signing in user:', email);
       const result = await authService.signIn(email, password);
       
-      // Let the auth state change listener handle state updates
-      console.log('✅ Sign in complete');
+      if (result.error) {
+        throw result.error;
+      }
+      
+      if (!result?.session?.user) {
+        // This case can happen with invalid credentials where Supabase doesn't return an error object.
+        throw new Error("Invalid login credentials.");
+      }
+
+      // The onAuthStateChange listener will set the user. We return the result
+      // for any component that might need it.
+      console.log('✅ Sign in successful');
       return result;
+
     } catch (error) {
       console.error('❌ Sign in error:', error);
+      setUser(null); // Ensure user is cleared on failed sign-in.
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // SIMPLIFIED sign out
   const signOut = async () => {
+    if (!authService) throw new Error('AuthService not available');
+    
+    setLoading(true);
     try {
-      console.log('🚪 Signing out...');
-      setLoading(true);
-      
+      console.log('🚪 Signing out user...');
       await authService.signOut();
-      
-      setUser(null);
-      setSession(null);
-      console.log('✅ Sign out complete');
+      // User will be set to null via onAuthStateChange listener.
+      console.log('✅ Sign out successful');
     } catch (error) {
       console.error('❌ Sign out error:', error);
-      setUser(null);
-      setSession(null);
       throw error;
     } finally {
       setLoading(false);
@@ -125,45 +139,67 @@ export function AuthProvider({ children }) {
   };
 
   const signUp = async (email, password) => {
-    return await authService.signUp(email, password);
+    if (!authService) throw new Error('AuthService not available');
+    
+    setLoading(true);
+    try {
+      console.log('📝 Signing up user:', email);
+      const result = await authService.signUp(email, password);
+       if (result.error) {
+        throw result.error;
+      }
+      console.log('✅ Sign up successful');
+      return result;
+    } catch (error) {
+      console.error('❌ Sign up error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signInWithMagicLink = async (email) => {
-    return await authService.signInWithMagicLink(email);
+    if (!authService) throw new Error('AuthService not available');
+    
+    try {
+      console.log('✨ Sending magic link to:', email);
+      const result = await authService.signInWithMagicLink(email);
+      console.log('✅ Magic link sent');
+      return result;
+    } catch (error) {
+      console.error('❌ Magic link error:', error);
+      throw error;
+    }
   };
 
   const resetPassword = async (email) => {
-    return await authService.resetPassword(email);
+    if (!authService) throw new Error('AuthService not available');
+    
+    try {
+      console.log('🔑 Sending password reset to:', email);
+      const result = await authService.resetPassword(email);
+      console.log('✅ Password reset sent');
+      return result;
+    } catch (error) {
+      console.error('❌ Password reset error:', error);
+      throw error;
+    }
   };
 
-  const updatePassword = async (newPassword) => {
-    return await authService.updatePassword(newPassword);
-  };
-
-  const isAuthenticated = !!user && !!session;
-
-  // Value to expose to consumers
   const value = {
     user,
-    session,
-    loading,
-    signUp,
+    loading: loading || !authService,
+    isAuthenticated: !!user,
     signIn,
-    signInWithMagicLink,
     signOut,
+    signUp,
+    signInWithMagicLink,
     resetPassword,
-    updatePassword,
-    isAuthenticated,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-// Custom hook for using auth context
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }; 

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { X, Loader2, Clock } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
@@ -25,7 +25,7 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [hasShownSuccessToast, setHasShownSuccessToast] = useState(false);
 
-  // Reset state when dialog opens
+  // SIMPLIFIED: Reset state when dialog opens/closes
   useEffect(() => {
     if (open) {
       console.log('🔓 Login dialog opened');
@@ -33,26 +33,28 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       setMagicLinkSent(false);
       setResetEmailSent(false);
       setHasShownSuccessToast(false);
+      setIsLoading(false);
+    } else {
+      setIsLoading(false);
     }
   }, [open]);
 
-  // Monitor authentication state changes
+  // SIMPLIFIED: Monitor authentication success
   useEffect(() => {
     if (isAuthenticated && !authLoading && !hasShownSuccessToast) {
       console.log('🎉 Authentication successful - closing dialog and redirecting');
       onOpenChange(false);
       
-      // Show session timeout info toast only once
       toast({
         title: "Login successful",
-        description: "Your session will expire after 30 minutes of inactivity",
+        description: "Welcome back!",
         variant: "default",
       });
       
       setHasShownSuccessToast(true);
       router.push("/dashboard/maintenance");
     }
-  }, [isAuthenticated, authLoading, hasShownSuccessToast, onOpenChange, router]);
+  }, [isAuthenticated, authLoading, hasShownSuccessToast, onOpenChange, router, toast]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,16 +73,15 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       
       if (result?.session) {
         console.log('✅ Login successful');
-        // Note: Success toast is now handled in useEffect to avoid duplicates
       } else {
         throw new Error('Login failed - no session created');
       }
     } catch (error: unknown) {
       console.error("Authentication error:", error);
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
-    } finally {
       setIsLoading(false);
     }
+    // Note: Don't set loading to false here - let the auth state change handle it
   };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -89,7 +90,6 @@ export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     setIsLoading(true);
 
     try {
-      // Simple validation
       if (!email || !password) {
         setError("Email and password are required");
         return;

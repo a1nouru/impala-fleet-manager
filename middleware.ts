@@ -60,14 +60,14 @@ export default function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all paths except for:
-     * 1. /_next (Next.js internals)
-     * 2. /_static (inside /public)
-     * 3. /_vercel (Vercel internals)
-     * 4. Static files (/favicon.ico, /sitemap.xml, etc.)
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - _vercel (Vercel internals)
      * 
-     * Note: We now include /api routes for warmup detection
+     * This ensures that middleware runs on all pages and API routes.
      */
-    '/((?!_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
+    '/((?!_next/static|_next/image|favicon.ico|_vercel).*)',
   ],
 }; 

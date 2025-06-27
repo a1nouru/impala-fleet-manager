@@ -519,117 +519,87 @@ function MaintenanceContent() {
   };
 
   const handleSubmit = async () => {
+    // Basic validation
     if (!validateForm()) {
+      toast({
+        title: t("form.validationErrorTitle"),
+        description: t("form.validationError"),
+        variant: "destructive",
+      });
       return;
     }
+
+    setIsLoading(prevState => ({ ...prevState, submit: true }));
     
-    setIsLoading(prev => ({ ...prev, submit: true }));
+    // Find the correct vehicle and technician IDs
+    const vehicle = vehicles.find(v => v.plate === newRecord.vehiclePlate);
+    const technician = technicians.find(t => t.name === newRecord.technician);
     
-    try {
-      // Find the vehicle ID from the plate
-      const vehicle = vehicles.find(v => v.plate === newRecord.vehiclePlate);
-      
-      // Find the technician ID from the name
-      const technician = technicians.find(t => t.name === newRecord.technician);
-      
-      // Fix timezone issue by ensuring the date is formatted correctly
-      // For dates selected in the date picker (YYYY-MM-DD format)
-      const dateForStorage = (() => {
-        // The date picker returns strings in format YYYY-MM-DD
-        // We'll keep this exact format to avoid any timezone conversion issues
-        return newRecord.date;
-      })();
-      
-      // Create the maintenance record object
-      const maintenanceData = {
-        vehicle_id: vehicle?.id,
-        date: dateForStorage,
-        description: newRecord.description,
-        technician_id: technician?.id,
-        status: newRecord.status,
-        cost: parseFloat(parseFormattedNumber(newRecord.cost)) || 0,
-        kilometers: parseFloat(parseFormattedNumber(newRecord.kilometers)) || 0,
-      };
-      
-      // Log the selected parts for debugging
-      console.log('Selected parts before submission:', selectedParts);
-      console.log('Date being submitted:', dateForStorage);
-      
-      // Process custom parts and save them
-      const customPartPromises = selectedParts
-        .filter(partName => partName.endsWith(' (Custom)'))
-        .map(async partName => {
-          // Extract the category by searching through customParts state
-          const partNameWithoutSuffix = partName.slice(0, -9); // Remove " (Custom)" suffix
-          
-          // Find any category with this part name
-          for (const category of busParts) {
-            // Try to add the custom part to this category
-            await partService.addCustomPart(category.category, partNameWithoutSuffix);
-          }
-        });
-      
-      // Wait for all custom parts to be saved
-      await Promise.all(customPartPromises);
-      
-      // Either update or create a record based on isEditMode
-      if (isEditMode && editRecordId) {
-        // Update the existing record
-        await maintenanceService.updateMaintenanceRecord(
-          editRecordId, 
-          maintenanceData,
-          selectedParts // Pass parts array separately
-        );
-      } else {
-        // Create a new record with current user
-        const currentUserEmail = user?.email || 'Unknown';
-        const username = currentUserEmail.split('@')[0];
-        
-        // Pass the data to the service, keeping parts as a separate parameter
-        await maintenanceService.createMaintenanceRecord(
-          maintenanceData,
-          selectedParts, // Pass parts array separately 
-          username
-        );
-      }
-      
-      // Refresh the records from the database
-      const updatedRecords = await maintenanceService.getMaintenanceRecords();
-      setRecords(updatedRecords);
-      
-      // Refresh the parts list to include any new custom parts
-      const updatedPartsData = await partService.getPartsByCategory();
-      const formattedParts = updatedPartsData.map(category => ({
-        category: category.name,
-        items: category.parts.map(part => ({
-          id: part.id,
-          name: part.name
-        }))
-      }));
-      setBusParts(formattedParts);
-      
-      // Reset form
-      setDialogOpen(false);
-      resetForm();
-      
-      // Show success message
-      toast({
-        title: "Success",
-        description: isEditMode 
-          ? "Maintenance record updated successfully" 
-          : "Maintenance record created successfully"
-      });
-    } catch (error) {
-      console.error('Error with maintenance record:', error);
+    if (!vehicle || !technician) {
       toast({
         title: "Error",
-        description: isEditMode
-          ? "Failed to update maintenance record. Please try again."
-          : "Failed to create maintenance record. Please try again.",
-        variant: "destructive"
+        description: "Invalid vehicle or technician selected.",
+        variant: "destructive",
+      });
+      setIsLoading(prevState => ({ ...prevState, submit: false }));
+      return;
+    }
+
+    // Combine standard and custom parts
+    const allParts = [...selectedParts];
+    customParts.forEach(part => {
+      if (part.value.trim() !== "") {
+        allParts.push(`${part.category}: ${part.value.trim()}`);
+      }
+    });
+
+    const recordToSave = {
+      vehicle_id: vehicle.id,
+      date: newRecord.date,
+      status: newRecord.status,
+      technician_id: technician.id,
+      cost: parseFormattedNumber(newRecord.cost),
+      description: newRecord.description,
+      kilometers: parseFormattedNumber(newRecord.kilometers),
+    };
+
+    try {
+      let savedRecord;
+      const created_by_id = user?.id;
+      
+      if (isEditMode && editRecordId) {
+        // Update existing record
+        savedRecord = await maintenanceService.updateMaintenanceRecord(editRecordId, recordToSave, allParts);
+        toast({
+          title: t("form.updateSuccessTitle"),
+          description: t("form.updateSuccess"),
+        });
+      } else {
+        // Create new record
+        savedRecord = await maintenanceService.createMaintenanceRecord(recordToSave, allParts, created_by_id);
+        toast({
+          title: t("form.createSuccessTitle"),
+          description: t("form.createSuccess"),
+        });
+      }
+
+      // Fetch the updated list of records
+      const updatedRecords = await maintenanceService.getMaintenanceRecords();
+      setRecords(updatedRecords);
+
+      // Close dialog and reset form
+      setDialogOpen(false);
+      resetForm();
+
+    } catch (error) {
+      console.error("Error with maintenance record:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create maintenance record. Please try again.",
+        variant: "destructive",
       });
     } finally {
-      setIsLoading(prev => ({ ...prev, submit: false }));
+      setIsLoading(prevState => ({ ...prevState, submit: false }));
     }
   };
 
@@ -790,15 +760,17 @@ function MaintenanceContent() {
                   </Label>
                   <Select
                     value={newRecord.status}
-                    onValueChange={(value) => setNewRecord(prev => ({ ...prev, status: value }))}
+                    onValueChange={(value) => handleSelectChange("status", value)}
                   >
-                    <SelectTrigger className={`${formErrors.status ? 'border-red-500' : ''}`}>
+                    <SelectTrigger className={formErrors.status ? "border-red-500" : ""}>
                       <SelectValue placeholder={t('dialog.selectStatus')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="scheduled">{t('status.scheduled')}</SelectItem>
-                      <SelectItem value="completed">{t('status.completed')}</SelectItem>
-                      <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
+                      {statuses.map((status) => (
+                        <SelectItem key={status.value} value={status.value}>
+                          {status.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
