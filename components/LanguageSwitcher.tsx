@@ -6,7 +6,7 @@ import { Globe } from 'lucide-react'
 import { useState } from 'react'
 
 export function LanguageSwitcher() {
-  const { locale, changeLanguage, isLoading } = useTranslation()
+  const { locale, changeLanguage, isLoading } = useTranslation('common')
   const [switching, setSwitching] = useState(false)
   
   const toggleLanguage = async () => {
@@ -51,7 +51,7 @@ export function LanguageSwitcher() {
 
 // Compact version for mobile/tight spaces
 export function LanguageSwitcherCompact() {
-  const { locale, changeLanguage, isLoading } = useTranslation()
+  const { locale, changeLanguage, isLoading } = useTranslation('common')
   const [switching, setSwitching] = useState(false)
   
   const toggleLanguage = async () => {

@@ -691,7 +691,7 @@ function MaintenanceContent() {
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">Maintenance</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">{t("title")}</h1>
         
         <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
@@ -998,14 +998,14 @@ function MaintenanceContent() {
             <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-indigo-900">
-                  Total Lifetime Maintenance Cost
+                  {t("summary.totalLifetimeCost")}
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-indigo-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold text-indigo-900">{totalLifetimeCost.toLocaleString()} Kz</div>
                 <p className="text-xs text-indigo-700">
-                  Accumulated cost across all maintenance records
+                  {t("summary.accumulatedCost")}
                 </p>
               </CardContent>
             </Card>
@@ -1013,14 +1013,14 @@ function MaintenanceContent() {
             <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-emerald-900">
-                  Current Month Maintenance Cost
+                  {t("summary.currentMonthCost")}
                 </CardTitle>
                 <CreditCard className="h-4 w-4 text-emerald-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold text-emerald-900">{currentMonthCost.toLocaleString()} Kz</div>
                 <p className="text-xs text-emerald-700">
-                  Total maintenance expenses for {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
+                  {t("summary.totalExpensesFor")} {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
                 </p>
               </CardContent>
             </Card>
@@ -1030,42 +1030,42 @@ function MaintenanceContent() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total Maintenance Records
+                  {t("summary.totalRecords")}
                 </CardTitle>
                 <WrenchIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold">{records.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  Lifetime maintenance records
+                  {t("summary.lifetimeRecords")}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Completed This Month
+                  {t("summary.completedThisMonth")}
                 </CardTitle>
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold">{completedMonthRecords.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  {currentMonthRecords.length} records this month
+                  {currentMonthRecords.length} {t("summary.recordsThisMonth")}
                 </p>
               </CardContent>
             </Card>
             <Card className="sm:col-span-2 lg:col-span-1">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Upcoming Scheduled
+                  {t("summary.upcomingScheduled")}
                 </CardTitle>
                 <CalendarIcon className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold">{upcomingMaintenance}</div>
                 <p className="text-xs text-muted-foreground">
-                  Pending maintenance activities
+                  {t("summary.pendingActivities")}
                 </p>
               </CardContent>
             </Card>
