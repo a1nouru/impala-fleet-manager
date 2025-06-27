@@ -4,7 +4,7 @@
   "loading": {
     "title": "Carregando Dados de Manutenção",
     "subtitle": "Por favor, aguarde enquanto buscamos os seus registos de manutenção...",
-    "loadingData": "A carregar dados de manutenção...",
+    "loadingData": "Carregando dados de manutenção...",
     "requiredFields": "Campos obrigatórios"
   },
   "scheduleMaintenance": "Agendar Manutenção",
@@ -12,6 +12,12 @@
   "editMaintenance": "Editar Manutenção",
   "maintenanceRecord": "Registo de Manutenção",
   "maintenanceRecords": "Registos de Manutenção",
+  "buttons": {
+    "cancel": "Cancelar",
+    "reset": "Repor",
+    "submit": "Submeter",
+    "update": "Actualizar"
+  },
   "lifetimeCost": {
     "title": "Custo Total de Manutenção",
     "subtitle": "Custo acumulado de todos os registos de manutenção"
@@ -154,11 +160,5 @@
     "lifetimeRecords": "Registos de manutenção vitalícios",
     "recordsThisMonth": "registos este mês",
     "pendingActivities": "Atividades de manutenção pendentes"
-  },
-  "buttons": {
-    "cancel": "Cancelar",
-    "reset": "Repor",
-    "update": "Atualizar",
-    "submit": "Submeter"
   }
 } 

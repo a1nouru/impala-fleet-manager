@@ -12,6 +12,12 @@
   "editMaintenance": "Edit Maintenance",
   "maintenanceRecord": "Maintenance Record",
   "maintenanceRecords": "Maintenance Records",
+  "buttons": {
+    "cancel": "Cancel",
+    "reset": "Reset",
+    "submit": "Submit",
+    "update": "Update"
+  },
   "lifetimeCost": {
     "title": "Total Lifetime Maintenance Cost",
     "subtitle": "Accumulated cost across all maintenance records"
@@ -150,11 +156,5 @@
     "lifetimeRecords": "Lifetime maintenance records",
     "recordsThisMonth": "records this month",
     "pendingActivities": "Pending maintenance activities"
-  },
-  "buttons": {
-    "cancel": "Cancel",
-    "reset": "Reset",
-    "update": "Update",
-    "submit": "Submit"
   }
 } 

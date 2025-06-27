@@ -39,14 +39,14 @@ import { useTranslation } from "@/hooks/useTranslation"
 
 // Loading component for better user experience
 function LoadingState() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('maintenance');
   
   return (
     <div className="w-full h-full min-h-[50vh] flex flex-col items-center justify-center gap-4 bg-white rounded-lg shadow p-8">
       <Loader2 className="h-16 w-16 text-blue-600 animate-spin" />
       <div className="text-center">
-        <p className="text-xl font-semibold text-gray-800 mb-2">{t("maintenance.loading.title")}</p>
-        <p className="text-gray-500">{t("maintenance.loading.subtitle")}</p>
+        <p className="text-xl font-semibold text-gray-800 mb-2">{t("loading.title")}</p>
+        <p className="text-gray-500">{t("loading.subtitle")}</p>
       </div>
     </div>
   )
@@ -704,19 +704,19 @@ function MaintenanceContent() {
               }}
             >
               <PlusCircle className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">{t("maintenance.scheduleMaintenance")}</span>
-              <span className="sm:hidden">{t("maintenance.addMaintenance")}</span>
+              <span className="hidden sm:inline">{t("scheduleMaintenance")}</span>
+              <span className="sm:hidden">{t("addMaintenance")}</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 w-[calc(100vw-2rem)]">
             <DialogHeader>
               <DialogTitle className="text-lg">
-                {isEditMode ? t("maintenance.editMaintenance") : t("maintenance.scheduleMaintenance")}
+                {isEditMode ? t("editMaintenance") : t("scheduleMaintenance")}
               </DialogTitle>
               <DialogDescription className="text-sm">
                 {isEditMode 
-                  ? t("maintenance.dialog.editDescription")
-                  : t("maintenance.dialog.addDescription")
+                  ? t("dialog.editDescription")
+                  : t("dialog.addDescription")
                 }
               </DialogDescription>
             </DialogHeader>
@@ -724,14 +724,14 @@ function MaintenanceContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="vehiclePlate" className="flex items-center text-sm">
-                    {t("maintenance.form.vehicle")} <span className="text-red-500 ml-1">*</span>
+                    Vehicle <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Select
                     value={newRecord.vehiclePlate}
                     onValueChange={(value) => handleSelectChange("vehiclePlate", value)}
                   >
                     <SelectTrigger className={formErrors.vehiclePlate ? "border-red-500" : ""}>
-                      <SelectValue placeholder={t("maintenance.form.selectVehicle")} />
+                      <SelectValue placeholder="Select vehicle" />
                     </SelectTrigger>
                     <SelectContent>
                       {vehicles.map((vehicle) => (
@@ -742,12 +742,12 @@ function MaintenanceContent() {
                     </SelectContent>
                   </Select>
                   {formErrors.vehiclePlate && (
-                    <p className="text-xs text-red-500">{t("maintenance.form.vehicleRequired")}</p>
+                    <p className="text-xs text-red-500">Vehicle is required</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="date" className="flex items-center text-sm">
-                    {t("maintenance.form.date")} <span className="text-red-500 ml-1">*</span>
+                    Date <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
                     id="date"
@@ -760,15 +760,15 @@ function MaintenanceContent() {
                     className={formErrors.date ? "border-red-500" : ""}
                   />
                   {formErrors.date && (
-                    <p className="text-xs text-red-500">{t("maintenance.form.dateRequired")}</p>
+                    <p className="text-xs text-red-500">Date is required</p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    {t("maintenance.form.pastCurrentDatesOnly")}
+                    Only past or current dates allowed
                   </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="kilometers" className="flex items-center text-sm">
-                    {t("maintenance.form.kilometers")} <span className="text-red-500 ml-1">*</span>
+                    Kilometers <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
                     id="kilometers"
@@ -781,37 +781,37 @@ function MaintenanceContent() {
                     className={formErrors.kilometers ? "border-red-500" : ""}
                   />
                   {formErrors.kilometers && (
-                    <p className="text-xs text-red-500">{t("maintenance.form.kilometersRequired")}</p>
+                    <p className="text-xs text-red-500">Kilometers is required</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status" className="text-sm font-medium">
-                    {t('maintenance.dialog.status')} <span className="text-red-500">*</span>
+                    {t('dialog.status')} <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={newRecord.status}
                     onValueChange={(value) => setNewRecord(prev => ({ ...prev, status: value }))}
                   >
                     <SelectTrigger className={`${formErrors.status ? 'border-red-500' : ''}`}>
-                      <SelectValue placeholder={t('maintenance.dialog.selectStatus')} />
+                      <SelectValue placeholder={t('dialog.selectStatus')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="scheduled">{t('maintenance.status.scheduled')}</SelectItem>
-                      <SelectItem value="completed">{t('maintenance.status.completed')}</SelectItem>
-                      <SelectItem value="cancelled">{t('maintenance.status.cancelled')}</SelectItem>
+                      <SelectItem value="scheduled">{t('status.scheduled')}</SelectItem>
+                      <SelectItem value="completed">{t('status.completed')}</SelectItem>
+                      <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="technician" className="flex items-center text-sm">
-                    {t("maintenance.form.technician")} <span className="text-red-500 ml-1">*</span>
+                    Technician <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Select
                     value={newRecord.technician}
                     onValueChange={(value) => handleSelectChange("technician", value)}
                   >
                     <SelectTrigger className={formErrors.technician ? "border-red-500" : ""}>
-                      <SelectValue placeholder={t("maintenance.form.assignTechnician")} />
+                      <SelectValue placeholder="Assign technician" />
                     </SelectTrigger>
                     <SelectContent>
                       {technicians.map((tech) => (
@@ -822,12 +822,12 @@ function MaintenanceContent() {
                     </SelectContent>
                   </Select>
                   {formErrors.technician && (
-                    <p className="text-xs text-red-500">{t("maintenance.form.technicianRequired")}</p>
+                    <p className="text-xs text-red-500">Technician is required</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cost" className="flex items-center text-sm">
-                    {t("maintenance.form.cost")} <span className="text-red-500 ml-1">*</span>
+                    Cost (Kz) <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
                     id="cost"
@@ -839,18 +839,18 @@ function MaintenanceContent() {
                     className={formErrors.cost ? "border-red-500" : ""}
                   />
                   {formErrors.cost && (
-                    <p className="text-xs text-red-500">{t("maintenance.form.costRequired")}</p>
+                    <p className="text-xs text-red-500">Cost is required</p>
                   )}
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description" className="flex items-center text-sm">
-                  {t("maintenance.form.description")} <span className="text-red-500 ml-1">*</span>
+                  Description <span className="text-red-500 ml-1">*</span>
                 </Label>
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder={t("maintenance.form.describeWork")}
+                  placeholder="Describe the maintenance work..."
                   rows={3}
                   value={newRecord.description}
                   onChange={handleInputChange}
@@ -858,19 +858,19 @@ function MaintenanceContent() {
                   className={formErrors.description ? "border-red-500" : ""}
                 />
                 {formErrors.description && (
-                  <p className="text-xs text-red-500">{t("maintenance.form.descriptionRequired")}</p>
+                  <p className="text-xs text-red-500">Description is required</p>
                 )}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm">{t("maintenance.form.parts")}</Label>
-                  <span className="text-sm text-muted-foreground">{selectedParts.length} {t("maintenance.form.selected")}</span>
+                  <Label className="text-sm">Parts</Label>
+                  <span className="text-sm text-muted-foreground">{selectedParts.length} selected</span>
                 </div>
                 <ScrollArea className="h-48 sm:h-64 border rounded-md p-4">
                   {isLoading.parts ? (
                     <div className="flex justify-center items-center h-full">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      <span className="ml-2 text-sm">{t("maintenance.form.loadingParts")}</span>
+                      <span className="ml-2 text-sm">Loading parts...</span>
                     </div>
                   ) : (
                     <Accordion type="multiple" className="w-full">
@@ -911,7 +911,7 @@ function MaintenanceContent() {
                                   htmlFor={`${category.category.toLowerCase()}-other`}
                                   className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                 >
-                                  {t("maintenance.form.other")}
+                                  Other
                                 </label>
                               </div>
                               
@@ -951,7 +951,7 @@ function MaintenanceContent() {
                 </ScrollArea>
               </div>
               <div className="text-xs text-muted-foreground mt-2">
-                <span className="text-black">*</span> {t("maintenance.loading.requiredFields")}
+                <span className="text-black">*</span> Required fields
               </div>
             </div>
             <DialogFooter>
@@ -962,7 +962,7 @@ function MaintenanceContent() {
                   onClick={() => setDialogOpen(false)}
                   disabled={isLoading.submit}
                 >
-                  {t("maintenance.buttons.cancel")}
+                  Cancel
                 </Button>
                 <Button
                   type="button"
@@ -970,7 +970,7 @@ function MaintenanceContent() {
                   disabled={isDataLoading || isLoading.submit}
                   onClick={() => setResetDialogOpen(true)}
                 >
-                  {t("maintenance.buttons.reset")}
+                  Reset
                 </Button>
                 <Button
                   onClick={handleSubmit} 
@@ -978,7 +978,7 @@ function MaintenanceContent() {
                   className="bg-black hover:bg-gray-800 text-white"
                 >
                   {isLoading.submit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isEditMode ? t("maintenance.buttons.update") : t("maintenance.buttons.submit")}
+                  {isEditMode ? "Update" : "Submit"}
                 </Button>
               </div>
             </DialogFooter>
@@ -989,7 +989,7 @@ function MaintenanceContent() {
       {isDataLoading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-xl ml-4">{t("maintenance.loading.loadingData")}</span>
+          <span className="text-xl ml-4">{t("loading.title")}</span>
         </div>
       ) : (
         <>
@@ -998,14 +998,14 @@ function MaintenanceContent() {
             <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-indigo-900">
-                  {t("maintenance.summary.totalLifetimeCost")}
+                  Total Lifetime Maintenance Cost
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-indigo-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold text-indigo-900">{totalLifetimeCost.toLocaleString()} Kz</div>
                 <p className="text-xs text-indigo-700">
-                  {t("maintenance.summary.accumulatedCost")}
+                  Accumulated cost across all maintenance records
                 </p>
               </CardContent>
             </Card>
@@ -1013,14 +1013,14 @@ function MaintenanceContent() {
             <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-emerald-900">
-                  {t("maintenance.summary.currentMonthCost")}
+                  Current Month Maintenance Cost
                 </CardTitle>
                 <CreditCard className="h-4 w-4 text-emerald-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold text-emerald-900">{currentMonthCost.toLocaleString()} Kz</div>
                 <p className="text-xs text-emerald-700">
-                  {t("maintenance.summary.totalExpensesFor")} {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
+                  Total maintenance expenses for {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
                 </p>
               </CardContent>
             </Card>
@@ -1030,42 +1030,42 @@ function MaintenanceContent() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  {t("maintenance.summary.totalRecords")}
+                  Total Maintenance Records
                 </CardTitle>
                 <WrenchIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold">{records.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  {t("maintenance.summary.lifetimeRecords")}
+                  Lifetime maintenance records
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  {t("maintenance.summary.completedThisMonth")}
+                  Completed This Month
                 </CardTitle>
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold">{completedMonthRecords.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  {currentMonthRecords.length} {t("maintenance.summary.recordsThisMonth")}
+                  {currentMonthRecords.length} records this month
                 </p>
               </CardContent>
             </Card>
             <Card className="sm:col-span-2 lg:col-span-1">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  {t("maintenance.summary.upcomingScheduled")}
+                  Upcoming Scheduled
                 </CardTitle>
                 <CalendarIcon className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold">{upcomingMaintenance}</div>
                 <p className="text-xs text-muted-foreground">
-                  {t("maintenance.summary.pendingActivities")}
+                  Pending maintenance activities
                 </p>
               </CardContent>
             </Card>
@@ -1080,14 +1080,14 @@ function MaintenanceContent() {
                     onClick={() => setActiveTab("all")}
                     className={`h-9 ${activeTab === "all" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
                   >
-                    {t("maintenance.filters.allRecords")}
+                    All Records
                   </Button>
                   <Button
                     variant={activeTab === "scheduled" ? "default" : "outline"}
                     onClick={() => setActiveTab("scheduled")}
                     className={`h-9 ${activeTab === "scheduled" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
                   >
-                    {t("maintenance.filters.scheduled")}
+                    Scheduled
                   </Button>
                 </div>
                 
@@ -1096,7 +1096,7 @@ function MaintenanceContent() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder={t("maintenance.filters.searchPlaceholder")}
+                      placeholder="Search records..."
                       className="pl-8 h-9 w-full sm:w-[200px] lg:w-[300px]"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -1105,31 +1105,31 @@ function MaintenanceContent() {
                   
                   <Button variant="outline" size="sm" className="h-9" onClick={() => setFilterDialogOpen(true)}>
                     <Filter className={`h-4 w-4 mr-2 ${plateFilter !== "all" ? "text-black" : ""}`} />
-                    <span className="hidden sm:inline">{t("maintenance.filters.filter")}</span>
-                    <span className="sm:hidden">{t("maintenance.filters.filter")}</span>
-                    {plateFilter !== "all" && <span className="ml-1 text-black">• {t("maintenance.filters.active")}</span>}
+                    <span className="hidden sm:inline">Filter</span>
+                    <span className="sm:hidden">Filter</span>
+                    {plateFilter !== "all" && <span className="ml-1 text-black">• Active</span>}
                   </Button>
                   
                   <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
                     <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
                       <DialogHeader>
-                        <DialogTitle>{t("maintenance.filters.filterTitle")}</DialogTitle>
+                        <DialogTitle>Filter Maintenance Records</DialogTitle>
                         <DialogDescription>
-                          {t("maintenance.filters.filterDescription")}
+                          Filter records by vehicle plate number
                         </DialogDescription>
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
                         <div className="space-y-2">
-                          <Label htmlFor="plateFilter">{t("maintenance.filters.vehiclePlate")}</Label>
+                          <Label htmlFor="plateFilter">Vehicle Plate</Label>
                           <Select
                             value={plateFilter}
                             onValueChange={(value) => setPlateFilter(value)}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder={t("maintenance.form.selectVehiclePlate")} />
+                              <SelectValue placeholder="Select vehicle plate" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="all">{t("maintenance.filters.allVehicles")}</SelectItem>
+                              <SelectItem value="all">All Vehicles</SelectItem>
                               {vehicles.map((vehicle) => (
                                 <SelectItem key={vehicle.id} value={vehicle.plate}>
                                   {vehicle.plate}
@@ -1144,10 +1144,10 @@ function MaintenanceContent() {
                           setPlateFilter("all");
                           setFilterDialogOpen(false);
                         }} className="w-full sm:w-auto">
-                          {t("maintenance.filters.reset")}
+                          Reset
                         </Button>
                         <Button onClick={() => setFilterDialogOpen(false)} className="w-full sm:w-auto">
-                          {t("maintenance.filters.applyFilter")}
+                          Apply Filter
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -1162,28 +1162,28 @@ function MaintenanceContent() {
                 <thead>
                   <tr className="border-b">
                     <th className="px-4 py-3 text-left text-sm font-medium">
-                      {t("maintenance.table.vehicle")}
+                      Vehicle
                       {plateFilter !== "all" && (
                         <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-black/10 text-black border border-black/20">
-                          {t("maintenance.filters.filtered")}: {plateFilter}
+                          Filtered: {plateFilter}
                         </div>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">{t("maintenance.table.date")}</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">{t("maintenance.table.description")}</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">{t("maintenance.table.parts")}</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">{t("maintenance.table.technician")}</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">{t("maintenance.table.createdBy")}</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">{t("maintenance.table.status")}</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">{t("maintenance.table.cost")}</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">{t("maintenance.table.actions")}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Description</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Parts</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Technician</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Created By</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">Cost</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRecords.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="text-center py-8 text-muted-foreground">
-                        {t("maintenance.table.noRecords")}
+                        No maintenance records found
                       </td>
                     </tr>
                   ) : (

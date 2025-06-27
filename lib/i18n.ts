@@ -2,22 +2,21 @@
 
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import HttpBackend from 'i18next-http-backend'
+import Backend from 'i18next-http-backend'
 import LanguageDetector from 'i18next-browser-languagedetector'
 
-const isBrowser = typeof window !== 'undefined'
+const isClient = typeof window !== 'undefined'
 
 i18n
-  .use(HttpBackend)
+  .use(Backend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    lng: 'en',
     fallbackLng: 'en',
-    debug: false,
-    
     defaultNS: 'common',
     ns: ['common', 'auth', 'maintenance'],
+    
+    lng: isClient ? localStorage.getItem('preferred-language') || 'en' : 'en',
     
     interpolation: {
       escapeValue: false,
@@ -28,8 +27,9 @@ i18n
     },
     
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage', 'navigator', 'htmlTag'],
       caches: ['localStorage'],
+      lookupLocalStorage: 'preferred-language',
     },
     
     react: {
@@ -39,6 +39,8 @@ i18n
     supportedLngs: ['en', 'pt'],
     
     load: 'languageOnly',
+    
+    debug: false,
   })
 
 export default i18n 
