@@ -13,19 +13,10 @@ export const authService = {
       try {
         const { data, error } = await supabaseClient.auth.getSession();
         if (error) throw error;
-        
-        // Log session status for debugging
-        console.log(`📋 Session check attempt ${i + 1}:`, data.session ? '✅ Found' : '❌ Not found');
-        
         return data;
       } catch (error) {
-        console.error(`❌ Error getting session (attempt ${i + 1}):`, error);
-        
-        if (i === retries - 1) {
-          throw error;
-        }
-        
-        // Wait before retrying
+        console.error(`Session error (attempt ${i + 1}):`, error);
+        if (i === retries - 1) throw error;
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
@@ -39,18 +30,10 @@ export const authService = {
       try {
         const { data, error } = await supabaseClient.auth.getUser();
         if (error) throw error;
-        
-        console.log(`👤 User check attempt ${i + 1}:`, data.user ? '✅ Found' : '❌ Not found');
-        
         return data.user;
       } catch (error) {
-        console.error(`❌ Error getting user (attempt ${i + 1}):`, error);
-        
-        if (i === retries - 1) {
-          return null;
-        }
-        
-        // Wait before retrying
+        console.error(`User error (attempt ${i + 1}):`, error);
+        if (i === retries - 1) return null;
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
@@ -69,7 +52,7 @@ export const authService = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error signing up:', error);
+      console.error('Sign up error:', error);
       throw error;
     }
   },
@@ -79,10 +62,7 @@ export const authService = {
    */
   signIn: async (email, password) => {
     try {
-      console.log('🔐 Starting sign in process...');
-      
-      // Clear any existing session conflicts first
-      await authService.clearSessionConflicts();
+      console.log('🔐 Starting sign in...');
       
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
@@ -90,57 +70,19 @@ export const authService = {
       });
       
       if (error) {
-        console.error('🚫 Supabase auth error:', error);
+        console.error('🚫 Auth error:', error);
         throw error;
       }
       
       if (!data.session) {
-        console.error('🚫 No session returned from Supabase');
-        throw new Error('Authentication failed - no session created');
+        throw new Error('No session created');
       }
       
-      console.log('✅ Sign in successful, session created');
-      
-      // Verify the session was properly stored
-      setTimeout(async () => {
-        try {
-          const { session } = await authService.getCurrentSession();
-          if (!session) {
-            console.warn('⚠️ Session not found after login, this might cause issues');
-          } else {
-            console.log('✅ Session verified after login');
-          }
-        } catch (error) {
-          console.warn('⚠️ Could not verify session after login:', error);
-        }
-      }, 100);
-      
+      console.log('✅ Sign in successful');
       return data;
     } catch (error) {
-      console.error('❌ Error signing in:', error);
+      console.error('❌ Sign in error:', error);
       throw error;
-    }
-  },
-
-  /**
-   * Clear session conflicts that might prevent proper authentication
-   */
-  clearSessionConflicts: async () => {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      // Clear any stale auth tokens
-      const authKeys = Object.keys(localStorage).filter(key => 
-        key.includes('supabase') && key.includes('auth')
-      );
-      
-      // Only clear if there are multiple conflicting keys
-      if (authKeys.length > 2) {
-        console.log('🧹 Clearing session conflicts...');
-        authKeys.forEach(key => localStorage.removeItem(key));
-      }
-    } catch (error) {
-      console.warn('⚠️ Could not clear session conflicts:', error);
     }
   },
 
@@ -158,7 +100,7 @@ export const authService = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error sending magic link:', error);
+      console.error('Magic link error:', error);
       throw error;
     }
   },
@@ -168,36 +110,24 @@ export const authService = {
    */
   signOut: async () => {
     try {
-      console.log('🚪 Starting sign out process...');
+      console.log('🚪 Starting sign out...');
       
-      // Clear Supabase session
       const { error } = await supabaseClient.auth.signOut();
       if (error) throw error;
       
-      // Clear all browser storage to prevent session conflicts
+      // Clear browser storage
       if (typeof window !== 'undefined') {
-        // Clear localStorage
         localStorage.removeItem('app-session-state');
-        localStorage.removeItem('supabase.auth.token');
-        
-        // Clear sessionStorage
-        sessionStorage.clear();
-        
-        // Clear any cached auth data
         const authKeys = Object.keys(localStorage).filter(key => 
-          key.includes('supabase') || 
-          key.includes('auth') || 
-          key.includes('session')
+          key.includes('supabase') || key.includes('auth')
         );
         authKeys.forEach(key => localStorage.removeItem(key));
-        
-        console.log('🧹 Browser storage cleared after logout');
       }
       
-      console.log('✅ Sign out completed successfully');
+      console.log('✅ Sign out completed');
       return true;
     } catch (error) {
-      console.error('❌ Error signing out:', error);
+      console.error('❌ Sign out error:', error);
       throw error;
     }
   },
@@ -213,7 +143,7 @@ export const authService = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error sending password reset:', error);
+      console.error('Reset password error:', error);
       throw error;
     }
   },
@@ -229,7 +159,7 @@ export const authService = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating password:', error);
+      console.error('Update password error:', error);
       throw error;
     }
   },

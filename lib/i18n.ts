@@ -24,6 +24,13 @@ i18n
     
     backend: {
       loadPath: '/locales/{{lng}}/{{ns}}.json',
+      crossDomain: true,
+      allowMultiLoading: false,
+      requestOptions: {
+        mode: 'cors',
+        credentials: 'same-origin',
+        cache: 'default'
+      },
     },
     
     detection: {
@@ -37,14 +44,28 @@ i18n
     },
     
     supportedLngs: ['en', 'pt'],
-    
     load: 'languageOnly',
-    
     debug: false,
     
-    // Prevent loading undefined namespaces
     saveMissing: false,
     saveMissingTo: 'fallback',
+    
+    missingKeyHandler: (lng, ns, key, fallbackValue) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Missing translation key: ${lng}.${ns}.${key}`);
+      }
+      return fallbackValue;
+    },
+    
+    partialBundledLanguages: true,
+    
+    preload: ['en', 'pt'],
+    cleanCode: true,
+    
+    fallbackNS: false,
+    
+    keySeparator: '.',
+    nsSeparator: ':',
   })
 
 export default i18n 
