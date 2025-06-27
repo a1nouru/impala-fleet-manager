@@ -17,7 +17,8 @@
     "submit": "Submeter",
     "filter": "Filtrar",
     "export": "Exportar",
-    "search": "Pesquisar"
+    "search": "Pesquisar",
+    "logout": "Terminar Sessão"
   },
   "reports": {
     "title": "Relatórios de Manutenção",

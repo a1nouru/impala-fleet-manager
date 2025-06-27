@@ -7,8 +7,6 @@ import { useState, useEffect } from "react";
 import { 
   Bus, 
   FileBarChart, 
-  Package, 
-  Settings, 
   Wrench, 
   User,
   LogOut,
@@ -60,13 +58,6 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
       active: pathname === "/dashboard/vehicles"
     },
     {
-      href: "#",
-      icon: Package,
-      label: t("navigation.inventory"),
-      active: false,
-      disabled: true
-    },
-    {
       href: "/dashboard/maintenance",
       icon: Wrench,
       label: t("navigation.maintenance"),
@@ -77,13 +68,6 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
       icon: FileBarChart,
       label: t("navigation.reports"),
       active: pathname === "/dashboard/reports"
-    },
-    {
-      href: "#",
-      icon: Settings,
-      label: t("navigation.settings"),
-      active: false,
-      disabled: true
     }
   ];
 
@@ -110,7 +94,7 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium truncate">{userName}</p>
-            <p className="text-xs text-gray-500">{t("company.title")}</p>
+            <p className="text-xs text-gray-500">{t("company.tagline")}</p>
           </div>
         </div>
       </div>
@@ -120,45 +104,23 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
           {navigationItems.map((item) => {
             const Icon = item.icon;
             
-            if (item.disabled) {
-              return (
-                <button 
-                  key={item.label}
-                  className={cn(
-                    "text-gray-300 hover:bg-gray-700 hover:text-white",
-                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                    item.active ? "bg-gray-900 text-white" : ""
-                  )}
-                  disabled
-                >
-                  <Icon
-                    className={cn(
-                      "text-gray-400 group-hover:text-gray-300",
-                      "mr-3 flex-shrink-0 h-6 w-6",
-                      item.active ? "text-white" : ""
-                    )}
-                    aria-hidden="true"
-                  />
-                  {item.label}
-                </button>
-              );
-            }
-            
             return (
               <Link 
                 key={item.label}
                 href={item.href} 
                 className={cn(
-                  "text-gray-300 hover:bg-gray-700 hover:text-white",
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                  item.active ? "bg-gray-900 text-white" : ""
+                  "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                  item.active 
+                    ? "bg-gray-900 text-white" 
+                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 )}
               >
                 <Icon
                   className={cn(
-                    "text-gray-400 group-hover:text-gray-300",
-                    "mr-3 flex-shrink-0 h-6 w-6",
-                    item.active ? "text-white" : ""
+                    "mr-3 flex-shrink-0 h-5 w-5",
+                    item.active 
+                      ? "text-white" 
+                      : "text-gray-500 group-hover:text-gray-700"
                   )}
                   aria-hidden="true"
                 />
@@ -169,17 +131,17 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
         </div>
         
         {/* Language Switcher */}
-        <div className="mt-8 pt-8 border-t border-gray-700">
+        <div className="mt-8 pt-8 border-t border-gray-200">
           <LanguageSwitcher />
         </div>
       </nav>
       
-      <div className="p-4 space-y-3 border-t">
+      <div className="p-4 space-y-3 border-t border-gray-200">
         <button 
           onClick={onLogout}
-          className="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-black hover:bg-gray-100 transition-colors"
+          className="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
         >
-          <LogOut className="mr-3 h-5 w-5 flex-shrink-0" />
+          <LogOut className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
           <span className="truncate">{t("buttons.logout")}</span>
         </button>
       </div>
