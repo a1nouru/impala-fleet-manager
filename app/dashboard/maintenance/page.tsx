@@ -724,14 +724,14 @@ function MaintenanceContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="vehiclePlate" className="flex items-center text-sm">
-                    Vehicle <span className="text-red-500 ml-1">*</span>
+                    {t("form.vehicle")} <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Select
                     value={newRecord.vehiclePlate}
                     onValueChange={(value) => handleSelectChange("vehiclePlate", value)}
                   >
                     <SelectTrigger className={formErrors.vehiclePlate ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select vehicle" />
+                      <SelectValue placeholder={t("form.selectVehicle")} />
                     </SelectTrigger>
                     <SelectContent>
                       {vehicles.map((vehicle) => (
@@ -742,12 +742,12 @@ function MaintenanceContent() {
                     </SelectContent>
                   </Select>
                   {formErrors.vehiclePlate && (
-                    <p className="text-xs text-red-500">Vehicle is required</p>
+                    <p className="text-xs text-red-500">{t("form.vehicleRequired")}</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="date" className="flex items-center text-sm">
-                    Date <span className="text-red-500 ml-1">*</span>
+                    {t("form.date")} <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
                     id="date"
@@ -760,28 +760,28 @@ function MaintenanceContent() {
                     className={formErrors.date ? "border-red-500" : ""}
                   />
                   {formErrors.date && (
-                    <p className="text-xs text-red-500">Date is required</p>
+                    <p className="text-xs text-red-500">{t("form.dateRequired")}</p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Only past or current dates allowed
+                    {t("form.onlyPastDatesAllowed")}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="kilometers" className="flex items-center text-sm">
-                    Kilometers <span className="text-red-500 ml-1">*</span>
+                    {t("form.kilometers")} <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
                     id="kilometers"
                     name="kilometers"
                     type="text"
-                    placeholder="0"
+                    placeholder={t("form.kilometersPlaceholder")}
                     value={newRecord.kilometers}
                     onChange={handleInputChange}
                     required
                     className={formErrors.kilometers ? "border-red-500" : ""}
                   />
                   {formErrors.kilometers && (
-                    <p className="text-xs text-red-500">Kilometers is required</p>
+                    <p className="text-xs text-red-500">{t("form.kilometersRequired")}</p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -804,14 +804,14 @@ function MaintenanceContent() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="technician" className="flex items-center text-sm">
-                    Technician <span className="text-red-500 ml-1">*</span>
+                    {t("form.technician")} <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Select
                     value={newRecord.technician}
                     onValueChange={(value) => handleSelectChange("technician", value)}
                   >
                     <SelectTrigger className={formErrors.technician ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Assign technician" />
+                      <SelectValue placeholder={t("form.selectTechnician")} />
                     </SelectTrigger>
                     <SelectContent>
                       {technicians.map((tech) => (
@@ -822,35 +822,35 @@ function MaintenanceContent() {
                     </SelectContent>
                   </Select>
                   {formErrors.technician && (
-                    <p className="text-xs text-red-500">Technician is required</p>
+                    <p className="text-xs text-red-500">{t("form.technicianRequired")}</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cost" className="flex items-center text-sm">
-                    Cost (Kz) <span className="text-red-500 ml-1">*</span>
+                    {t("form.cost")} <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
                     id="cost"
                     name="cost"
                     type="text"
-                    placeholder="0.00"
+                    placeholder={t("form.costPlaceholder")}
                     value={newRecord.cost}
                     onChange={handleInputChange}
                     className={formErrors.cost ? "border-red-500" : ""}
                   />
                   {formErrors.cost && (
-                    <p className="text-xs text-red-500">Cost is required</p>
+                    <p className="text-xs text-red-500">{t("form.costRequired")}</p>
                   )}
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description" className="flex items-center text-sm">
-                  Description <span className="text-red-500 ml-1">*</span>
+                  {t("form.description")} <span className="text-red-500 ml-1">*</span>
                 </Label>
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Describe the maintenance work..."
+                  placeholder={t("form.descriptionPlaceholder")}
                   rows={3}
                   value={newRecord.description}
                   onChange={handleInputChange}
@@ -858,19 +858,19 @@ function MaintenanceContent() {
                   className={formErrors.description ? "border-red-500" : ""}
                 />
                 {formErrors.description && (
-                  <p className="text-xs text-red-500">Description is required</p>
+                  <p className="text-xs text-red-500">{t("form.descriptionRequired")}</p>
                 )}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm">Parts</Label>
-                  <span className="text-sm text-muted-foreground">{selectedParts.length} selected</span>
+                  <Label className="text-sm">{t("form.parts")}</Label>
+                  <span className="text-sm text-muted-foreground">{selectedParts.length} {t("form.selected")}</span>
                 </div>
                 <ScrollArea className="h-48 sm:h-64 border rounded-md p-4">
                   {isLoading.parts ? (
                     <div className="flex justify-center items-center h-full">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      <span className="ml-2 text-sm">Loading parts...</span>
+                      <span className="ml-2 text-sm">{t("form.loadingParts")}</span>
                     </div>
                   ) : (
                     <Accordion type="multiple" className="w-full">
@@ -904,14 +904,14 @@ function MaintenanceContent() {
                                   )?.showInput || false}
                                   onCheckedChange={() => handlePartToggle(
                                     `${category.category.toLowerCase()}-other`, 
-                                    "Other"
+                                    t("form.other")
                                   )}
                                 />
                                 <label 
                                   htmlFor={`${category.category.toLowerCase()}-other`}
                                   className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                 >
-                                  Other
+                                  {t("form.other")}
                                 </label>
                               </div>
                               
@@ -922,7 +922,7 @@ function MaintenanceContent() {
                                 <div className="mt-2 pl-6">
                                   <div className="flex items-center space-x-2">
                                     <Input 
-                                      placeholder="Enter custom part name"
+                                      placeholder={t("form.customPart")}
                                       className="h-8 text-sm"
                                       value={customParts.find(item => item.category === category.category)?.value || ''}
                                       onChange={(e) => handleCustomPartChange(category.category, e.target.value)}
@@ -951,7 +951,7 @@ function MaintenanceContent() {
                 </ScrollArea>
               </div>
               <div className="text-xs text-muted-foreground mt-2">
-                <span className="text-black">*</span> Required fields
+                <span className="text-black">*</span> {t("form.requiredFields")}
               </div>
             </div>
             <DialogFooter>
@@ -962,7 +962,7 @@ function MaintenanceContent() {
                   onClick={() => setDialogOpen(false)}
                   disabled={isLoading.submit}
                 >
-                  Cancel
+                  {t("form.cancel")}
                 </Button>
                 <Button
                   type="button"
@@ -970,7 +970,7 @@ function MaintenanceContent() {
                   disabled={isDataLoading || isLoading.submit}
                   onClick={() => setResetDialogOpen(true)}
                 >
-                  Reset
+                  {t("form.reset")}
                 </Button>
                 <Button
                   onClick={handleSubmit} 
@@ -978,7 +978,7 @@ function MaintenanceContent() {
                   className="bg-black hover:bg-gray-800 text-white"
                 >
                   {isLoading.submit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isEditMode ? "Update" : "Submit"}
+                  {isEditMode ? t("form.update") : t("form.submit")}
                 </Button>
               </div>
             </DialogFooter>
@@ -1080,14 +1080,14 @@ function MaintenanceContent() {
                     onClick={() => setActiveTab("all")}
                     className={`h-9 ${activeTab === "all" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
                   >
-                    All Records
+                    {t("filters.allRecords")}
                   </Button>
                   <Button
                     variant={activeTab === "scheduled" ? "default" : "outline"}
                     onClick={() => setActiveTab("scheduled")}
                     className={`h-9 ${activeTab === "scheduled" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
                   >
-                    Scheduled
+                    {t("filters.scheduledOnly")}
                   </Button>
                 </div>
                 
@@ -1096,7 +1096,7 @@ function MaintenanceContent() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder="Search records..."
+                      placeholder={t("filters.searchPlaceholder")}
                       className="pl-8 h-9 w-full sm:w-[200px] lg:w-[300px]"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -1105,31 +1105,31 @@ function MaintenanceContent() {
                   
                   <Button variant="outline" size="sm" className="h-9" onClick={() => setFilterDialogOpen(true)}>
                     <Filter className={`h-4 w-4 mr-2 ${plateFilter !== "all" ? "text-black" : ""}`} />
-                    <span className="hidden sm:inline">Filter</span>
-                    <span className="sm:hidden">Filter</span>
-                    {plateFilter !== "all" && <span className="ml-1 text-black">• Active</span>}
+                    <span className="hidden sm:inline">{t("filters.filter")}</span>
+                    <span className="sm:hidden">{t("filters.filter")}</span>
+                    {plateFilter !== "all" && <span className="ml-1 text-black">• {t("filters.filtered")}</span>}
                   </Button>
                   
                   <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
                     <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
                       <DialogHeader>
-                        <DialogTitle>Filter Maintenance Records</DialogTitle>
+                        <DialogTitle>{t("filters.filterTitle")}</DialogTitle>
                         <DialogDescription>
-                          Filter records by vehicle plate number
+                          {t("filters.filterDescription")}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
                         <div className="space-y-2">
-                          <Label htmlFor="plateFilter">Vehicle Plate</Label>
+                          <Label htmlFor="plateFilter">{t("filters.vehiclePlate")}</Label>
                           <Select
                             value={plateFilter}
                             onValueChange={(value) => setPlateFilter(value)}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select vehicle plate" />
+                              <SelectValue placeholder={t("filters.selectVehicle")} />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="all">All Vehicles</SelectItem>
+                              <SelectItem value="all">{t("filters.allVehicles")}</SelectItem>
                               {vehicles.map((vehicle) => (
                                 <SelectItem key={vehicle.id} value={vehicle.plate}>
                                   {vehicle.plate}
@@ -1144,10 +1144,10 @@ function MaintenanceContent() {
                           setPlateFilter("all");
                           setFilterDialogOpen(false);
                         }} className="w-full sm:w-auto">
-                          Reset
+                          {t("filters.reset")}
                         </Button>
                         <Button onClick={() => setFilterDialogOpen(false)} className="w-full sm:w-auto">
-                          Apply Filter
+                          {t("filters.applyFilter")}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -1162,28 +1162,28 @@ function MaintenanceContent() {
                 <thead>
                   <tr className="border-b">
                     <th className="px-4 py-3 text-left text-sm font-medium">
-                      Vehicle
+                      {t("table.vehicle")}
                       {plateFilter !== "all" && (
                         <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-black/10 text-black border border-black/20">
-                          Filtered: {plateFilter}
+                          {t("filters.filtered")}: {plateFilter}
                         </div>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Description</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Parts</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Technician</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Created By</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">Cost</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.date")}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.description")}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.parts")}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.technician")}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.createdBy")}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.status")}</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">{t("table.cost")}</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">{t("table.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRecords.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="text-center py-8 text-muted-foreground">
-                        No maintenance records found
+                        {t("table.noRecords")}
                       </td>
                     </tr>
                   ) : (

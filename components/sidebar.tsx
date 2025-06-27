@@ -28,7 +28,7 @@ interface SidebarProps {
 export function Sidebar({ userName, onLogout }: SidebarProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { t } = useTranslation();
+  const { t } = useTranslation("common");
 
   // Close mobile menu when route changes
   useEffect(() => {

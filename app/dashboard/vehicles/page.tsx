@@ -21,7 +21,7 @@ interface Vehicle {
 }
 
 export default function VehiclesPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation("common");
 
   // State for vehicles data
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);

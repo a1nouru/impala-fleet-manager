@@ -1,0 +1,11 @@
+---
+description: Git & Github rules 
+globs: 
+alwaysApply: false
+---
+
+# Git rules
+
+- where there is a significant change made. First wait for the engieer to confirm changes made are properly working in the dev envirment. 
+- Only when he authorizes for you to commit should you do so. 
+- Commit messages & summary should be one line summarizing the change. 
