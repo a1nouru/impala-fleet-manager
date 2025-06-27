@@ -30,7 +30,7 @@ i18n
         mode: 'cors',
         credentials: 'same-origin',
         cache: 'default'
-      },
+      }
     },
     
     detection: {
@@ -50,22 +50,19 @@ i18n
     saveMissing: false,
     saveMissingTo: 'fallback',
     
-    missingKeyHandler: (lng, ns, key, fallbackValue) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`Missing translation key: ${lng}.${ns}.${key}`);
-      }
-      return fallbackValue;
-    },
-    
     partialBundledLanguages: true,
-    
     preload: ['en', 'pt'],
     cleanCode: true,
     
+    // Completely disable fallback namespace loading
     fallbackNS: false,
     
     keySeparator: '.',
     nsSeparator: ':',
+    
+    returnEmptyString: false,
+    returnNull: false,
+    returnObjects: false,
   })
 
 export default i18n 
