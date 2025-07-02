@@ -11,6 +11,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 import { 
   Clock, 
   Filter, 
@@ -34,7 +41,7 @@ import { partService } from "@/services/partService"
 import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/context/AuthContext"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
 
 // Loading component for better user experience
@@ -498,22 +505,6 @@ function MaintenanceContent() {
       }
     });
     
-    // Check if date is in the future
-    if (newRecord.date) {
-      const selectedDate = new Date(newRecord.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (selectedDate > today) {
-        errors.date = true;
-        toast({
-          title: "Invalid Date",
-          description: "Maintenance date cannot be in the future",
-          variant: "destructive"
-        });
-      }
-    }
-    
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -719,22 +710,40 @@ function MaintenanceContent() {
                   <Label htmlFor="date" className="flex items-center text-sm">
                     {t("form.date")} <span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <Input
-                    id="date"
-                    name="date"
-                    type="date"
-                    value={newRecord.date}
-                    onChange={handleInputChange}
-                    required
-                    max={format(new Date(), 'yyyy-MM-dd')}
-                    className={formErrors.date ? "border-red-500" : ""}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !newRecord.date && "text-muted-foreground",
+                          formErrors.date && "border-red-500"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newRecord.date ? (
+                          format(new Date(newRecord.date), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={newRecord.date ? new Date(newRecord.date) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            setNewRecord(prev => ({ ...prev, date: format(date, 'yyyy-MM-dd') }));
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {formErrors.date && (
                     <p className="text-xs text-red-500">{t("form.dateRequired")}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    {t("form.onlyPastDatesAllowed")}
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="kilometers" className="flex items-center text-sm">

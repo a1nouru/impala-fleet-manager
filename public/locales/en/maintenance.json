@@ -50,7 +50,7 @@
     "vehicleRequired": "Vehicle is required",
     "date": "Date",
     "dateRequired": "Date is required",
-    "onlyPastDatesAllowed": "Only past or current dates allowed",
+    "selectDateForMaintenance": "Select date for maintenance",
     "kilometers": "Kilometers",
     "kilometersPlaceholder": "Current vehicle kilometers",
     "kilometersRequired": "Kilometers is required",
