@@ -41,7 +41,7 @@ import { partService } from "@/services/partService"
 import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/context/AuthContext"
-import { format, parseISO } from "date-fns"
+import { format, parseISO, parse } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
 
 // Loading component for better user experience
@@ -724,7 +724,7 @@ function MaintenanceContent() {
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {newRecord.date ? (
-                          format(new Date(newRecord.date), "PPP")
+                          format(parse(newRecord.date, "yyyy-MM-dd", new Date()), "PPP")
                         ) : (
                           <span>Pick a date</span>
                         )}
@@ -733,7 +733,7 @@ function MaintenanceContent() {
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={newRecord.date ? new Date(newRecord.date) : undefined}
+                        selected={newRecord.date ? parse(newRecord.date, "yyyy-MM-dd", new Date()) : undefined}
                         onSelect={(date) => {
                           if (date) {
                             const formattedDate = format(date, 'yyyy-MM-dd');
@@ -746,7 +746,7 @@ function MaintenanceContent() {
                             setDatePickerOpen(false);
                           }
                         }}
-                        defaultMonth={newRecord.date ? new Date(newRecord.date) : new Date()}
+                        defaultMonth={newRecord.date ? parse(newRecord.date, "yyyy-MM-dd", new Date()) : new Date()}
                         initialFocus
                         disabled={false}
                       />
