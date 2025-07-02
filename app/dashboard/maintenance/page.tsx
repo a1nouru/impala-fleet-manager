@@ -43,7 +43,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/context/AuthContext"
 import { format, parseISO } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
-import { DatePicker } from "@/components/ui/date-picker"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
 
 // Loading component for better user experience
 function LoadingState() {
@@ -711,10 +712,16 @@ function MaintenanceContent() {
                   <Label htmlFor="date" className="flex items-center text-sm">
                     {t("form.date")} <span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <DatePicker 
-                    value={newRecord.date}
-                    onChange={(date) => handleSelectChange('date', date)}
-                    className={formErrors.date ? "border-red-500" : ""}
+                  <DatePicker
+                    selected={newRecord.date ? parseISO(newRecord.date) : null}
+                    onChange={(date: Date | null) => {
+                      if (date) {
+                        handleSelectChange('date', format(date, "yyyy-MM-dd"))
+                      }
+                    }}
+                    className={`w-full h-10 px-3 py-2 text-sm bg-transparent border rounded-md shadow-sm border-input placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${formErrors.date ? "border-red-500" : ""}`}
+                    placeholderText="Select a date"
+                    dateFormat="MMMM d, yyyy"
                   />
                   {formErrors.date && (
                     <p className="text-xs text-red-500">{t("form.dateRequired")}</p>
