@@ -43,7 +43,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/context/AuthContext"
 import { format, parseISO, parse } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
-import { DatePicker } from "@/components/ui/date-picker"
 
 // Loading component for better user experience
 function LoadingState() {
@@ -711,11 +710,35 @@ function MaintenanceContent() {
                   <Label htmlFor="date" className="flex items-center text-sm">
                     {t("form.date")} <span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <DatePicker 
-                    value={newRecord.date}
-                    onChange={(date) => handleSelectChange('date', date)}
-                    className={formErrors.date ? "border-red-500" : ""}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !newRecord.date && "text-muted-foreground",
+                          formErrors.date ? "border-red-500" : ""
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newRecord.date ? format(parse(newRecord.date, "yyyy-MM-dd", new Date()), "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={newRecord.date ? parse(newRecord.date, "yyyy-MM-dd", new Date()) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const formattedDate = format(date, "yyyy-MM-dd");
+                            handleSelectChange('date', formattedDate);
+                          }
+                        }}
+                        defaultMonth={newRecord.date ? parse(newRecord.date, "yyyy-MM-dd", new Date()) : new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {formErrors.date && (
                     <p className="text-xs text-red-500">{t("form.dateRequired")}</p>
                   )}
