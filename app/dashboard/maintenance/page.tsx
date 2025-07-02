@@ -43,6 +43,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/context/AuthContext"
 import { format, parseISO } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
+import { DatePicker } from "@/components/ui/date-picker"
 
 // Loading component for better user experience
 function LoadingState() {
@@ -710,62 +711,11 @@ function MaintenanceContent() {
                   <Label htmlFor="date" className="flex items-center text-sm">
                     {t("form.date")} <span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !newRecord.date && "text-muted-foreground",
-                          formErrors.date ? "border-red-500" : ""
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newRecord.date ? (() => {
-                          try {
-                            // Simple date display without complex parsing
-                            const [year, month, day] = newRecord.date.split('-');
-                            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                            return format(date, "PPP");
-                          } catch {
-                            return newRecord.date;
-                          }
-                        })() : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={newRecord.date ? (() => {
-                          try {
-                            const [year, month, day] = newRecord.date.split('-');
-                            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                          } catch {
-                            return undefined;
-                          }
-                        })() : undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            // Simple date formatting
-                            const year = date.getFullYear();
-                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                            const day = String(date.getDate()).padStart(2, '0');
-                            const formattedDate = `${year}-${month}-${day}`;
-                            handleSelectChange('date', formattedDate);
-                          }
-                        }}
-                        defaultMonth={newRecord.date ? (() => {
-                          try {
-                            const [year, month, day] = newRecord.date.split('-');
-                            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                          } catch {
-                            return new Date();
-                          }
-                        })() : new Date()}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePicker 
+                    value={newRecord.date}
+                    onChange={(date) => handleSelectChange('date', date)}
+                    className={formErrors.date ? "border-red-500" : ""}
+                  />
                   {formErrors.date && (
                     <p className="text-xs text-red-500">{t("form.dateRequired")}</p>
                   )}
