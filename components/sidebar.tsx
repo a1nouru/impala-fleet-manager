@@ -11,7 +11,8 @@ import {
   User,
   LogOut,
   Menu,
-  X
+  X,
+  DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -62,6 +63,12 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
       icon: Wrench,
       label: t("navigation.maintenance"),
       active: pathname === "/dashboard/maintenance"
+    },
+    {
+      href: "/dashboard/financials",
+      icon: DollarSign,
+      label: "Financials",
+      active: !!pathname?.startsWith("/dashboard/financials")
     },
     {
       href: "/dashboard/reports",

@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- Do not do any over-engineering (simplicity is always prefered)
+- Avoid complicated flows 
+- Avoid race conditions at all costs. 
+- Avoid circular dependencies 
+- Avoid duplication, always first check if the proposed change already exists. 
+- Always aim for optimized and concise code. 
+- Clean code is the goal here. 
+- Code structure should be consinstent accross all files. 
+- Once you suggest a change, add a verification layer on your side to always double check your thinking process and work. 

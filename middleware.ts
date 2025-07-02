@@ -1,62 +1,63 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/middleware'
 
-export default function middleware(request: NextRequest) {
-  // Get the pathname from the URL
+export async function middleware(request: NextRequest) {
+  const { supabase, response } = await createClient(request)
+
+  // Refresh session if expired - required for Server Components
+  // https://supabase.com/docs/guides/auth/auth-helpers/nextjs#managing-session-with-middleware
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   const path = request.nextUrl.pathname;
-  
-  // Only log in development if it's not a static asset or internal Next.js route
   const isDev = process.env.NODE_ENV === 'development';
   const isStaticAsset = path.startsWith('/_next') || path.includes('.') || path.startsWith('/favicon');
-  
+
+  // Log middleware processing in development
   if (isDev && !isStaticAsset) {
     console.log(`🌐 Middleware processing: ${path}`);
+    if (user) {
+      console.log(`👤 User authenticated: ${user.email}`);
+    } else {
+      console.log(`👤 No user session found.`);
+    }
+  }
+
+  // Define protected routes
+  const protectedRoutes = ['/admin', '/dashboard', '/profile'];
+  const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
+
+  // If no user and trying to access a protected route, redirect to login
+  if (!user && isProtectedRoute) {
+    if (isDev) {
+      console.log(`🔒 Unauthorized access to ${path}, redirecting to /login.`);
+    }
+    return Response.redirect(new URL('/login', request.url))
   }
   
-  // Create response
-  const response = NextResponse.next();
-  
-  // Add cold start detection headers (primarily for production)
-  if (!isDev) {
-    const startTime = Date.now();
-    response.headers.set('X-Request-Start', startTime.toString());
-    response.headers.set('X-Middleware-Timestamp', new Date().toISOString());
+  // If user is logged in and tries to access login page, redirect to dashboard
+  if (user && path === '/login') {
+    if (isDev) {
+      console.log(`↩️ User already logged in, redirecting from /login to /dashboard.`);
+    }
+    return Response.redirect(new URL('/dashboard', request.url))
   }
-  
-  // Add session state protection headers for dynamic routes
-  if (path.startsWith('/admin') || path.startsWith('/dashboard') || path.startsWith('/profile')) {
+
+  // Set security headers for protected routes
+  if (isProtectedRoute) {
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
-    
-    // Add session state validation header
-    response.headers.set('X-Session-Validation', 'required');
-    
-    if (isDev && !isStaticAsset) {
+    response.headers.set('X-Session-Validation', 'required'); // Keep custom header for logging if needed
+    if (isDev) {
       console.log(`🔒 Applied session protection headers for: ${path}`);
     }
   }
-  
-  // Add warmup detection for health/warmup endpoints (production only)
-  if (!isDev && (path.startsWith('/api/health') || path.startsWith('/api/warmup'))) {
-    const userAgent = request.headers.get('user-agent') || '';
-    const isWarmupRequest = userAgent.includes('Warmup') || userAgent.includes('Vercel-Cron');
-    
-    if (isWarmupRequest) {
-      response.headers.set('X-Warmup-Request', 'true');
-      console.log(`🔥 Warmup request detected for: ${path}`);
-    }
-  }
-  
-  // Add performance monitoring headers (production only)
-  if (!isDev) {
-    response.headers.set('X-Powered-By', 'Next.js + Vercel');
-    response.headers.set('X-Cold-Start-Prevention', 'active');
-  }
-  
-  return response;
+
+  return response
 }
 
-// Configure middleware to run on specific paths
 export const config = {
   matcher: [
     /*
@@ -64,10 +65,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - api/auth (for Supabase auth routes)
      * - _vercel (Vercel internals)
-     * 
-     * This ensures that middleware runs on all pages and API routes.
      */
-    '/((?!_next/static|_next/image|favicon.ico|_vercel).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/auth|_vercel).*)',
   ],
-}; 
+} 

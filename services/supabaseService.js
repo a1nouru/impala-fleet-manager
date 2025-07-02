@@ -1,4 +1,6 @@
-import supabaseClient from '../lib/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
+
+const supabaseClient = createClient();
 
 // Vehicle related operations
 export const vehicleService = {
@@ -161,45 +163,5 @@ export const maintenanceService = {
   }
 };
 
-// Authentication operations
-export const authService = {
-  // Get current user
-  getCurrentUser: async () => {
-    try {
-      const { data: { user }, error } = await supabaseClient.auth.getUser();
-      if (error) throw error;
-      return user;
-    } catch (error) {
-      console.error('Error getting current user:', error);
-      return null;
-    }
-  },
-  
-  // Sign in with email and password
-  signIn: async (email, password) => {
-    try {
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error signing in:', error);
-      throw error;
-    }
-  },
-  
-  // Sign out
-  signOut: async () => {
-    try {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error signing out:', error);
-      throw error;
-    }
-  }
-}; 
+// Authentication operations are now handled by AuthContext and middleware
+// export const authService = { ... } 

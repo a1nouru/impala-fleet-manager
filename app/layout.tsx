@@ -4,7 +4,6 @@ import "./globals.css";
 import { ToastProvider } from "@/components/ui/use-toast";
 import { AuthProvider } from "@/context/AuthContext";
 import { DebugEnvironment } from "./debug-env";
-import { AuthDebug } from "@/components/auth-debug";
 import { I18nProvider } from "@/components/I18nProvider";
 
 const geistSans = Geist({
@@ -47,8 +46,6 @@ export default function RootLayout({
               {children}
             </I18nProvider>
           </ToastProvider>
-          {/* Temporary debug component - remove after fixing auth issues */}
-          <AuthDebug enabled={process.env.NODE_ENV === 'development'} />
         </AuthProvider>
         <DebugEnvironment />
       </body>

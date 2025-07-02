@@ -1,5 +1,6 @@
-// import { supabase } from '../lib/supabase'
-import supabaseClient from '../lib/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
+
+const supabaseClient = createClient();
 
 /**
  * Vehicle service for managing vehicle data in Supabase

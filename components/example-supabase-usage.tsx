@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { vehicleService, authService } from '@/services/supabaseService';
+import { useAuth } from '@/context/AuthContext';
+import { vehicleService } from '@/services/supabaseService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
 export function SupabaseExample() {
+  const { user, signOut, loading: authLoading } = useAuth();
   const [vehicles, setVehicles] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState({
     vehicles: true,
-    user: true
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -19,6 +19,7 @@ export function SupabaseExample() {
   useEffect(() => {
     async function fetchVehicles() {
       try {
+        setLoading(prev => ({ ...prev, vehicles: true }));
         const data = await vehicleService.getVehicles();
         setVehicles(data);
       } catch (err) {
@@ -29,19 +30,7 @@ export function SupabaseExample() {
       }
     }
 
-    async function fetchUser() {
-      try {
-        const userData = await authService.getCurrentUser();
-        setUser(userData);
-      } catch (err) {
-        console.error('Error fetching user:', err);
-      } finally {
-        setLoading(prev => ({ ...prev, user: false }));
-      }
-    }
-
     fetchVehicles();
-    fetchUser();
   }, []);
 
   const handleAddVehicle = async () => {
@@ -72,15 +61,15 @@ export function SupabaseExample() {
 
   const handleSignOut = async () => {
     try {
-      await authService.signOut();
-      setUser(null);
+      await signOut();
+      // No need to set user to null, the context will handle it
     } catch (err) {
       console.error('Error signing out:', err);
       setError('Failed to sign out. Please try again.');
     }
   };
 
-  if (loading.vehicles || loading.user) {
+  if (loading.vehicles || authLoading) {
     return (
       <div className="flex justify-center items-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

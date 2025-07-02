@@ -1,6 +1,7 @@
-// import { supabase } from '../lib/supabase'
-import supabaseClient from '../lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client';
 import { busParts } from '../data/partsData'
+
+const supabaseClient = createClient();
 
 // Initialize local storage for custom parts if it doesn't exist
 const initializeLocalStorage = () => {
