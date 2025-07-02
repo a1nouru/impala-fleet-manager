@@ -168,6 +168,7 @@ function MaintenanceContent() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   // Loading states
   const [isLoading, setIsLoading] = useState({
@@ -610,6 +611,7 @@ function MaintenanceContent() {
     setFormErrors({});
     setIsEditMode(false);
     setEditRecordId(null);
+    setDatePickerOpen(false);
   };
   
   // Handle dialog open state change
@@ -710,7 +712,7 @@ function MaintenanceContent() {
                   <Label htmlFor="date" className="flex items-center text-sm">
                     {t("form.date")} <span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <Popover>
+                  <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant={"outline"}
@@ -728,16 +730,25 @@ function MaintenanceContent() {
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={newRecord.date ? new Date(newRecord.date) : undefined}
                         onSelect={(date) => {
                           if (date) {
-                            setNewRecord(prev => ({ ...prev, date: format(date, 'yyyy-MM-dd') }));
+                            const formattedDate = format(date, 'yyyy-MM-dd');
+                            setNewRecord(prev => ({ ...prev, date: formattedDate }));
+                            // Clear any date errors
+                            if (formErrors.date) {
+                              setFormErrors(prev => ({ ...prev, date: false }));
+                            }
+                            // Close the popover after selection
+                            setDatePickerOpen(false);
                           }
                         }}
+                        defaultMonth={newRecord.date ? new Date(newRecord.date) : new Date()}
                         initialFocus
+                        disabled={false}
                       />
                     </PopoverContent>
                   </Popover>
