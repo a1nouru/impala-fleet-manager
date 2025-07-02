@@ -41,7 +41,7 @@ import { partService } from "@/services/partService"
 import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/context/AuthContext"
-import { format, parseISO, parse } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
 
 // Loading component for better user experience
@@ -721,20 +721,47 @@ function MaintenanceContent() {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newRecord.date ? format(parse(newRecord.date, "yyyy-MM-dd", new Date()), "PPP") : <span>Pick a date</span>}
+                        {newRecord.date ? (() => {
+                          try {
+                            // Simple date display without complex parsing
+                            const [year, month, day] = newRecord.date.split('-');
+                            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                            return format(date, "PPP");
+                          } catch {
+                            return newRecord.date;
+                          }
+                        })() : <span>Pick a date</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={newRecord.date ? parse(newRecord.date, "yyyy-MM-dd", new Date()) : undefined}
+                        selected={newRecord.date ? (() => {
+                          try {
+                            const [year, month, day] = newRecord.date.split('-');
+                            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                          } catch {
+                            return undefined;
+                          }
+                        })() : undefined}
                         onSelect={(date) => {
                           if (date) {
-                            const formattedDate = format(date, "yyyy-MM-dd");
+                            // Simple date formatting
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const formattedDate = `${year}-${month}-${day}`;
                             handleSelectChange('date', formattedDate);
                           }
                         }}
-                        defaultMonth={newRecord.date ? parse(newRecord.date, "yyyy-MM-dd", new Date()) : new Date()}
+                        defaultMonth={newRecord.date ? (() => {
+                          try {
+                            const [year, month, day] = newRecord.date.split('-');
+                            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                          } catch {
+                            return new Date();
+                          }
+                        })() : new Date()}
                         initialFocus
                       />
                     </PopoverContent>
