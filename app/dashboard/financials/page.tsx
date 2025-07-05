@@ -14,6 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format, isToday, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
@@ -620,104 +621,107 @@ export default function AllDailyReportsPage() {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Vehicles</TableHead>
-                  <TableHead>Total Revenue</TableHead>
-                  <TableHead>Total Expenses</TableHead>
-                  <TableHead>Net Balance</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right">Total Revenue</TableHead>
+                  <TableHead className="text-right">Total Expenses</TableHead>
+                  <TableHead className="text-right">Net Balance</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {displayData.map((group) => (
                   <TableRow key={group.date}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {format(parseISO(group.date), "PPP")}
-                      </div>
-                    </TableCell>
+                    <TableCell>{format(parseISO(group.date), "MMMM do, yyyy")}</TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium">{group.vehicleCount} vehicles</span>
+                      <div className="flex flex-col">
+                        <span>{group.vehicleCount} vehicles</span>
                         <span className="text-xs text-muted-foreground">
-                          {group.reports.map(r => r.vehicles?.plate).join(", ")}
+                          {group.reports.map(r => r.vehicles?.plate).join(', ')}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>{formatCurrency(group.totalRevenue)}</TableCell>
-                    <TableCell>{formatCurrency(group.totalExpenses)}</TableCell>
-                    <TableCell>{formatCurrency(group.netBalance)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setGroupByDate(false)}
-                      >
+                    <TableCell className="text-right">{formatCurrency(group.totalRevenue)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(group.totalExpenses)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(group.netBalance)}</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        const from = startOfDay(parseISO(group.date));
+                        const to = endOfDay(parseISO(group.date));
+                        setDateFilter({ from, to });
+                        setGroupByDate(false);
+                      }}>
                         View Details
                       </Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={2} className="font-bold">Total</TableCell>
+                  <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.totalRevenue, 0))}</TableCell>
+                  <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.totalExpenses, 0))}</TableCell>
+                  <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.netBalance, 0))}</TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableFooter>
             </Table>
           ) : (
             // Individual Reports View
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Route</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Revenue</TableHead>
-                  <TableHead>Expenses</TableHead>
-                  <TableHead>Net</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReports.map((report) => {
-                  const netBalance = calculateNetBalance(report);
-                  const totalRevenue = calculateTotalRevenue(report);
-                  const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
-                  const isDeposited = report.deposit_reports && report.deposit_reports.length > 0;
-
-                  return (
-                    <TableRow key={report.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {format(parseISO(report.report_date), "MMM dd, yyyy")}
-                        </div>
-                      </TableCell>
-                      <TableCell>{report.vehicles?.plate}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {report.route || "No route"}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={report.status === "Operational" ? "default" : "secondary"}>
-                          {report.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatCurrency(totalRevenue)}</TableCell>
-                      <TableCell>{formatCurrency(totalExpenses)}</TableCell>
-                      <TableCell>{formatCurrency(netBalance)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleEditClick(report)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+            <>
+              {filteredReports.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Route</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Revenue</TableHead>
+                      <TableHead>Expenses</TableHead>
+                      <TableHead>Net</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredReports.map((report) => (
+                      <TableRow key={report.id}>
+                        <TableCell>{format(parseISO(report.report_date), "PP")}</TableCell>
+                        <TableCell>{report.vehicles?.plate}</TableCell>
+                        <TableCell>{report.route}</TableCell>
+                        <TableCell><Badge variant={report.status === 'Operational' ? 'default' : 'destructive'}>{report.status}</Badge></TableCell>
+                        <TableCell className="text-right">{formatCurrency(calculateTotalRevenue(report))}</TableCell>
+                        <TableCell className="text-right">{formatCurrency((report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0))}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(calculateNetBalance(report))}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => handleEditClick(report)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TableCell colSpan={4} className="font-bold">Total</TableCell>
+                      <TableCell className="text-right font-bold">
+                        {formatCurrency(filteredReports.reduce((acc, report) => acc + calculateTotalRevenue(report), 0))}
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {formatCurrency(filteredReports.reduce((acc, report) => acc + (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0), 0))}
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {formatCurrency(filteredReports.reduce((acc, report) => acc + calculateNetBalance(report), 0))}
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">No reports found</p>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
