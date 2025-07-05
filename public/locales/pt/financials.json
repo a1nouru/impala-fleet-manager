@@ -69,8 +69,20 @@
     "baggageRevenue": "Receita de Bagagem",
     "cargoRevenue": "Receita de Carga",
     "bankName": "Nome do Banco",
+    "selectBank": "Selecionar banco",
     "depositDate": "Data do Depósito",
     "amount": "Valor",
+    "totalAmount": "Valor Total",
+    "availableReports": "Relatórios Disponíveis",
+    "reportsAvailable": "relatórios disponíveis",
+    "bankSlipAttachment": "Anexo do Comprovativo Bancário",
+    "uploadBankSlip": "Carregue um ficheiro PDF ou imagem (JPG, PNG) do seu comprovativo de depósito bancário. Tamanho máximo: 5MB.",
+    "autoSetToLatestDate": "Definido automaticamente para a data do último relatório",
+    "noReportsAvailable": "Nenhum relatório disponível para depósito",
+    "allReportsDeposited": "Todos os relatórios operacionais foram depositados",
+    "reportSelected": "{{count}} relatório selecionado",
+    "reportsSelected": "{{count}} relatórios selecionados",
+    "loss": "Prejuízo",
     "selectReports": "Selecionar Relatórios",
     "reportDetails": "Detalhes do Relatório",
     "expenses": "Despesas",
@@ -100,7 +112,12 @@
     "total": "Total",
     "bank": "Banco",
     "reports": "Relatórios",
-    "depositedAmount": "Valor Depositado"
+    "depositedAmount": "Valor Depositado",
+    "banks": "Bancos",
+    "deposits": "Depósitos",
+    "reportsCovered": "Relatórios Cobertos",
+    "depositDate": "Data do Depósito",
+    "slipAttached": "Comprovativo Anexado"
   },
   "filters": {
     "filters": "Filtros",
@@ -117,7 +134,10 @@
     "today": "Hoje",
     "clearFilters": "Limpar Filtros",
     "bankFilter": "Filtro do Banco",
-    "allBanks": "Todos os Bancos"
+    "allBanks": "Todos os Bancos",
+    "bank": "Banco",
+    "groupedByDate": "Agrupado por Data",
+    "individualDeposits": "Depósitos Individuais"
   },
   "buttons": {
     "cancel": "Cancelar",

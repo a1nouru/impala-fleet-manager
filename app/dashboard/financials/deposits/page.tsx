@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Banknote, Paperclip, Eye, Trash2 } from "lucide-react";
 import { financialService, BankDeposit, DailyReport } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
+import { useTranslation } from "@/hooks/useTranslation";
 import {
   Table,
   TableBody,
@@ -93,6 +94,7 @@ const groupDepositsByDate = (deposits: BankDeposit[]) => {
 
 export default function BankDepositsPage() {
   const { user } = useAuth();
+  const { t } = useTranslation('financials');
   const [deposits, setDeposits] = useState<BankDeposit[]>([]);
   const [undepositedReports, setUndepositedReports] = useState<DailyReport[]>([]);
   const [selectedReports, setSelectedReports] = useState<string[]>([]);
@@ -141,7 +143,7 @@ export default function BankDepositsPage() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to load page data.",
+        description: t("messages.errorLoading"),
         variant: "destructive",
       });
     } finally {
@@ -259,8 +261,8 @@ export default function BankDepositsPage() {
     
     if (!editingDeposit.bank_name || !editingDeposit.deposit_date || editingDeposit.amount <= 0) {
       toast({
-        title: "Validation Error",
-        description: "Please fill out all fields and ensure the amount is positive.",
+        title: t("messages.validationError"),
+        description: t("messages.fillAllFields"),
         variant: "destructive",
       });
       return;
@@ -275,14 +277,14 @@ export default function BankDepositsPage() {
       });
       toast({
         title: "Success",
-        description: "Bank deposit updated successfully.",
+        description: t("messages.depositUpdated"),
       });
       setEditingDeposit(null); // Close dialog
       fetchPageData(); // Refresh all data
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update bank deposit.",
+        description: t("messages.errorUpdating"),
         variant: "destructive",
       });
     } finally {
@@ -302,13 +304,13 @@ export default function BankDepositsPage() {
       await financialService.deleteBankDeposit(depositToDelete.id);
       toast({
         title: "Success",
-        description: "Bank deposit deleted successfully.",
+        description: t("messages.depositDeleted"),
       });
       fetchPageData();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete bank deposit.",
+        description: t("messages.errorDeleting"),
         variant: "destructive",
       });
     } finally {
@@ -323,28 +325,28 @@ export default function BankDepositsPage() {
   const handleSubmit = async () => {
     if (selectedReports.length === 0) {
       toast({
-        title: "Validation Error",
-        description: "Please select at least one report to deposit.",
+        title: t("messages.validationError"),
+        description: t("messages.selectAtLeastOneReport"),
         variant: "destructive",
       });
       return;
     }
     
-    if (!bankSlipFile) {
-      toast({
-        title: "Validation Error",
-        description: "Please attach a bank deposit slip.",
-        variant: "destructive",
-      });
-      return;
-    }
+          if (!bankSlipFile) {
+        toast({
+          title: t("messages.validationError"),
+          description: t("messages.attachBankSlip"),
+          variant: "destructive",
+        });
+        return;
+      }
 
     setIsSubmitting(true);
     try {
       await financialService.createBankDepositWithFile(newDeposit, selectedReports, bankSlipFile || undefined);
       toast({
         title: "Success",
-        description: "Bank deposit created successfully.",
+        description: t("messages.depositCreated"),
       });
       setDialogOpen(false);
       resetDepositForm();
@@ -352,7 +354,7 @@ export default function BankDepositsPage() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create bank deposit.",
+        description: t("messages.errorCreating"),
         variant: "destructive",
       });
     } finally {
@@ -378,7 +380,7 @@ export default function BankDepositsPage() {
       if (!allowedTypes.includes(file.type)) {
         toast({
           title: "Invalid File Type",
-          description: "Please upload a PDF or image file (JPG, PNG).",
+          description: t("messages.invalidFileType"),
           variant: "destructive",
         });
         return;
@@ -388,7 +390,7 @@ export default function BankDepositsPage() {
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "File Too Large",
-          description: "Please upload a file smaller than 5MB.",
+          description: t("messages.fileTooLarge"),
           variant: "destructive",
         });
         return;
@@ -422,7 +424,7 @@ export default function BankDepositsPage() {
       setDepositReports([]);
       toast({
         title: "Error",
-        description: "Failed to load report details.",
+        description: t("messages.errorLoading"),
         variant: "destructive",
       });
     } finally {
@@ -452,7 +454,7 @@ export default function BankDepositsPage() {
         console.error('❌ Error opening URL:', error);
         toast({
           title: "Error Opening Bank Slip",
-          description: "Could not open the bank slip. Please try clicking 'View Bank Slip' in the deposit details.",
+          description: t("messages.errorOpeningBankSlip"),
           variant: "destructive",
         });
       }
@@ -470,10 +472,10 @@ export default function BankDepositsPage() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
             <Banknote className="h-6 w-6" />
-            Bank Deposits
+            {t("bankDeposits.title")}
           </h1>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{filteredDeposits.length} deposits</Badge>
+            <Badge variant="outline">{filteredDeposits.length} {t("bankDeposits.deposits")}</Badge>
             {bankFilter !== "all" && (
               <Badge variant="secondary">{bankFilter}</Badge>
             )}
@@ -484,65 +486,65 @@ export default function BankDepositsPage() {
             <DialogTrigger asChild>
                 <Button className="bg-black hover:bg-gray-800 text-white">
                     <PlusCircle className="h-4 w-4 mr-2" />
-                    Log New Deposit
+                    {t("bankDeposits.logNewDeposit")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>Log New Bank Deposit</DialogTitle>
+                    <DialogTitle>{t("bankDeposits.newDepositTitle")}</DialogTitle>
                     <DialogDescription>
-                        Select the reports to include in this deposit. The total amount will be calculated automatically.
+                        {t("bankDeposits.newDepositDescription")}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
                   {/* Form Inputs */}
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="bank_name">Bank Name</Label>
-                        <Select name="bank_name" value={newDeposit.bank_name} onValueChange={(value) => handleSelectChange("bank_name", value)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a bank" />
-                            </SelectTrigger>
+                                          <div className="space-y-2">
+                          <Label htmlFor="bank_name">{t("form.bankName")}</Label>
+                          <Select name="bank_name" value={newDeposit.bank_name} onValueChange={(value) => handleSelectChange("bank_name", value)}>
+                                                             <SelectTrigger>
+                                   <SelectValue placeholder={t("form.selectBank")} />
+                               </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Caixa Angola">Caixa Angola</SelectItem>
                                 <SelectItem value="BAI">BAI</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="deposit_date">Deposit Date</Label>
-                        <Input 
-                          id="deposit_date" 
-                          name="deposit_date" 
-                          type="date" 
-                          value={newDeposit.deposit_date} 
-                          onChange={handleInputChange}
-                        />
-                        {selectedReports.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            📅 Auto-set to latest report date ({format(parseISO(newDeposit.deposit_date), "MMM dd, yyyy")})
-                          </p>
-                        )}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="amount">Total Amount</Label>
-                        <Input id="amount" name="amount" type="number" value={newDeposit.amount} readOnly className="font-bold bg-gray-100" />
-                    </div>
+                                          <div className="space-y-2">
+                          <Label htmlFor="deposit_date">{t("form.depositDate")}</Label>
+                          <Input 
+                            id="deposit_date" 
+                            name="deposit_date" 
+                            type="date" 
+                            value={newDeposit.deposit_date} 
+                            onChange={handleInputChange}
+                          />
+                          {selectedReports.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              📅 {t("form.autoSetToLatestDate")} ({format(parseISO(newDeposit.deposit_date), "MMM dd, yyyy")})
+                            </p>
+                          )}
+                      </div>
+                                          <div className="space-y-2">
+                          <Label htmlFor="amount">{t("form.totalAmount")}</Label>
+                          <Input id="amount" name="amount" type="number" value={newDeposit.amount} readOnly className="font-bold bg-gray-100" />
+                      </div>
                     
-                    {/* Bank Slip Upload */}
-                    <div className="space-y-2">
-                      <Label htmlFor="bank_slip">Bank Slip Attachment</Label>
+                                          {/* Bank Slip Upload */}
                       <div className="space-y-2">
-                        <Input
-                          id="bank_slip"
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={handleFileChange}
-                          className="cursor-pointer"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Upload a PDF or image (JPG, PNG) of your bank deposit slip. Max size: 5MB.
-                        </p>
+                        <Label htmlFor="bank_slip">{t("form.bankSlipAttachment")}</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="bank_slip"
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleFileChange}
+                            className="cursor-pointer"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t("form.uploadBankSlip")}
+                          </p>
                         {bankSlipFile && (
                           <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
                             <Paperclip className="h-4 w-4 text-green-600" />
@@ -563,9 +565,9 @@ export default function BankDepositsPage() {
                   {/* Undeposited Reports Table */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label>Available Reports</Label>
+                      <Label>{t("form.availableReports")}</Label>
                       <div className="text-xs text-muted-foreground">
-                        {undepositedReports.length} reports available
+                        {undepositedReports.length} {t("form.reportsAvailable")}
                       </div>
                     </div>
                     <ScrollArea className="h-72 w-full rounded-md border">
@@ -573,9 +575,9 @@ export default function BankDepositsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[50px]"></TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Vehicle</TableHead>
-                                    <TableHead className="text-right">Net Amount</TableHead>
+                                    <TableHead>{t("table.date")}</TableHead>
+                                    <TableHead>{t("table.vehicle")}</TableHead>
+                                    <TableHead className="text-right">{t("table.net")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -631,7 +633,7 @@ export default function BankDepositsPage() {
                                                       {formatCurrency(netBalance)}
                                                     </span>
                                                     {!isDepositable && (
-                                                      <span className="text-xs text-red-500">Loss</span>
+                                                      <span className="text-xs text-red-500">{t("form.loss")}</span>
                                                     )}
                                                   </div>
                                                 </TableCell>
@@ -642,8 +644,8 @@ export default function BankDepositsPage() {
                                     <TableRow>
                                         <TableCell colSpan={4} className="text-center h-24">
                                             <div className="flex flex-col items-center gap-2">
-                                              <span className="text-muted-foreground">No reports available for deposit</span>
-                                              <span className="text-xs text-muted-foreground">All operational reports have been deposited</span>
+                                              <span className="text-muted-foreground">{t("form.noReportsAvailable")}</span>
+                                              <span className="text-xs text-muted-foreground">{t("form.allReportsDeposited")}</span>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -651,25 +653,25 @@ export default function BankDepositsPage() {
                             </TableBody>
                         </Table>
                     </ScrollArea>
-                    {selectedReports.length > 0 && (
-                      <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-blue-700">
-                            📋 {selectedReports.length} report{selectedReports.length !== 1 ? 's' : ''} selected
-                          </span>
-                          <span className="font-medium text-blue-800">
-                            Total: {formatCurrency(newDeposit.amount)}
-                          </span>
+                                          {selectedReports.length > 0 && (
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-blue-700">
+                              📋 {selectedReports.length === 1 ? t("form.reportSelected", { count: selectedReports.length }) : t("form.reportsSelected", { count: selectedReports.length })}
+                            </span>
+                            <span className="font-medium text-blue-800">
+                              {t("table.total")}: {formatCurrency(newDeposit.amount)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => setDialogOpen(false)}>{t("buttons.cancel")}</Button>
                     <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-black hover:bg-gray-800 text-white">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Deposit
+                        {t("buttons.logDeposit")}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -682,12 +684,12 @@ export default function BankDepositsPage() {
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              <Label>Filters:</Label>
+              <Label>{t("filters.filters")}:</Label>
             </div>
             
             {/* Date Range Picker */}
             <div className="flex items-center gap-2">
-              <Label>From:</Label>
+              <Label>{t("filters.from")}:</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -698,7 +700,7 @@ export default function BankDepositsPage() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFilter.from ? format(dateFilter.from, "MMM dd") : "Pick date"}
+                    {dateFilter.from ? format(dateFilter.from, "MMM dd") : t("filters.pickDate")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -713,7 +715,7 @@ export default function BankDepositsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Label>To:</Label>
+              <Label>{t("filters.to")}:</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -724,7 +726,7 @@ export default function BankDepositsPage() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFilter.to ? format(dateFilter.to, "MMM dd") : "Pick date"}
+                    {dateFilter.to ? format(dateFilter.to, "MMM dd") : t("filters.pickDate")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -740,32 +742,32 @@ export default function BankDepositsPage() {
 
             {/* View Toggle */}
             <div className="flex items-center gap-2">
-              <Label>View:</Label>
+              <Label>{t("filters.view")}:</Label>
               <Button
                 variant={groupByDate ? "default" : "outline"}
                 size="sm"
                 onClick={() => setGroupByDate(true)}
               >
-                Grouped by Date
+                {t("filters.groupedByDate")}
               </Button>
               <Button
                 variant={!groupByDate ? "default" : "outline"}
                 size="sm"
                 onClick={() => setGroupByDate(false)}
               >
-                Individual Deposits
+                {t("filters.individualDeposits")}
               </Button>
             </div>
 
             {/* Bank Filter */}
             <div className="flex items-center gap-2">
-              <Label>Bank:</Label>
+              <Label>{t("filters.bank")}:</Label>
               <Select value={bankFilter} onValueChange={setBankFilter}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Banks</SelectItem>
+                  <SelectItem value="all">{t("filters.allBanks")}</SelectItem>
                   <SelectItem value="Caixa Angola">Caixa Angola</SelectItem>
                   <SelectItem value="BAI">BAI</SelectItem>
                 </SelectContent>
@@ -781,7 +783,7 @@ export default function BankDepositsPage() {
                 setBankFilter("all");
               }}
             >
-              Today
+              {t("filters.today")}
             </Button>
             <Button
               variant="ghost"
@@ -791,7 +793,7 @@ export default function BankDepositsPage() {
                 setBankFilter("all");
               }}
             >
-              Clear Filters
+              {t("filters.clearFilters")}
             </Button>
           </div>
         </CardContent>
@@ -809,12 +811,12 @@ export default function BankDepositsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Banks</TableHead>
-                  <TableHead>Deposits</TableHead>
-                  <TableHead>Reports Covered</TableHead>
-                  <TableHead>Total Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("table.date")}</TableHead>
+                  <TableHead>{t("table.banks")}</TableHead>
+                  <TableHead>{t("table.deposits")}</TableHead>
+                  <TableHead>{t("table.reportsCovered")}</TableHead>
+                  <TableHead>{t("table.totalRevenue")}</TableHead>
+                  <TableHead className="text-right">{t("table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -833,10 +835,10 @@ export default function BankDepositsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium">{group.depositCount} deposits</span>
+                      <span className="font-medium">{group.depositCount} {t("table.deposits")}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium">{group.reportCount} reports</span>
+                      <span className="font-medium">{group.reportCount} {t("table.reports")}</span>
                     </TableCell>
                     <TableCell className="font-semibold">{formatCurrency(group.totalAmount)}</TableCell>
                     <TableCell className="text-right">
@@ -845,7 +847,7 @@ export default function BankDepositsPage() {
                         size="sm"
                         onClick={() => handleViewDetails(group.date)}
                       >
-                        View Details
+                        {t("table.viewDetails")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -857,11 +859,11 @@ export default function BankDepositsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Deposit Date</TableHead>
-                  <TableHead>Bank</TableHead>
-                  <TableHead>Reports Covered</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="w-[50px] text-right">Actions</TableHead>
+                  <TableHead>{t("table.depositDate")}</TableHead>
+                  <TableHead>{t("table.bank")}</TableHead>
+                  <TableHead>{t("table.reportsCovered")}</TableHead>
+                  <TableHead className="text-right">{t("table.amount")}</TableHead>
+                  <TableHead className="w-[50px] text-right">{t("table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -886,7 +888,7 @@ export default function BankDepositsPage() {
                           {deposit.deposit_slip_url && (
                             <Badge variant="secondary" className="text-xs">
                               <Paperclip className="h-3 w-3 mr-1" />
-                              Slip Attached
+                              {t("table.slipAttached")}
                             </Badge>
                           )}
                         </div>

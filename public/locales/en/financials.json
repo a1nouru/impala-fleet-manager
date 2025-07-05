@@ -69,8 +69,20 @@
     "baggageRevenue": "Baggage Revenue",
     "cargoRevenue": "Cargo Revenue",
     "bankName": "Bank Name",
+    "selectBank": "Select a bank",
     "depositDate": "Deposit Date",
     "amount": "Amount",
+    "totalAmount": "Total Amount",
+    "availableReports": "Available Reports",
+    "reportsAvailable": "reports available",
+    "bankSlipAttachment": "Bank Slip Attachment",
+    "uploadBankSlip": "Upload a PDF or image (JPG, PNG) of your bank deposit slip. Max size: 5MB.",
+    "autoSetToLatestDate": "Auto-set to latest report date",
+    "noReportsAvailable": "No reports available for deposit",
+    "allReportsDeposited": "All operational reports have been deposited",
+    "reportSelected": "{{count}} report selected",
+    "reportsSelected": "{{count}} reports selected",
+    "loss": "Loss",
     "selectReports": "Select Reports",
     "reportDetails": "Report Details",
     "expenses": "Expenses",
@@ -100,7 +112,12 @@
     "total": "Total",
     "bank": "Bank",
     "reports": "Reports",
-    "depositedAmount": "Deposited Amount"
+    "depositedAmount": "Deposited Amount",
+    "banks": "Banks",
+    "deposits": "Deposits",
+    "reportsCovered": "Reports Covered",
+    "depositDate": "Deposit Date",
+    "slipAttached": "Slip Attached"
   },
   "filters": {
     "filters": "Filters",
@@ -117,7 +134,10 @@
     "today": "Today",
     "clearFilters": "Clear Filters",
     "bankFilter": "Bank Filter",
-    "allBanks": "All Banks"
+    "allBanks": "All Banks",
+    "bank": "Bank",
+    "groupedByDate": "Grouped by Date",
+    "individualDeposits": "Individual Deposits"
   },
   "buttons": {
     "cancel": "Cancel",
