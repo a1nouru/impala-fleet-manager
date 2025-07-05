@@ -38,9 +38,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-
-// Define Agaseke vehicles
-const AGASEKE_PLATES = ["LDA-25-91-AD", "LDA-25-92-AD", "LDA-25-93-AD"];
+import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 
 // Define a type for vehicles to be used in the form
 interface Vehicle {
@@ -181,11 +179,6 @@ export default function AllDailyReportsPage() {
   useEffect(() => {
     fetchReports();
   }, []);
-
-  // Helper function to determine if a vehicle is Agaseke
-  const isAgasekeVehicle = (vehiclePlate: string | undefined): boolean => {
-    return vehiclePlate ? AGASEKE_PLATES.includes(vehiclePlate) : false;
-  };
 
   // Filter reports based on date range and report type
   const filteredReports = reports.filter(report => {
