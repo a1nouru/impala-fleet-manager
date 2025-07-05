@@ -39,6 +39,9 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
+// Define Agaseke vehicles
+const AGASEKE_PLATES = ["LDA-25-91-AD", "LDA-25-92-AD", "LDA-25-93-AD"];
+
 // Define a type for vehicles to be used in the form
 interface Vehicle {
   id: string;
@@ -129,6 +132,7 @@ export default function AllDailyReportsPage() {
     to: new Date(),
   });
   const [groupByDate, setGroupByDate] = useState(true);
+  const [reportTypeFilter, setReportTypeFilter] = useState<"all" | "agaseke" | "regular">("all");
   
   // New report form state
   const [newReport, setNewReport] = useState<{
@@ -178,23 +182,39 @@ export default function AllDailyReportsPage() {
     fetchReports();
   }, []);
 
-  // Filter reports based on date range
+  // Helper function to determine if a vehicle is Agaseke
+  const isAgasekeVehicle = (vehiclePlate: string | undefined): boolean => {
+    return vehiclePlate ? AGASEKE_PLATES.includes(vehiclePlate) : false;
+  };
+
+  // Filter reports based on date range and report type
   const filteredReports = reports.filter(report => {
     const reportDate = parseISO(report.report_date);
-    if (!dateFilter.from && !dateFilter.to) return true;
-    if (dateFilter.from && dateFilter.to) {
-      return isWithinInterval(reportDate, {
-        start: startOfDay(dateFilter.from),
-        end: endOfDay(dateFilter.to),
-      });
+    
+    // Date filter
+    let passesDateFilter = true;
+    if (dateFilter.from || dateFilter.to) {
+      if (dateFilter.from && dateFilter.to) {
+        passesDateFilter = isWithinInterval(reportDate, {
+          start: startOfDay(dateFilter.from),
+          end: endOfDay(dateFilter.to),
+        });
+      } else if (dateFilter.from) {
+        passesDateFilter = reportDate >= startOfDay(dateFilter.from);
+      } else if (dateFilter.to) {
+        passesDateFilter = reportDate <= endOfDay(dateFilter.to);
+      }
     }
-    if (dateFilter.from) {
-      return reportDate >= startOfDay(dateFilter.from);
+    
+    // Report type filter
+    let passesReportTypeFilter = true;
+    if (reportTypeFilter === "agaseke") {
+      passesReportTypeFilter = isAgasekeVehicle(report.vehicles?.plate);
+    } else if (reportTypeFilter === "regular") {
+      passesReportTypeFilter = !isAgasekeVehicle(report.vehicles?.plate);
     }
-    if (dateFilter.to) {
-      return reportDate <= endOfDay(dateFilter.to);
-    }
-    return true;
+    
+    return passesDateFilter && passesReportTypeFilter;
   });
 
   // Group or show individual reports
@@ -381,7 +401,14 @@ export default function AllDailyReportsPage() {
             <FileText className="h-6 w-6" />
             All Daily Reports
           </h1>
-          <Badge variant="outline">{filteredReports.length} reports</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{filteredReports.length} reports</Badge>
+            {reportTypeFilter !== "all" && (
+              <Badge variant="secondary" className="text-xs">
+                {reportTypeFilter === "agaseke" ? "Agaseke Only" : "Regular Only"}
+              </Badge>
+            )}
+          </div>
         </div>
         
         <Dialog open={newReportDialogOpen} onOpenChange={setNewReportDialogOpen}>
@@ -584,6 +611,24 @@ export default function AllDailyReportsPage() {
               </Button>
             </div>
 
+            {/* Report Type Filter */}
+            <div className="flex items-center gap-2">
+              <Label>Report Type:</Label>
+              <Select 
+                value={reportTypeFilter} 
+                onValueChange={(value: "all" | "agaseke" | "regular") => setReportTypeFilter(value)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Vehicles</SelectItem>
+                  <SelectItem value="agaseke">Agaseke Vehicles</SelectItem>
+                  <SelectItem value="regular">Regular Vehicles</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Clear Filters */}
             <Button
               variant="ghost"
@@ -599,6 +644,7 @@ export default function AllDailyReportsPage() {
               size="sm"
               onClick={() => {
                 setDateFilter({ from: undefined, to: undefined });
+                setReportTypeFilter("all");
               }}
             >
               Clear Filters
@@ -633,7 +679,27 @@ export default function AllDailyReportsPage() {
                     <TableCell>{format(parseISO(group.date), "MMMM do, yyyy")}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span>{group.vehicleCount} vehicles</span>
+                        <div className="flex items-center gap-2">
+                          <span>{group.vehicleCount} vehicles</span>
+                          {(() => {
+                            const agasekeCount = group.reports.filter(r => isAgasekeVehicle(r.vehicles?.plate)).length;
+                            const regularCount = group.vehicleCount - agasekeCount;
+                            return (
+                              <div className="flex gap-1">
+                                {agasekeCount > 0 && (
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                                    {agasekeCount} Agaseke
+                                  </Badge>
+                                )}
+                                {regularCount > 0 && (
+                                  <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
+                                    {regularCount} Regular
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
                         <span className="text-xs text-muted-foreground">
                           {group.reports.map(r => r.vehicles?.plate).join(', ')}
                         </span>
@@ -686,7 +752,16 @@ export default function AllDailyReportsPage() {
                     {filteredReports.map((report) => (
                       <TableRow key={report.id}>
                         <TableCell>{format(parseISO(report.report_date), "PP")}</TableCell>
-                        <TableCell>{report.vehicles?.plate}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span>{report.vehicles?.plate}</span>
+                            {isAgasekeVehicle(report.vehicles?.plate) && (
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                                Agaseke
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{report.route}</TableCell>
                         <TableCell><Badge variant={report.status === 'Operational' ? 'default' : 'destructive'}>{report.status}</Badge></TableCell>
                         <TableCell className="text-right">{formatCurrency(calculateTotalRevenue(report))}</TableCell>
