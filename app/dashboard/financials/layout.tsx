@@ -3,21 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-const financialNavItems = [
-  {
-    name: "All Daily Reports",
-    href: "/dashboard/financials",
-  },
-  {
-    name: "Bank Deposits",
-    href: "/dashboard/financials/deposits",
-  },
-  {
-    name: "Analytics",
-    href: "/dashboard/financials/analytics",
-  },
-];
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function FinancialsLayout({
   children,
@@ -25,6 +11,22 @@ export default function FinancialsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { t } = useTranslation('financials');
+
+  const financialNavItems = [
+    {
+      name: t("navigation.allDailyReports"),
+      href: "/dashboard/financials",
+    },
+    {
+      name: t("navigation.bankDeposits"),
+      href: "/dashboard/financials/deposits",
+    },
+    {
+      name: t("navigation.analytics"),
+      href: "/dashboard/financials/analytics",
+    },
+  ];
 
   return (
     <div className="space-y-6">

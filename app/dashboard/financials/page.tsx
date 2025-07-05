@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Define a type for vehicles to be used in the form
 interface Vehicle {
@@ -88,6 +89,7 @@ const groupReportsByDate = (reports: DailyReport[]) => {
 };
 
 export default function AllDailyReportsPage() {
+  const { t } = useTranslation('financials');
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -392,13 +394,13 @@ export default function AllDailyReportsPage() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
             <FileText className="h-6 w-6" />
-            All Daily Reports
+            {t("allDailyReports.title")}
           </h1>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{filteredReports.length} reports</Badge>
+            <Badge variant="outline">{filteredReports.length} {t("allDailyReports.reports")}</Badge>
             {reportTypeFilter !== "all" && (
               <Badge variant="secondary" className="text-xs">
-                {reportTypeFilter === "agaseke" ? "Agaseke Only" : "Regular Only"}
+                {reportTypeFilter === "agaseke" ? t("allDailyReports.agasekeOnly") : t("allDailyReports.regularOnly")}
               </Badge>
             )}
           </div>
@@ -408,23 +410,23 @@ export default function AllDailyReportsPage() {
           <DialogTrigger asChild>
             <Button className="bg-black hover:bg-gray-800 text-white">
               <PlusCircle className="h-4 w-4 mr-2" />
-              New Report
+              {t("allDailyReports.newReport")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
-              <DialogTitle>Create New Financial Report</DialogTitle>
+              <DialogTitle>{t("allDailyReports.createNewReport")}</DialogTitle>
               <DialogDescription>
-                Fill in the details for the daily report. Click save when you're done.
+                {t("allDailyReports.createReportDescription")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="vehicle_id">Vehicle</Label>
+                  <Label htmlFor="vehicle_id">{t("form.vehicle")}</Label>
                   <Select name="vehicle_id" value={newReport.vehicle_id} onValueChange={(value) => handleSelectChange("vehicle_id", value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a vehicle" />
+                      <SelectValue placeholder={t("form.selectVehicle")} />
                     </SelectTrigger>
                     <SelectContent>
                       {vehicles.map((vehicle) => (
@@ -436,15 +438,15 @@ export default function AllDailyReportsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="report_date">Date</Label>
+                  <Label htmlFor="report_date">{t("form.date")}</Label>
                   <Input id="report_date" name="report_date" type="date" value={newReport.report_date} onChange={handleInputChange} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="route">Route</Label>
+                <Label htmlFor="route">{t("form.route")}</Label>
                 <Select name="route" value={newReport.route} onValueChange={(value) => handleSelectChange("route", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a route" />
+                    <SelectValue placeholder={t("form.selectRoute")} />
                   </SelectTrigger>
                   <SelectContent>
                     {COMMON_ROUTES.map((route) => (
@@ -456,32 +458,32 @@ export default function AllDailyReportsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status">{t("form.status")}</Label>
                 <Select name="status" value={newReport.status} onValueChange={(value) => handleSelectChange("status", value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Operational">Operational</SelectItem>
-                    <SelectItem value="Non-Operational">Non-Operational</SelectItem>
+                    <SelectItem value="Operational">{t("form.operational")}</SelectItem>
+                    <SelectItem value="Non-Operational">{t("form.nonOperational")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               {newReport.status === "Non-Operational" && (
                 <div className="space-y-2">
-                  <Label htmlFor="non_operational_reason">Reason for Non-Operation</Label>
+                  <Label htmlFor="non_operational_reason">{t("form.reasonForNonOperation")}</Label>
                   <Textarea
                     id="non_operational_reason"
                     name="non_operational_reason"
                     value={newReport.non_operational_reason}
                     onChange={handleInputChange}
-                    placeholder="Please provide a reason..."
+                    placeholder={t("form.reasonPlaceholder")}
                   />
                 </div>
               )}
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ticket_revenue">Ticket Revenue</Label>
+                  <Label htmlFor="ticket_revenue">{t("form.ticketRevenue")}</Label>
                   <Input
                     id="ticket_revenue"
                     name="ticket_revenue"
@@ -491,7 +493,7 @@ export default function AllDailyReportsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="baggage_revenue">Baggage Revenue</Label>
+                  <Label htmlFor="baggage_revenue">{t("form.baggageRevenue")}</Label>
                   <Input
                     id="baggage_revenue"
                     name="baggage_revenue"
@@ -501,7 +503,7 @@ export default function AllDailyReportsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cargo_revenue">Cargo Revenue</Label>
+                  <Label htmlFor="cargo_revenue">{t("form.cargoRevenue")}</Label>
                   <Input
                     id="cargo_revenue"
                     name="cargo_revenue"
@@ -513,10 +515,10 @@ export default function AllDailyReportsPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setNewReportDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setNewReportDialogOpen(false)}>{t("buttons.cancel")}</Button>
               <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-black hover:bg-gray-800 text-white">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Report
+                {t("buttons.createReport")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -529,12 +531,12 @@ export default function AllDailyReportsPage() {
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              <Label>Filters:</Label>
+              <Label>{t("filters.filters")}:</Label>
             </div>
             
             {/* Date Range Picker */}
             <div className="flex items-center gap-2">
-              <Label>From:</Label>
+              <Label>{t("filters.from")}:</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -545,7 +547,7 @@ export default function AllDailyReportsPage() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFilter.from ? format(dateFilter.from, "MMM dd") : "Pick date"}
+                    {dateFilter.from ? format(dateFilter.from, "MMM dd") : t("filters.pickDate")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -560,7 +562,7 @@ export default function AllDailyReportsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Label>To:</Label>
+              <Label>{t("filters.to")}:</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -571,7 +573,7 @@ export default function AllDailyReportsPage() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFilter.to ? format(dateFilter.to, "MMM dd") : "Pick date"}
+                    {dateFilter.to ? format(dateFilter.to, "MMM dd") : t("filters.pickDate")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -587,26 +589,26 @@ export default function AllDailyReportsPage() {
 
             {/* View Toggle */}
             <div className="flex items-center gap-2">
-              <Label>View:</Label>
+              <Label>{t("filters.view")}:</Label>
               <Button
                 variant={groupByDate ? "default" : "outline"}
                 size="sm"
                 onClick={() => setGroupByDate(true)}
               >
-                Grouped by Date
+                {t("filters.groupedByDate")}
               </Button>
               <Button
                 variant={!groupByDate ? "default" : "outline"}
                 size="sm"
                 onClick={() => setGroupByDate(false)}
               >
-                Individual Reports
+                {t("filters.individualReports")}
               </Button>
             </div>
 
             {/* Report Type Filter */}
             <div className="flex items-center gap-2">
-              <Label>Report Type:</Label>
+              <Label>{t("filters.reportType")}:</Label>
               <Select 
                 value={reportTypeFilter} 
                 onValueChange={(value: "all" | "agaseke" | "regular") => setReportTypeFilter(value)}
@@ -615,9 +617,9 @@ export default function AllDailyReportsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Vehicles</SelectItem>
-                  <SelectItem value="agaseke">Agaseke Vehicles</SelectItem>
-                  <SelectItem value="regular">Regular Vehicles</SelectItem>
+                  <SelectItem value="all">{t("filters.allVehicles")}</SelectItem>
+                  <SelectItem value="agaseke">{t("filters.agasekeVehicles")}</SelectItem>
+                  <SelectItem value="regular">{t("filters.regularVehicles")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -630,7 +632,7 @@ export default function AllDailyReportsPage() {
                 setDateFilter({ from: new Date(), to: new Date() });
               }}
             >
-              Today
+              {t("filters.today")}
             </Button>
             <Button
               variant="ghost"
@@ -640,7 +642,7 @@ export default function AllDailyReportsPage() {
                 setReportTypeFilter("all");
               }}
             >
-              Clear Filters
+              {t("filters.clearFilters")}
             </Button>
           </div>
         </CardContent>
@@ -658,12 +660,12 @@ export default function AllDailyReportsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Vehicles</TableHead>
-                  <TableHead className="text-right">Total Revenue</TableHead>
-                  <TableHead className="text-right">Total Expenses</TableHead>
-                  <TableHead className="text-right">Net Balance</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>{t("table.date")}</TableHead>
+                  <TableHead>{t("table.vehicles")}</TableHead>
+                  <TableHead className="text-right">{t("table.totalRevenue")}</TableHead>
+                  <TableHead className="text-right">{t("table.totalExpenses")}</TableHead>
+                  <TableHead className="text-right">{t("table.netBalance")}</TableHead>
+                  <TableHead>{t("table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -673,7 +675,7 @@ export default function AllDailyReportsPage() {
                     <TableCell>
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                          <span>{group.vehicleCount} vehicles</span>
+                          <span>{t("allDailyReports.vehicleCount", { count: group.vehicleCount })}</span>
                           {(() => {
                             const agasekeCount = group.reports.filter(r => isAgasekeVehicle(r.vehicles?.plate)).length;
                             const regularCount = group.vehicleCount - agasekeCount;
@@ -681,12 +683,12 @@ export default function AllDailyReportsPage() {
                               <div className="flex gap-1">
                                 {agasekeCount > 0 && (
                                   <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                                    {agasekeCount} Agaseke
+                                    {t("allDailyReports.agasekeCount", { count: agasekeCount })}
                                   </Badge>
                                 )}
                                 {regularCount > 0 && (
                                   <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
-                                    {regularCount} Regular
+                                    {t("allDailyReports.regularCount", { count: regularCount })}
                                   </Badge>
                                 )}
                               </div>
@@ -708,7 +710,7 @@ export default function AllDailyReportsPage() {
                         setDateFilter({ from, to });
                         setGroupByDate(false);
                       }}>
-                        View Details
+                        {t("table.viewDetails")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -716,7 +718,7 @@ export default function AllDailyReportsPage() {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={2} className="font-bold">Total</TableCell>
+                  <TableCell colSpan={2} className="font-bold">{t("table.total")}</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.totalRevenue, 0))}</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.totalExpenses, 0))}</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.netBalance, 0))}</TableCell>
@@ -731,14 +733,14 @@ export default function AllDailyReportsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Vehicle</TableHead>
-                      <TableHead>Route</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Revenue</TableHead>
-                      <TableHead>Expenses</TableHead>
-                      <TableHead>Net</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>{t("table.date")}</TableHead>
+                      <TableHead>{t("table.vehicle")}</TableHead>
+                      <TableHead>{t("table.route")}</TableHead>
+                      <TableHead>{t("table.status")}</TableHead>
+                      <TableHead>{t("table.revenue")}</TableHead>
+                      <TableHead>{t("table.expenses")}</TableHead>
+                      <TableHead>{t("table.net")}</TableHead>
+                      <TableHead className="text-right">{t("table.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -750,13 +752,13 @@ export default function AllDailyReportsPage() {
                             <span>{report.vehicles?.plate}</span>
                             {isAgasekeVehicle(report.vehicles?.plate) && (
                               <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                                Agaseke
+                                {t("status.agaseke")}
                               </Badge>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>{report.route}</TableCell>
-                        <TableCell><Badge variant={report.status === 'Operational' ? 'default' : 'destructive'}>{report.status}</Badge></TableCell>
+                        <TableCell><Badge variant={report.status === 'Operational' ? 'default' : 'destructive'}>{report.status === 'Operational' ? t("status.operational") : t("status.nonOperational")}</Badge></TableCell>
                         <TableCell className="text-right">{formatCurrency(calculateTotalRevenue(report))}</TableCell>
                         <TableCell className="text-right">{formatCurrency((report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0))}</TableCell>
                         <TableCell className="text-right">{formatCurrency(calculateNetBalance(report))}</TableCell>
@@ -770,7 +772,7 @@ export default function AllDailyReportsPage() {
                   </TableBody>
                   <TableFooter>
                     <TableRow>
-                      <TableCell colSpan={4} className="font-bold">Total</TableCell>
+                      <TableCell colSpan={4} className="font-bold">{t("table.total")}</TableCell>
                       <TableCell className="text-right font-bold">
                         {formatCurrency(filteredReports.reduce((acc, report) => acc + calculateTotalRevenue(report), 0))}
                       </TableCell>
@@ -786,7 +788,7 @@ export default function AllDailyReportsPage() {
                 </Table>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">No reports found</p>
+                  <p className="text-sm">{t("allDailyReports.noReportsFound")}</p>
                 </div>
               )}
             </>
@@ -799,33 +801,36 @@ export default function AllDailyReportsPage() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Edit Daily Report</DialogTitle>
+              <DialogTitle>{t("allDailyReports.editReport")}</DialogTitle>
               <DialogDescription>
-                Editing report for vehicle {editingReport.vehicles?.plate} on {format(parseISO(editingReport.report_date), "PPP")}
+                {t("allDailyReports.editReportDescription", { 
+                  plate: editingReport.vehicles?.plate, 
+                  date: format(parseISO(editingReport.report_date), "PPP") 
+                })}
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
               {/* Report Details Form */}
               <div className="space-y-4">
-                <h4 className="font-medium text-lg">Report Details</h4>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={editedReportData.status} onValueChange={(value) => handleReportSelectChange("status", value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Operational">Operational</SelectItem>
-                      <SelectItem value="Non-Operational">Non-Operational</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {editedReportData.status === "Non-Operational" && (
-                  <div className="space-y-2">
-                    <Label>Reason for Non-Operation</Label>
-                    <Textarea name="non_operational_reason" value={editedReportData.non_operational_reason || ""} onChange={handleReportInputChange} />
+                <h4 className="font-medium text-lg">{t("form.reportDetails")}</h4>
+                                  <div className="space-y-2">
+                    <Label>{t("form.status")}</Label>
+                    <Select value={editedReportData.status} onValueChange={(value) => handleReportSelectChange("status", value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Operational">{t("form.operational")}</SelectItem>
+                        <SelectItem value="Non-Operational">{t("form.nonOperational")}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
+                                  {editedReportData.status === "Non-Operational" && (
+                    <div className="space-y-2">
+                      <Label>{t("form.reasonForNonOperation")}</Label>
+                      <Textarea name="non_operational_reason" value={editedReportData.non_operational_reason || ""} onChange={handleReportInputChange} />
+                    </div>
+                  )}
                 <div className="space-y-2">
                   <Label>Date</Label>
                   <Input name="report_date" type="date" value={editedReportData.report_date} onChange={handleReportInputChange} />
