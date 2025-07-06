@@ -558,7 +558,7 @@ function MaintenanceContent() {
 
     try {
       let savedRecord;
-      const created_by_id = user?.id;
+      const created_by_email = user?.email;
       
       if (isEditMode && editRecordId) {
         // Update existing record
@@ -569,7 +569,7 @@ function MaintenanceContent() {
         });
       } else {
         // Create new record
-        savedRecord = await maintenanceService.createMaintenanceRecord(recordToSave, allParts, created_by_id);
+        savedRecord = await maintenanceService.createMaintenanceRecord(recordToSave, allParts, created_by_email);
         toast({
           title: t("form.createSuccessTitle"),
           description: t("form.createSuccess"),
@@ -1220,9 +1220,7 @@ function MaintenanceContent() {
                         </td>
                         <td className="px-4 py-3 text-sm">{record.technicians?.name || record.technician}</td>
                         <td className="px-4 py-3 text-sm">
-                          {record.created_by 
-                            ? record.created_by.split('@')[0] 
-                            : '-'}
+                          {record.created_by || '-'}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -1401,7 +1399,7 @@ function MaintenanceContent() {
                           {record.created_by && (
                             <div>
                               <p className="text-sm font-medium text-gray-700">Created By</p>
-                              <p className="text-sm text-gray-600">{record.created_by.split('@')[0]}</p>
+                              <p className="text-sm text-gray-600">{record.created_by}</p>
                             </div>
                           )}
                         </div>
