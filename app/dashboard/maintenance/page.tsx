@@ -195,6 +195,19 @@ function MaintenanceContent() {
 
   const { user } = useAuth();
 
+  // Helper function to format created_by field
+  const formatCreatedBy = (createdBy: string | null | undefined): string => {
+    if (!createdBy) return '-';
+    
+    // Check if it's a UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(createdBy)) {
+      return 'Legacy User'; // Display this for old UUID records
+    }
+    
+    return createdBy; // Return email as is
+  };
+
   // Fetch all required data on component mount
   useEffect(() => {
     let isMounted = true;
@@ -1220,7 +1233,7 @@ function MaintenanceContent() {
                         </td>
                         <td className="px-4 py-3 text-sm">{record.technicians?.name || record.technician}</td>
                         <td className="px-4 py-3 text-sm">
-                          {record.created_by || '-'}
+                          {formatCreatedBy(record.created_by)}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -1399,7 +1412,7 @@ function MaintenanceContent() {
                           {record.created_by && (
                             <div>
                               <p className="text-sm font-medium text-gray-700">Created By</p>
-                              <p className="text-sm text-gray-600">{record.created_by}</p>
+                              <p className="text-sm text-gray-600">{formatCreatedBy(record.created_by)}</p>
                             </div>
                           )}
                         </div>
