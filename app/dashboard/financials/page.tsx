@@ -40,6 +40,22 @@ import {
 import { cn } from "@/lib/utils";
 import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 import { useTranslation } from "@/hooks/useTranslation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Define a type for vehicles to be used in the form
 interface Vehicle {
@@ -157,6 +173,10 @@ export default function AllDailyReportsPage() {
 
   // State for adding new expenses
   const [isAddingExpense, setIsAddingExpense] = useState(false);
+
+  // State for delete confirmation
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState<DailyReport | null>(null);
 
   const fetchReports = async () => {
     try {
@@ -384,6 +404,35 @@ export default function AllDailyReportsPage() {
         } catch (error) {
             toast({ title: "Error", description: "Failed to delete expense.", variant: "destructive" });
         }
+    }
+  };
+
+  // Delete Report Handlers
+  const handleDeleteClick = (report: DailyReport) => {
+    setReportToDelete(report);
+    setDeleteConfirmationOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!reportToDelete) return;
+    setIsSubmitting(true);
+    try {
+      await financialService.deleteDailyReport(reportToDelete.id);
+      toast({
+        title: "Success",
+        description: t("messages.reportDeleted"),
+      });
+      fetchReports();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || t("messages.errorDeleting"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+      setDeleteConfirmationOpen(false);
+      setReportToDelete(null);
     }
   };
 
@@ -766,6 +815,26 @@ export default function AllDailyReportsPage() {
                           <Button variant="ghost" size="icon" onClick={() => handleEditClick(report)}>
                             <Edit className="h-4 w-4" />
                           </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-red-500 hover:text-red-600"
+                                  onClick={() => handleDeleteClick(report)}
+                                  disabled={report.deposit_reports && report.deposit_reports.length > 0}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{report.deposit_reports && report.deposit_reports.length > 0 
+                                  ? t("messages.cannotDeleteReportInDeposit") 
+                                  : t("buttons.delete")}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1007,6 +1076,28 @@ export default function AllDailyReportsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmationOpen} onOpenChange={setDeleteConfirmationOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("allDailyReports.deleteReportConfirmationTitle", "Are you absolutely sure?")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {reportToDelete && t("allDailyReports.deleteReportConfirmationDescription", {
+                plate: reportToDelete.vehicles?.plate,
+                date: format(parseISO(reportToDelete.report_date), "PPP")
+              }, `This action cannot be undone. This will permanently delete the daily report for ${reportToDelete.vehicles?.plate} on ${format(parseISO(reportToDelete.report_date), "PPP")} and all its associated expenses.`)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} disabled={isSubmitting} className="bg-red-600 hover:bg-red-700">
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("buttons.delete", "Delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

@@ -638,6 +638,49 @@ export const financialService = {
       console.error('Error deleting bank deposit:', deleteError);
       throw new Error('Failed to delete bank deposit.');
     }
+  },
+
+  /**
+   * Deletes a daily report and all its associated expenses.
+   * @param reportId - The ID of the report to delete.
+   */
+  async deleteDailyReport(reportId: string): Promise<void> {
+    // First check if this report is associated with any bank deposits
+    const { data: depositReports, error: depositCheckError } = await supabase
+      .from('deposit_reports')
+      .select('deposit_id')
+      .eq('report_id', reportId);
+
+    if (depositCheckError) {
+      console.error('Error checking deposit associations:', depositCheckError);
+      throw new Error('Could not check if report is associated with deposits.');
+    }
+
+    if (depositReports && depositReports.length > 0) {
+      throw new Error('Cannot delete report that is associated with bank deposits. Please remove it from deposits first.');
+    }
+
+    // Delete all expenses associated with this report first (due to foreign key constraints)
+    const { error: expensesError } = await supabase
+      .from('daily_expenses')
+      .delete()
+      .eq('report_id', reportId);
+
+    if (expensesError) {
+      console.error('Error deleting associated expenses:', expensesError);
+      throw new Error('Failed to delete associated expenses.');
+    }
+
+    // Now delete the report itself
+    const { error: deleteError } = await supabase
+      .from('daily_reports')
+      .delete()
+      .eq('id', reportId);
+
+    if (deleteError) {
+      console.error('Error deleting daily report:', deleteError);
+      throw new Error('Failed to delete daily report.');
+    }
   }
 };
 
