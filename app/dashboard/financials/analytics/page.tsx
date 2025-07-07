@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/use-toast";
 import { AgasekeReport } from "@/components/agaseke-report";
 import { RecentDeposits } from "@/components/recent-deposits";
 import { OverviewChart } from "@/components/overview-chart";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Helper to format currency
 const formatCurrency = (value: number) => {
@@ -21,6 +22,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function AnalyticsPage() {
+  const { t } = useTranslation('financials');
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
@@ -49,7 +51,7 @@ export default function AnalyticsPage() {
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to load financial analytics.",
+          description: t("analytics.failedToLoadAnalytics"),
           variant: "destructive",
         });
         setSummary(null);
@@ -74,7 +76,7 @@ export default function AnalyticsPage() {
           <>
             <div className="text-2xl font-bold">{formatCurrency(value || 0)}</div>
             <p className="text-xs text-muted-foreground">
-              For the selected period
+              {t("analytics.forSelectedPeriod")}
             </p>
           </>
         )}
@@ -85,20 +87,20 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Financial Analytics</h2>
+        <h2 className="text-2xl font-semibold">{t("analytics.title")}</h2>
         <DateRangePicker date={dateRange} onDateChange={setDateRange} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {renderSummaryCard("Total Revenue", summary?.total_revenue, DollarSign)}
-        {renderSummaryCard("Total Expenses", summary?.total_expenses, TrendingDown)}
-        {renderSummaryCard("Net Balance", summary?.net_balance, TrendingUp)}
+        {renderSummaryCard(t("analytics.totalRevenue"), summary?.total_revenue, DollarSign)}
+        {renderSummaryCard(t("analytics.totalExpenses"), summary?.total_expenses, TrendingDown)}
+        {renderSummaryCard(t("analytics.netBalance"), summary?.net_balance, TrendingUp)}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
+            <CardTitle>{t("analytics.overview")}</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
             <OverviewChart dateRange={dateRange} />

@@ -67,7 +67,7 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
     {
       href: "/dashboard/financials",
       icon: DollarSign,
-      label: "Financials",
+      label: t("financials:title"),
       active: !!pathname?.startsWith("/dashboard/financials")
     },
     {

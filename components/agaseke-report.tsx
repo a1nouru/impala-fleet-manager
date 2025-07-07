@@ -8,8 +8,7 @@ import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-
-const AGASEKE_PLATES = ["LDA-25-91-AD", "LDA-25-92-AD", "LDA-25-93-AD"];
+import { AGASEKE_PLATES } from "@/lib/constants";
 
 interface AgasekeReportProps {
   dateRange: DateRange | undefined;
