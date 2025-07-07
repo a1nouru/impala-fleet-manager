@@ -812,29 +812,31 @@ export default function AllDailyReportsPage() {
                         <TableCell className="text-right">{formatCurrency((report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0))}</TableCell>
                         <TableCell className="text-right">{formatCurrency(calculateNetBalance(report))}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditClick(report)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-red-500 hover:text-red-600"
-                                  onClick={() => handleDeleteClick(report)}
-                                  disabled={report.deposit_reports && report.deposit_reports.length > 0}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{report.deposit_reports && report.deposit_reports.length > 0 
-                                  ? t("messages.cannotDeleteReportInDeposit") 
-                                  : t("buttons.delete")}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(report)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-500 hover:text-red-600"
+                                    onClick={() => handleDeleteClick(report)}
+                                    disabled={report.deposit_reports && report.deposit_reports.length > 0}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{report.deposit_reports && report.deposit_reports.length > 0 
+                                    ? t("messages.cannotDeleteReportInDeposit") 
+                                    : t("buttons.delete")}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
