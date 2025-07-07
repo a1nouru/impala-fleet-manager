@@ -184,6 +184,25 @@ export default function AllDailyReportsPage() {
     }
   };
 
+  const handleDeleteReport = async (reportId: string, vehiclePlate: string) => {
+    if (window.confirm(`Are you sure you want to delete the daily report for vehicle ${vehiclePlate}? This action cannot be undone and will also delete all related expenses.`)) {
+        try {
+            await financialService.deleteDailyReport(reportId);
+            toast({ 
+                title: "✅ Success", 
+                description: "Daily report deleted successfully." 
+            });
+            fetchReports(); // Refresh the reports list
+        } catch (error) {
+            toast({ 
+                title: "❌ Error", 
+                description: "Failed to delete daily report.", 
+                variant: "destructive" 
+            });
+        }
+    }
+  };
+
   return (
     <div className="space-y-6">
        <Card>
@@ -238,14 +257,24 @@ export default function AllDailyReportsPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          onClick={() => handleEditClick(report)}
-                                          className="h-8 w-8 p-0"
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex items-center justify-end gap-1">
+                                            <Button 
+                                              variant="ghost" 
+                                              size="sm" 
+                                              onClick={() => handleEditClick(report)}
+                                              className="h-8 w-8 p-0"
+                                            >
+                                              <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                              variant="ghost" 
+                                              size="sm" 
+                                              onClick={() => handleDeleteReport(report.id, report.vehicles?.plate || 'Unknown')}
+                                              className="h-8 w-8 p-0 hover:bg-red-50"
+                                            >
+                                              <Trash2 className="h-4 w-4 text-red-500" />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             );

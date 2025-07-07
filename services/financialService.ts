@@ -638,6 +638,50 @@ export const financialService = {
       console.error('Error deleting bank deposit:', deleteError);
       throw new Error('Failed to delete bank deposit.');
     }
+  },
+
+  /**
+   * Deletes a daily report and all its related expenses and deposit references.
+   * @param reportId - The ID of the report to delete.
+   */
+  async deleteDailyReport(reportId: string): Promise<void> {
+    try {
+      // First, delete related daily expenses
+      const { error: expensesError } = await supabase
+        .from('daily_expenses')
+        .delete()
+        .eq('report_id', reportId);
+
+      if (expensesError) {
+        console.error('Error deleting daily expenses:', expensesError);
+        throw expensesError;
+      }
+
+      // Then delete related deposit reports (if any)
+      const { error: depositReportsError } = await supabase
+        .from('deposit_reports')
+        .delete()
+        .eq('report_id', reportId);
+
+      if (depositReportsError) {
+        console.error('Error deleting deposit reports:', depositReportsError);
+        throw depositReportsError;
+      }
+
+      // Finally delete the daily report
+      const { error } = await supabase
+        .from('daily_reports')
+        .delete()
+        .eq('id', reportId);
+
+      if (error) {
+        console.error('Error deleting daily report:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in deleteDailyReport:', error);
+      throw error;
+    }
   }
 };
 
