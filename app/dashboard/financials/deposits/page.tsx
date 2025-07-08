@@ -578,14 +578,14 @@ export default function BankDepositsPage() {
                     {t("bankDeposits.logNewDeposit")}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogContent className="w-[95vw] sm:max-w-6xl h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
                 <DialogHeader>
                     <DialogTitle>{t("bankDeposits.newDepositTitle")}</DialogTitle>
                     <DialogDescription>
                         {t("bankDeposits.newDepositDescription")}
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 py-4 flex-1 overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 py-4 flex-1 overflow-hidden">
                   {/* Form Inputs - Left Column */}
                   <div className="lg:col-span-2 space-y-4">
                     <div className="space-y-2">
@@ -637,7 +637,7 @@ export default function BankDepositsPage() {
                       {bankSlipFile && (
                         <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
                           <Paperclip className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-700">{bankSlipFile.name}</span>
+                          <span className="text-sm text-green-700 truncate">{bankSlipFile.name}</span>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -660,7 +660,7 @@ export default function BankDepositsPage() {
                       </div>
                     </div>
                     <ScrollArea className="flex-1 w-full rounded-md border">
-                        <div className="p-4">
+                        <div className="p-2 sm:p-4">
                             {groupReportsByDate(undepositedReports).length > 0 ? (
                                 groupReportsByDate(undepositedReports).map((dateGroup) => {
                                     const hasDepositableReports = dateGroup.depositableReports.length > 0;
@@ -675,10 +675,10 @@ export default function BankDepositsPage() {
                                         )}>
                                             {/* Date Header */}
                                             <div className={cn(
-                                                "p-3 transition-colors flex items-center justify-between",
+                                                "p-2 sm:p-3 transition-colors flex items-center justify-between",
                                                 isDateSelected ? "bg-blue-50 border-b border-blue-200" : "bg-gray-50 border-b"
                                             )}>
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                                                     {/* Expand/Collapse Button */}
                                                     <Button
                                                         variant="ghost"
@@ -699,9 +699,10 @@ export default function BankDepositsPage() {
                                                         disabled={!hasDepositableReports}
                                                         onCheckedChange={() => hasDepositableReports && handleDateSelection(dateGroup.date)}
                                                     />
-                                                    <div>
+                                                    <div className="min-w-0 flex-1">
                                                         <div className="font-medium text-sm">
-                                                            {format(parseISO(dateGroup.date), "EEEE, MMMM dd, yyyy")}
+                                                            <span className="hidden sm:inline">{format(parseISO(dateGroup.date), "EEEE, MMMM dd, yyyy")}</span>
+                                                            <span className="sm:hidden">{format(parseISO(dateGroup.date), "EEE, dd MMM")}</span>
                                                         </div>
                                                         <div className="text-xs text-muted-foreground">
                                                             {dateGroup.depositableReports.length} depositable reports
@@ -711,14 +712,15 @@ export default function BankDepositsPage() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
+                                                <div className="text-right flex-shrink-0">
                                                     <div className={cn(
                                                         "font-semibold text-sm",
                                                         totalNetBalance > 0 ? "text-green-600" : "text-red-500"
                                                     )}>
-                                                        {formatCurrency(totalNetBalance)}
+                                                        <span className="hidden sm:inline">{formatCurrency(totalNetBalance)}</span>
+                                                        <span className="sm:hidden text-xs">{formatCurrency(totalNetBalance).replace('AOA ', '')}</span>
                                                     </div>
-                                                    <div className="text-xs text-muted-foreground">
+                                                    <div className="text-xs text-muted-foreground hidden sm:block">
                                                         Total for date
                                                     </div>
                                                 </div>
@@ -734,21 +736,11 @@ export default function BankDepositsPage() {
                                                         const isReportSelected = selectedReports.includes(report.id);
                                                         const canSelect = isDepositable && !isAlreadyDeposited;
 
-                                                        // Debug logging
-                                                        console.log(`Report ${report.vehicles?.plate}:`, {
-                                                            id: report.id,
-                                                            netBalance,
-                                                            isDepositable,
-                                                            isAlreadyDeposited,
-                                                            canSelect,
-                                                            depositReports: report.deposit_reports
-                                                        });
-
                                                         return (
                                                             <div 
                                                                 key={report.id} 
                                                                 className={cn(
-                                                                    "p-3 flex items-center gap-3 ml-6 transition-colors",
+                                                                    "p-2 sm:p-3 flex items-center gap-2 sm:gap-3 ml-4 sm:ml-6 transition-colors",
                                                                     !canSelect && "text-muted-foreground bg-muted/20",
                                                                     isReportSelected && "bg-blue-100 border-l-4 border-blue-500",
                                                                     canSelect && "hover:bg-gray-50 cursor-pointer"
@@ -758,23 +750,14 @@ export default function BankDepositsPage() {
                                                                     checked={isReportSelected}
                                                                     disabled={!canSelect}
                                                                     onCheckedChange={(checked) => {
-                                                                        console.log(`Checkbox clicked for ${report.vehicles?.plate}:`, {
-                                                                            checked,
-                                                                            canSelect,
-                                                                            reportId: report.id
-                                                                        });
                                                                         if (canSelect) {
                                                                             handleReportSelection(report.id);
                                                                         }
                                                                     }}
                                                                 />
                                                                 <div 
-                                                                    className="flex-1 grid grid-cols-3 gap-4 items-center"
+                                                                    className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 items-start sm:items-center"
                                                                     onClick={() => {
-                                                                        console.log(`Row clicked for ${report.vehicles?.plate}:`, {
-                                                                            canSelect,
-                                                                            reportId: report.id
-                                                                        });
                                                                         if (canSelect) {
                                                                             handleReportSelection(report.id);
                                                                         }
@@ -787,13 +770,15 @@ export default function BankDepositsPage() {
                                                                         )}
                                                                     </div>
                                                                     <div className="text-sm">
+                                                                        <span className="sm:hidden text-xs text-muted-foreground">Date: </span>
                                                                         {format(parseISO(report.report_date), "EEE, dd/MM")}
                                                                     </div>
-                                                                    <div className="text-right">
+                                                                    <div className="sm:text-right">
                                                                         <div className={cn(
                                                                             "font-medium text-sm",
                                                                             isDepositable ? "text-green-600" : "text-red-500"
                                                                         )}>
+                                                                            <span className="sm:hidden text-xs text-muted-foreground">Net: </span>
                                                                             {formatCurrency(netBalance)}
                                                                         </div>
                                                                         {!isDepositable && (
@@ -829,7 +814,7 @@ export default function BankDepositsPage() {
                     </ScrollArea>
                     {selectedReports.length > 0 && (
                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                        <div className="flex items-center justify-between text-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
                           <span className="text-blue-700">
                             📋 {selectedReports.length === 1 ? t("form.reportSelected", { count: selectedReports.length }) : t("form.reportsSelected", { count: selectedReports.length })}
                           </span>
@@ -842,15 +827,19 @@ export default function BankDepositsPage() {
                   </div>
                 </div>
                 <DialogFooter className="flex-shrink-0">
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>{t("buttons.cancel")}</Button>
-                    <Button 
-                        onClick={handleSubmit} 
-                        disabled={isSubmitting || selectedReports.length === 0 || !bankSlipFile} 
-                        className="bg-black hover:bg-gray-800 text-white"
-                    >
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {t("buttons.logDeposit")}
-                    </Button>
+                    <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
+                        <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">
+                            {t("buttons.cancel")}
+                        </Button>
+                        <Button 
+                            onClick={handleSubmit} 
+                            disabled={isSubmitting || selectedReports.length === 0 || !bankSlipFile} 
+                            className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto"
+                        >
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t("buttons.logDeposit")}
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
