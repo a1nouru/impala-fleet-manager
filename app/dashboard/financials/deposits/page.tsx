@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Banknote, Paperclip, Eye, Trash2 } from "lucide-react";
+import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Banknote, Paperclip, Eye, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { financialService, BankDeposit, DailyReport } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -92,12 +92,38 @@ const groupDepositsByDate = (deposits: BankDeposit[]) => {
   })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
+// Group undeposited reports by date for dialog display
+const groupReportsByDate = (reports: DailyReport[]) => {
+  const grouped = reports.reduce((acc, report) => {
+    const date = format(parseISO(report.report_date), "yyyy-MM-dd");
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(report);
+    return acc;
+  }, {} as Record<string, DailyReport[]>);
+
+  return Object.entries(grouped).map(([date, reports]) => ({
+    date,
+    reports,
+    totalAmount: reports.reduce((sum, report) => sum + calculateNetBalance(report), 0),
+    depositableReports: reports.filter(report => {
+      const netBalance = calculateNetBalance(report);
+      const isDepositable = netBalance > 0;
+      const isAlreadyDeposited = report.deposit_reports && report.deposit_reports.length > 0;
+      return isDepositable && !isAlreadyDeposited;
+    }),
+  })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
 export default function BankDepositsPage() {
   const { user } = useAuth();
   const { t } = useTranslation('financials');
   const [deposits, setDeposits] = useState<BankDeposit[]>([]);
   const [undepositedReports, setUndepositedReports] = useState<DailyReport[]>([]);
   const [selectedReports, setSelectedReports] = useState<string[]>([]);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [expandedDates, setExpandedDates] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -227,6 +253,51 @@ export default function BankDepositsPage() {
         : [...prev, reportId]
     );
   };
+
+  const handleDateSelection = (date: string) => {
+    const groupedReports = groupReportsByDate(undepositedReports);
+    const dateGroup = groupedReports.find(group => group.date === date);
+    
+    if (!dateGroup) return;
+    
+    const dateReportIds = dateGroup.depositableReports.map(report => report.id);
+    const isDateSelected = selectedDates.includes(date);
+    
+    if (isDateSelected) {
+      // Unselect all reports from this date
+      setSelectedReports(prev => prev.filter(id => !dateReportIds.includes(id)));
+      setSelectedDates(prev => prev.filter(d => d !== date));
+    } else {
+      // Select all depositable reports from this date
+      setSelectedReports(prev => [...prev, ...dateReportIds.filter(id => !prev.includes(id))]);
+      setSelectedDates(prev => [...prev, date]);
+    }
+  };
+
+  const handleDateExpansion = (date: string) => {
+    setExpandedDates(prev => 
+      prev.includes(date) 
+        ? prev.filter(d => d !== date)
+        : [...prev, date]
+    );
+  };
+
+  // Update selected dates when individual reports are selected/deselected
+  useEffect(() => {
+    const groupedReports = groupReportsByDate(undepositedReports);
+    const newSelectedDates: string[] = [];
+    
+    groupedReports.forEach(group => {
+      const dateReportIds = group.depositableReports.map(report => report.id);
+      const isFullDateSelected = dateReportIds.length > 0 && dateReportIds.every(id => selectedReports.includes(id));
+      
+      if (isFullDateSelected) {
+        newSelectedDates.push(group.date);
+      }
+    });
+    
+    setSelectedDates(newSelectedDates);
+  }, [selectedReports, undepositedReports]);
   
   // --- Handlers for the Edit functionality (Refactored) ---
 
@@ -325,36 +396,52 @@ export default function BankDepositsPage() {
   const handleSubmit = async () => {
     if (selectedReports.length === 0) {
       toast({
-        title: t("messages.validationError"),
-        description: t("messages.selectAtLeastOneReport"),
+        title: "⚠️ No Reports Selected",
+        description: "Please select at least one report for this deposit.",
         variant: "destructive",
       });
       return;
     }
-    
-          if (!bankSlipFile) {
-        toast({
-          title: t("messages.validationError"),
-          description: t("messages.attachBankSlip"),
-          variant: "destructive",
-        });
-        return;
-      }
 
-    setIsSubmitting(true);
-    try {
-      await financialService.createBankDepositWithFile(newDeposit, selectedReports, bankSlipFile || undefined);
+    if (!bankSlipFile) {
       toast({
-        title: "Success",
-        description: t("messages.depositCreated"),
+        title: "📄 Bank Slip Required",
+        description: "Please upload a bank slip (PDF, JPG, or PNG) before proceeding.",
+        variant: "destructive",
       });
-      setDialogOpen(false);
-      resetDepositForm();
-      fetchPageData(); // Refresh data
-    } catch (error) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const depositData = {
+        bank_name: newDeposit.bank_name,
+        deposit_date: newDeposit.deposit_date,
+        amount: newDeposit.amount,
+        created_by: user?.email,
+      };
+
+      await financialService.createBankDepositWithFile(
+        depositData,
+        selectedReports,
+        bankSlipFile
+      );
+
       toast({
-        title: "Error",
-        description: t("messages.errorCreating"),
+        title: "✅ Deposit Created Successfully",
+        description: `Bank deposit of ${formatCurrency(newDeposit.amount)} has been logged with ${selectedReports.length} reports.`,
+      });
+
+      // Reset form and refresh data
+      resetDepositForm();
+      setDialogOpen(false);
+      await fetchPageData();
+    } catch (error) {
+      console.error("❌ Error creating deposit:", error);
+      toast({
+        title: "❌ Error Creating Deposit",
+        description: "There was an error creating the bank deposit. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -369,6 +456,8 @@ export default function BankDepositsPage() {
       amount: 0,
     });
     setSelectedReports([]);
+    setSelectedDates([]);
+    setExpandedDates([]);
     setBankSlipFile(null);
   };
 
@@ -489,187 +578,276 @@ export default function BankDepositsPage() {
                     {t("bankDeposits.logNewDeposit")}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl">
+            <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
                 <DialogHeader>
                     <DialogTitle>{t("bankDeposits.newDepositTitle")}</DialogTitle>
                     <DialogDescription>
                         {t("bankDeposits.newDepositDescription")}
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                  {/* Form Inputs */}
-                  <div className="space-y-4">
-                                          <div className="space-y-2">
-                          <Label htmlFor="bank_name">{t("form.bankName")}</Label>
-                          <Select name="bank_name" value={newDeposit.bank_name} onValueChange={(value) => handleSelectChange("bank_name", value)}>
-                                                             <SelectTrigger>
-                                   <SelectValue placeholder={t("form.selectBank")} />
-                               </SelectTrigger>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 py-4 flex-1 overflow-hidden">
+                  {/* Form Inputs - Left Column */}
+                  <div className="lg:col-span-2 space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="bank_name">{t("form.bankName")}</Label>
+                        <Select name="bank_name" value={newDeposit.bank_name} onValueChange={(value) => handleSelectChange("bank_name", value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={t("form.selectBank")} />
+                            </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Caixa Angola">Caixa Angola</SelectItem>
                                 <SelectItem value="BAI">BAI</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                                          <div className="space-y-2">
-                          <Label htmlFor="deposit_date">{t("form.depositDate")}</Label>
-                          <Input 
-                            id="deposit_date" 
-                            name="deposit_date" 
-                            type="date" 
-                            value={newDeposit.deposit_date} 
-                            onChange={handleInputChange}
-                          />
-                          {selectedReports.length > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              📅 {t("form.autoSetToLatestDate")} ({format(parseISO(newDeposit.deposit_date), "MMM dd, yyyy")})
-                            </p>
-                          )}
-                      </div>
-                                          <div className="space-y-2">
-                          <Label htmlFor="amount">{t("form.totalAmount")}</Label>
-                          <Input id="amount" name="amount" type="number" value={newDeposit.amount} readOnly className="font-bold bg-gray-100" />
-                      </div>
-                    
-                                          {/* Bank Slip Upload */}
-                      <div className="space-y-2">
-                        <Label htmlFor="bank_slip">{t("form.bankSlipAttachment")}</Label>
-                        <div className="space-y-2">
-                          <Input
-                            id="bank_slip"
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={handleFileChange}
-                            className="cursor-pointer"
-                          />
+                    <div className="space-y-2">
+                        <Label htmlFor="deposit_date">{t("form.depositDate")}</Label>
+                        <Input 
+                          id="deposit_date" 
+                          name="deposit_date" 
+                          type="date" 
+                          value={newDeposit.deposit_date} 
+                          onChange={handleInputChange}
+                        />
+                        {selectedReports.length > 0 && (
                           <p className="text-xs text-muted-foreground">
-                            {t("form.uploadBankSlip")}
+                            📅 {t("form.autoSetToLatestDate")} ({format(parseISO(newDeposit.deposit_date), "MMM dd, yyyy")})
                           </p>
-                        {bankSlipFile && (
-                          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                            <Paperclip className="h-4 w-4 text-green-600" />
-                            <span className="text-sm text-green-700">{bankSlipFile.name}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setBankSlipFile(null)}
-                              className="ml-auto h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                            >
-                              ×
-                            </Button>
-                          </div>
                         )}
-                      </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="amount">{t("form.totalAmount")}</Label>
+                        <Input id="amount" name="amount" type="number" value={newDeposit.amount} readOnly className="font-bold bg-gray-100" />
+                    </div>
+                    
+                    {/* Bank Slip Upload */}
+                    <div className="space-y-2">
+                      <Label htmlFor="bank_slip">{t("form.bankSlipAttachment")}</Label>
+                      <div className="space-y-2">
+                        <Input
+                          id="bank_slip"
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={handleFileChange}
+                          className="cursor-pointer"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t("form.uploadBankSlip")}
+                        </p>
+                      {bankSlipFile && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                          <Paperclip className="h-4 w-4 text-green-600" />
+                          <span className="text-sm text-green-700">{bankSlipFile.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setBankSlipFile(null)}
+                            className="ml-auto h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  {/* Undeposited Reports Table */}
-                  <div className="space-y-2">
+                  </div>
+                  {/* Available Reports - Right Column */}
+                  <div className="lg:col-span-3 space-y-2 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between">
                       <Label>{t("form.availableReports")}</Label>
                       <div className="text-xs text-muted-foreground">
                         {undepositedReports.length} {t("form.reportsAvailable")}
                       </div>
                     </div>
-                    <ScrollArea className="h-72 w-full rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[50px]"></TableHead>
-                                    <TableHead>{t("table.date")}</TableHead>
-                                    <TableHead>{t("table.vehicle")}</TableHead>
-                                    <TableHead className="text-right">{t("table.net")}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {undepositedReports.length > 0 ? (
-                                    undepositedReports.map((report) => {
-                                        const netBalance = calculateNetBalance(report);
-                                        const isDepositable = netBalance > 0;
-                                        const isSelected = selectedReports.includes(report.id);
+                    <ScrollArea className="flex-1 w-full rounded-md border">
+                        <div className="p-4">
+                            {groupReportsByDate(undepositedReports).length > 0 ? (
+                                groupReportsByDate(undepositedReports).map((dateGroup) => {
+                                    const hasDepositableReports = dateGroup.depositableReports.length > 0;
+                                    const isDateSelected = selectedDates.includes(dateGroup.date);
+                                    const isDateExpanded = expandedDates.includes(dateGroup.date);
+                                    const totalNetBalance = dateGroup.depositableReports.reduce((sum, report) => sum + calculateNetBalance(report), 0);
 
-                                        return (
-                                            <TableRow 
-                                              key={report.id} 
-                                              className={cn(
-                                                !isDepositable && "text-muted-foreground bg-muted/30",
-                                                isSelected && "bg-blue-50 border-blue-200"
-                                              )}
-                                            >
-                                                <TableCell>
+                                    return (
+                                        <div key={dateGroup.date} className={cn(
+                                            "mb-4 border rounded-lg overflow-hidden",
+                                            hasDepositableReports ? "border-gray-200" : "border-gray-100 opacity-60"
+                                        )}>
+                                            {/* Date Header */}
+                                            <div className={cn(
+                                                "p-3 transition-colors flex items-center justify-between",
+                                                isDateSelected ? "bg-blue-50 border-b border-blue-200" : "bg-gray-50 border-b"
+                                            )}>
+                                                <div className="flex items-center gap-3">
+                                                    {/* Expand/Collapse Button */}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0 hover:bg-gray-200"
+                                                        onClick={() => handleDateExpansion(dateGroup.date)}
+                                                    >
+                                                        {isDateExpanded ? (
+                                                            <ChevronDown className="h-4 w-4" />
+                                                        ) : (
+                                                            <ChevronRight className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                    
+                                                    {/* Date Selection Checkbox */}
                                                     <Checkbox
-                                                        checked={isSelected}
-                                                        onCheckedChange={() => {
-                                                            if (isDepositable) {
-                                                                handleReportSelection(report.id);
-                                                            }
-                                                        }}
-                                                        disabled={!isDepositable}
+                                                        checked={isDateSelected}
+                                                        disabled={!hasDepositableReports}
+                                                        onCheckedChange={() => hasDepositableReports && handleDateSelection(dateGroup.date)}
                                                     />
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex flex-col">
-                                                    <span className="font-medium">
-                                                      {format(new Date(report.report_date), "dd/MM/yy")}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                      {format(new Date(report.report_date), "EEE")}
-                                                    </span>
-                                                  </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex flex-col">
-                                                    <span className="font-medium">{report.vehicles?.plate}</span>
-                                                    {report.route && (
-                                                      <span className="text-xs text-muted-foreground">{report.route}</span>
-                                                    )}
-                                                  </div>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                  <div className="flex flex-col items-end">
-                                                    <span className={cn(
-                                                      "font-medium",
-                                                      isDepositable ? "text-green-600" : "text-red-500"
+                                                    <div>
+                                                        <div className="font-medium text-sm">
+                                                            {format(parseISO(dateGroup.date), "EEEE, MMMM dd, yyyy")}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {dateGroup.depositableReports.length} depositable reports
+                                                            {dateGroup.reports.length !== dateGroup.depositableReports.length && 
+                                                                ` (${dateGroup.reports.length - dateGroup.depositableReports.length} with losses)`
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className={cn(
+                                                        "font-semibold text-sm",
+                                                        totalNetBalance > 0 ? "text-green-600" : "text-red-500"
                                                     )}>
-                                                      {formatCurrency(netBalance)}
-                                                    </span>
-                                                    {!isDepositable && (
-                                                      <span className="text-xs text-red-500">{t("form.loss")}</span>
-                                                    )}
-                                                  </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="text-center h-24">
-                                            <div className="flex flex-col items-center gap-2">
-                                              <span className="text-muted-foreground">{t("form.noReportsAvailable")}</span>
-                                              <span className="text-xs text-muted-foreground">{t("form.allReportsDeposited")}</span>
+                                                        {formatCurrency(totalNetBalance)}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        Total for date
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                                          {selectedReports.length > 0 && (
-                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-blue-700">
-                              📋 {selectedReports.length === 1 ? t("form.reportSelected", { count: selectedReports.length }) : t("form.reportsSelected", { count: selectedReports.length })}
-                            </span>
-                            <span className="font-medium text-blue-800">
-                              {t("table.total")}: {formatCurrency(newDeposit.amount)}
-                            </span>
-                          </div>
+
+                                            {/* Individual Reports - Show when expanded */}
+                                            {isDateExpanded && (
+                                                <div className="divide-y divide-gray-100">
+                                                    {dateGroup.reports.map((report) => {
+                                                        const netBalance = calculateNetBalance(report);
+                                                        const isDepositable = netBalance > 0;
+                                                        const isAlreadyDeposited = report.deposit_reports && report.deposit_reports.length > 0;
+                                                        const isReportSelected = selectedReports.includes(report.id);
+                                                        const canSelect = isDepositable && !isAlreadyDeposited;
+
+                                                        // Debug logging
+                                                        console.log(`Report ${report.vehicles?.plate}:`, {
+                                                            id: report.id,
+                                                            netBalance,
+                                                            isDepositable,
+                                                            isAlreadyDeposited,
+                                                            canSelect,
+                                                            depositReports: report.deposit_reports
+                                                        });
+
+                                                        return (
+                                                            <div 
+                                                                key={report.id} 
+                                                                className={cn(
+                                                                    "p-3 flex items-center gap-3 ml-6 transition-colors",
+                                                                    !canSelect && "text-muted-foreground bg-muted/20",
+                                                                    isReportSelected && "bg-blue-100 border-l-4 border-blue-500",
+                                                                    canSelect && "hover:bg-gray-50 cursor-pointer"
+                                                                )}
+                                                            >
+                                                                <Checkbox
+                                                                    checked={isReportSelected}
+                                                                    disabled={!canSelect}
+                                                                    onCheckedChange={(checked) => {
+                                                                        console.log(`Checkbox clicked for ${report.vehicles?.plate}:`, {
+                                                                            checked,
+                                                                            canSelect,
+                                                                            reportId: report.id
+                                                                        });
+                                                                        if (canSelect) {
+                                                                            handleReportSelection(report.id);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <div 
+                                                                    className="flex-1 grid grid-cols-3 gap-4 items-center"
+                                                                    onClick={() => {
+                                                                        console.log(`Row clicked for ${report.vehicles?.plate}:`, {
+                                                                            canSelect,
+                                                                            reportId: report.id
+                                                                        });
+                                                                        if (canSelect) {
+                                                                            handleReportSelection(report.id);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <div>
+                                                                        <div className="font-medium text-sm">{report.vehicles?.plate}</div>
+                                                                        {report.route && (
+                                                                            <div className="text-xs text-muted-foreground">{report.route}</div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-sm">
+                                                                        {format(parseISO(report.report_date), "EEE, dd/MM")}
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <div className={cn(
+                                                                            "font-medium text-sm",
+                                                                            isDepositable ? "text-green-600" : "text-red-500"
+                                                                        )}>
+                                                                            {formatCurrency(netBalance)}
+                                                                        </div>
+                                                                        {!isDepositable && (
+                                                                            <div className="text-xs text-red-500">{t("form.loss")}</div>
+                                                                        )}
+                                                                        {isAlreadyDeposited && (
+                                                                            <div className="text-xs text-blue-500">Already deposited</div>
+                                                                        )}
+                                                                        {!canSelect && (
+                                                                            <div className="text-xs text-gray-500">
+                                                                                {!isDepositable ? "Loss report" : "Already deposited"}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="text-center py-8">
+                                    <div className="flex flex-col items-center gap-2">
+                                      <span className="text-muted-foreground">{t("form.noReportsAvailable")}</span>
+                                      <span className="text-xs text-muted-foreground">{t("form.allReportsDeposited")}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                      )}
+                    </ScrollArea>
+                    {selectedReports.length > 0 && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-blue-700">
+                            📋 {selectedReports.length === 1 ? t("form.reportSelected", { count: selectedReports.length }) : t("form.reportsSelected", { count: selectedReports.length })}
+                          </span>
+                          <span className="font-medium text-blue-800">
+                            {t("table.total")}: {formatCurrency(newDeposit.amount)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="flex-shrink-0">
                     <Button variant="outline" onClick={() => setDialogOpen(false)}>{t("buttons.cancel")}</Button>
-                    <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-black hover:bg-gray-800 text-white">
+                    <Button 
+                        onClick={handleSubmit} 
+                        disabled={isSubmitting || selectedReports.length === 0 || !bankSlipFile} 
+                        className="bg-black hover:bg-gray-800 text-white"
+                    >
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t("buttons.logDeposit")}
                     </Button>
