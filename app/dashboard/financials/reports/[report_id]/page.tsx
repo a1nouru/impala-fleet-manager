@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Helper function to calculate total revenue
 const calculateTotalRevenue = (report: DailyReport) => {
@@ -39,6 +41,7 @@ const calculateTotalExpenses = (expenses: DailyExpense[]) => {
 };
 
 export default function ReportDetailPage() {
+  const { t } = useTranslation('financials');
   const params = useParams();
   const router = useRouter();
   const reportId = params?.report_id as string;
@@ -52,6 +55,8 @@ export default function ReportDetailPage() {
       description: "",
       amount: 0,
   });
+  const [selectedExpenseType, setSelectedExpenseType] = useState<string>("");
+  const [customExpenseType, setCustomExpenseType] = useState<string>("");
 
   const fetchReport = async () => {
     try {
@@ -83,6 +88,22 @@ export default function ReportDetailPage() {
       }));
   };
 
+  const handleExpenseTypeChange = (value: string) => {
+    setSelectedExpenseType(value);
+    if (value !== "Other") {
+      setNewExpense(prev => ({ ...prev, category: value }));
+      setCustomExpenseType("");
+    } else {
+      setNewExpense(prev => ({ ...prev, category: "" }));
+    }
+  };
+
+  const handleCustomExpenseTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCustomExpenseType(value);
+    setNewExpense(prev => ({ ...prev, category: value }));
+  };
+
   const handleAddExpense = async () => {
       if (!newExpense.category || newExpense.amount <= 0) {
           toast({
@@ -112,6 +133,8 @@ export default function ReportDetailPage() {
           });
           setIsExpenseDialogOpen(false);
           setNewExpense({ category: "", description: "", amount: 0 }); // Reset form
+          setSelectedExpenseType("");
+          setCustomExpenseType("");
       } catch (error) {
           toast({
               title: "Error",
@@ -199,8 +222,28 @@ export default function ReportDetailPage() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <Label htmlFor="category">Category</Label>
-                        <Input id="category" name="category" value={newExpense.category} onChange={handleExpenseInputChange} placeholder="e.g., Fuel, Tire Repair" />
+                        <Label htmlFor="expenseType">{t("expenses.expenseType")}</Label>
+                        <Select 
+                          value={selectedExpenseType} 
+                          onValueChange={handleExpenseTypeChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("expenses.selectExpenseType")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Fuel">🔷 {t("expenses.categories.fuel")}</SelectItem>
+                            <SelectItem value="Subsidy">💰 {t("expenses.categories.subsidy")}</SelectItem>
+                            <SelectItem value="Other">📝 {t("expenses.categories.other")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {selectedExpenseType === "Other" && (
+                          <Input 
+                            placeholder={t("expenses.specifyType")} 
+                            value={customExpenseType} 
+                            onChange={handleCustomExpenseTypeChange}
+                            className="mt-2"
+                          />
+                        )}
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="description">Description (Optional)</Label>

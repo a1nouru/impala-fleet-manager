@@ -7,7 +7,7 @@
   },
   "allDailyReports": {
     "title": "All Daily Reports",
-    "subtitle": "Financial reports for all vehicles",
+    "subtitle": "Overview of all financial reports",
     "newReport": "New Report",
     "reports": "reports",
     "agasekeOnly": "Agaseke Only",
@@ -16,10 +16,10 @@
     "createReportDescription": "Fill in the details for the daily report. Click save when you're done.",
     "editReport": "Edit Daily Report",
     "editReportDescription": "Editing report for vehicle {{plate}} on {{date}}",
-    "noReportsFound": "No reports found",
+    "noReportsFound": "No daily reports found",
     "vehicleCount": "{{count}} vehicles",
     "agasekeCount": "{{count}} Agaseke",
-    "regularCount": "{{count}} Regular",
+    "regularCount": "{{count}} Regulars",
     "deleteReportConfirmationTitle": "Are you absolutely sure?",
     "deleteReportConfirmationDescription": "This action cannot be undone. This will permanently delete the daily report for {{plate}} on {{date}} and all its associated expenses."
   },
@@ -199,13 +199,18 @@
     "expenseAdded": "Expense added successfully",
     "expenseUpdated": "Expense updated successfully",
     "expenseDeleted": "Expense deleted successfully",
+    "expenseType": "Expense Type",
+    "selectExpenseType": "Select expense type",
+    "specifyType": "Specify type",
+    "noExpensesIndicator": "No expenses recorded",
     "categories": {
       "fuel": "Fuel",
+      "subsidy": "Subsidy",
+      "other": "Other",
       "maintenance": "Maintenance",
       "tolls": "Tolls",
       "parking": "Parking",
-      "driver": "Driver Payment",
-      "other": "Other"
+      "driver": "Driver Payment"
     }
   },
   "summary": {

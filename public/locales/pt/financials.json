@@ -199,13 +199,18 @@
     "expenseAdded": "Despesa adicionada com sucesso",
     "expenseUpdated": "Despesa atualizada com sucesso",
     "expenseDeleted": "Despesa eliminada com sucesso",
+    "expenseType": "Tipo de Despesa",
+    "selectExpenseType": "Selecionar tipo de despesa",
+    "specifyType": "Especificar tipo",
+    "noExpensesIndicator": "Nenhuma despesa registada",
     "categories": {
       "fuel": "Combustível",
+      "subsidy": "Subsídio",
+      "other": "Outros",
       "maintenance": "Manutenção",
       "tolls": "Portagens",
       "parking": "Estacionamento",
-      "driver": "Pagamento ao Motorista",
-      "other": "Outros"
+      "driver": "Pagamento ao Motorista"
     }
   },
   "summary": {

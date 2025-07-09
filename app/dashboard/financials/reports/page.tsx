@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Helper function to calculate net balance
 const calculateNetBalance = (report: DailyReport) => {
@@ -46,6 +47,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function AllDailyReportsPage() {
+  const { t } = useTranslation('financials');
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,6 +63,8 @@ export default function AllDailyReportsPage() {
 
   // State for adding a new expense
   const [newExpenseData, setNewExpenseData] = useState<Partial<DailyExpense>>({ category: "", description: "", amount: 0 });
+  const [selectedExpenseType, setSelectedExpenseType] = useState<string>("");
+  const [customExpenseType, setCustomExpenseType] = useState<string>("");
 
   const handleEditClick = (report: DailyReport) => {
     setEditingReport(report);
@@ -123,6 +127,14 @@ export default function AllDailyReportsPage() {
         description: expense.description,
         amount: expense.amount,
     });
+    // Set the expense type for editing
+    if (["Fuel", "Subsidy"].includes(expense.category)) {
+      setSelectedExpenseType(expense.category);
+      setCustomExpenseType("");
+    } else {
+      setSelectedExpenseType("Other");
+      setCustomExpenseType(expense.category);
+    }
     setIsExpenseDialogOpen(true);
   };
 
@@ -135,6 +147,34 @@ export default function AllDailyReportsPage() {
     }
   };
 
+  const handleExpenseTypeChange = (value: string) => {
+    setSelectedExpenseType(value);
+    if (value !== "Other") {
+      if (editingExpense) {
+        setEditedExpenseData(prev => ({ ...prev, category: value }));
+      } else {
+        setNewExpenseData(prev => ({ ...prev, category: value }));
+      }
+      setCustomExpenseType("");
+    } else {
+      if (editingExpense) {
+        setEditedExpenseData(prev => ({ ...prev, category: customExpenseType }));
+      } else {
+        setNewExpenseData(prev => ({ ...prev, category: "" }));
+      }
+    }
+  };
+
+  const handleCustomExpenseTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCustomExpenseType(value);
+    if (editingExpense) {
+      setEditedExpenseData(prev => ({ ...prev, category: value }));
+    } else {
+      setNewExpenseData(prev => ({ ...prev, category: value }));
+    }
+  };
+
   const handleAddNewExpense = async () => {
     if (!editingReport || !newExpenseData.category || !newExpenseData.amount) {
         toast({ title: "Error", description: "Please provide a category and amount for the new expense.", variant: "destructive" });
@@ -144,6 +184,8 @@ export default function AllDailyReportsPage() {
         await financialService.createDailyExpense({ report_id: editingReport.id, ...newExpenseData } as DailyExpense);
         toast({ title: "Success", description: "Expense added." });
         setNewExpenseData({ category: "", description: "", amount: 0 });
+        setSelectedExpenseType("");
+        setCustomExpenseType("");
         // Refresh the main report being edited to show the new expense
         const updatedReport = await financialService.getDailyReportById(editingReport.id);
         if (updatedReport) setEditingReport(updatedReport);
@@ -248,7 +290,14 @@ export default function AllDailyReportsPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{formatCurrency(totalRevenue)}</TableCell>
-                                    <TableCell>{formatCurrency(totalExpenses)}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            {formatCurrency(totalExpenses)}
+                                                                                         {(!report.daily_expenses || report.daily_expenses.length === 0) && (
+                                                 <div className="w-2 h-2 bg-red-500 rounded-full" title={t("expenses.noExpensesIndicator")}></div>
+                                             )}
+                                        </div>
+                                    </TableCell>
                                     <TableCell>{formatCurrency(netBalance)}</TableCell>
                                     <TableCell>
                                         <Badge variant={isDeposited ? "secondary" : "outline"} className="flex items-center gap-1">
@@ -356,17 +405,45 @@ export default function AllDailyReportsPage() {
                                 ))}
                            </div>
                            {/* Add New Expense Form */}
-                           <div className="space-y-2 border-t pt-4">
-                               <h5 className="font-medium">Add New Expense</h5>
-                               <div className="grid grid-cols-2 gap-2">
-                                   <Input name="category" placeholder="Category" value={newExpenseData.category} onChange={handleExpenseInputChange} />
-                                   <Input name="amount" type="number" placeholder="Amount" value={newExpenseData.amount} onChange={handleExpenseInputChange} />
+                           <div className="mt-4 p-4 border-t">
+                               <h5 className="font-medium mb-3">Add New Expense</h5>
+                               <div className="space-y-3">
+                                   <div className="space-y-2">
+                                       <Label>{t("expenses.expenseType")}</Label>
+                                       <Select 
+                                         value={selectedExpenseType} 
+                                         onValueChange={handleExpenseTypeChange}
+                                       >
+                                         <SelectTrigger>
+                                           <SelectValue placeholder={t("expenses.selectExpenseType")} />
+                                         </SelectTrigger>
+                                         <SelectContent>
+                                           <SelectItem value="Fuel">🔷 {t("expenses.categories.fuel")}</SelectItem>
+                                           <SelectItem value="Subsidy">💰 {t("expenses.categories.subsidy")}</SelectItem>
+                                           <SelectItem value="Other">📝 {t("expenses.categories.other")}</SelectItem>
+                                         </SelectContent>
+                                       </Select>
+                                       {selectedExpenseType === "Other" && (
+                                         <Input 
+                                           placeholder={t("expenses.specifyType")} 
+                                           value={customExpenseType} 
+                                           onChange={handleCustomExpenseTypeChange}
+                                           className="mt-2"
+                                         />
+                                       )}
+                                   </div>
+                                   <div className="space-y-2">
+                                       <Label>Amount</Label>
+                                       <Input name="amount" type="number" value={newExpenseData.amount} onChange={handleExpenseInputChange} />
+                                   </div>
+                                   <div className="space-y-2">
+                                       <Label>Description</Label>
+                                       <Input name="description" value={newExpenseData.description || ""} onChange={handleExpenseInputChange} />
+                                   </div>
+                                   <Button onClick={handleAddNewExpense} size="sm" className="w-full">
+                                       Add Expense
+                                   </Button>
                                </div>
-                               <Textarea name="description" placeholder="Description (optional)" value={newExpenseData.description} onChange={handleExpenseInputChange} />
-                               <Button size="sm" className="w-full" onClick={handleAddNewExpense}>
-                                   <PlusCircle className="h-4 w-4 mr-2" />
-                                   Add Expense
-                               </Button>
                            </div>
                         </div>
                     </div>
@@ -386,8 +463,28 @@ export default function AllDailyReportsPage() {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                        <Label>Category</Label>
-                        <Input name="category" value={editedExpenseData.category} onChange={handleExpenseInputChange} />
+                        <Label>{t("expenses.expenseType")}</Label>
+                        <Select 
+                          value={selectedExpenseType} 
+                          onValueChange={handleExpenseTypeChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("expenses.selectExpenseType")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Fuel">🔷 {t("expenses.categories.fuel")}</SelectItem>
+                            <SelectItem value="Subsidy">💰 {t("expenses.categories.subsidy")}</SelectItem>
+                            <SelectItem value="Other">📝 {t("expenses.categories.other")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {selectedExpenseType === "Other" && (
+                          <Input 
+                            placeholder={t("expenses.specifyType")} 
+                            value={customExpenseType} 
+                            onChange={handleCustomExpenseTypeChange}
+                            className="mt-2"
+                          />
+                        )}
                     </div>
                     <div className="space-y-2">
                         <Label>Amount</Label>
