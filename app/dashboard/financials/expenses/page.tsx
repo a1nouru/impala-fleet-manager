@@ -319,11 +319,6 @@ export default function AllExpensesPage() {
           <h2 className="text-2xl font-semibold flex items-center gap-2">
             <Receipt className="h-6 w-6" />
             {t("allExpenses.title")}
-            {filteredExpenses.length > 0 && (
-              <span className="text-lg text-muted-foreground">
-                {t("allExpenses.expenseCount", { count: filteredExpenses.length })}
-              </span>
-            )}
           </h2>
           <p className="text-muted-foreground">{t("allExpenses.subtitle")}</p>
         </div>
@@ -478,7 +473,6 @@ export default function AllExpensesPage() {
                 <TableRow>
                   <TableHead>{t("table.date")}</TableHead>
                   <TableHead>{t("table.vehicles")}</TableHead>
-                  <TableHead className="text-right">{t("allExpenses.expenseCount")}</TableHead>
                   <TableHead className="text-right">{t("allExpenses.totalAmount")}</TableHead>
                   <TableHead>{t("table.actions")}</TableHead>
                 </TableRow>
@@ -509,7 +503,6 @@ export default function AllExpensesPage() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{group.expenseCount}</TableCell>
                     <TableCell className="text-right">{formatCurrency(group.totalAmount)}</TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm" onClick={() => handleViewDetails(group.date)}>
@@ -522,7 +515,6 @@ export default function AllExpensesPage() {
               <TableFooter>
                 <TableRow>
                   <TableCell colSpan={2} className="font-bold">{t("table.total")}</TableCell>
-                  <TableCell className="text-right font-bold">{displayData.reduce((acc, group) => acc + group.expenseCount, 0)}</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.totalAmount, 0))}</TableCell>
                   <TableCell />
                 </TableRow>

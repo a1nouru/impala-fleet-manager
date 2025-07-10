@@ -215,7 +215,7 @@
     "specifyType": "Specify type",
     "noExpensesIndicator": "No expenses recorded",
     "categories": {
-      "fuel": "🔷 Fuel",
+      "fuel": "⛽ Fuel",
       "subsidy": "💰 Subsidy",
       "other": "📝 Other",
       "maintenance": "Maintenance",
