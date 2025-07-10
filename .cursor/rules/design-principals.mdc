@@ -11,7 +11,8 @@ alwaysApply: true
 - Avoid race conditions at all costs. 
 - Avoid circular dependencies 
 - Avoid duplication, always first check if the proposed change already exists. 
-- Always aim for optimized and concise code. 
-- Clean code is the goal here. 
+- Always aim for optimized and write concise code. 
+- Clean code is the goal here. Follow: Book Clean Code by Robert C. Martin
 - Code structure should be consinstent accross all files. 
 - Once you suggest a change, add a verification layer on your side to always double check your thinking process and work. 
+- Do not prematurely make conclusion or assumptions. 

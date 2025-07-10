@@ -80,7 +80,7 @@ export default function ReportDetailPage() {
     }
   }, [reportId]);
 
-  const handleExpenseInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExpenseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = e.target;
       setNewExpense((prev) => ({
           ...prev,

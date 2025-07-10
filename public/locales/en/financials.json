@@ -2,6 +2,7 @@
   "title": "Financials",
   "navigation": {
     "allDailyReports": "All Daily Reports",
+    "allExpenses": "All Expenses",
     "bankDeposits": "Bank Deposits",
     "analytics": "Financial Analytics"
   },
@@ -22,6 +23,16 @@
     "regularCount": "{{count}} Regulars",
     "deleteReportConfirmationTitle": "Are you absolutely sure?",
     "deleteReportConfirmationDescription": "This action cannot be undone. This will permanently delete the daily report for {{plate}} on {{date}} and all its associated expenses."
+  },
+  "allExpenses": {
+    "title": "All Expenses",
+    "subtitle": "Overview of all vehicle expenses",
+    "noExpensesFound": "No expenses found",
+    "expenseCount": "{{count}} expenses",
+    "totalAmount": "Total Amount",
+    "groupedByDate": "Grouped by Date",
+    "individualExpenses": "Individual Expenses",
+    "expenseDetails": "Expense Details"
   },
   "bankDeposits": {
     "title": "Bank Deposits",
@@ -204,9 +215,9 @@
     "specifyType": "Specify type",
     "noExpensesIndicator": "No expenses recorded",
     "categories": {
-      "fuel": "Fuel",
-      "subsidy": "Subsidy",
-      "other": "Other",
+      "fuel": "🔷 Fuel",
+      "subsidy": "💰 Subsidy",
+      "other": "📝 Other",
       "maintenance": "Maintenance",
       "tolls": "Tolls",
       "parking": "Parking",

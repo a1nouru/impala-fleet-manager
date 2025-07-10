@@ -402,18 +402,18 @@ export default function BankDepositsPage() {
       });
       return;
     }
-
-    if (!bankSlipFile) {
-      toast({
+    
+          if (!bankSlipFile) {
+        toast({
         title: "📄 Bank Slip Required",
         description: "Please upload a bank slip (PDF, JPG, or PNG) before proceeding.",
-        variant: "destructive",
-      });
-      return;
-    }
+          variant: "destructive",
+        });
+        return;
+      }
 
     try {
-      setIsSubmitting(true);
+    setIsSubmitting(true);
       
       const depositData = {
         bank_name: newDeposit.bank_name,
@@ -588,68 +588,68 @@ export default function BankDepositsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 py-4 flex-1 overflow-hidden">
                   {/* Form Inputs - Left Column */}
                   <div className="lg:col-span-2 space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="bank_name">{t("form.bankName")}</Label>
-                        <Select name="bank_name" value={newDeposit.bank_name} onValueChange={(value) => handleSelectChange("bank_name", value)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder={t("form.selectBank")} />
-                            </SelectTrigger>
+                                          <div className="space-y-2">
+                          <Label htmlFor="bank_name">{t("form.bankName")}</Label>
+                          <Select name="bank_name" value={newDeposit.bank_name} onValueChange={(value) => handleSelectChange("bank_name", value)}>
+                                                             <SelectTrigger>
+                                   <SelectValue placeholder={t("form.selectBank")} />
+                               </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Caixa Angola">Caixa Angola</SelectItem>
                                 <SelectItem value="BAI">BAI</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="deposit_date">{t("form.depositDate")}</Label>
-                        <Input 
-                          id="deposit_date" 
-                          name="deposit_date" 
-                          type="date" 
-                          value={newDeposit.deposit_date} 
-                          onChange={handleInputChange}
-                        />
-                        {selectedReports.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            📅 {t("form.autoSetToLatestDate")} ({format(parseISO(newDeposit.deposit_date), "MMM dd, yyyy")})
-                          </p>
-                        )}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="amount">{t("form.totalAmount")}</Label>
-                        <Input id="amount" name="amount" type="number" value={newDeposit.amount} readOnly className="font-bold bg-gray-100" />
-                    </div>
+                                          <div className="space-y-2">
+                          <Label htmlFor="deposit_date">{t("form.depositDate")}</Label>
+                          <Input 
+                            id="deposit_date" 
+                            name="deposit_date" 
+                            type="date" 
+                            value={newDeposit.deposit_date} 
+                            onChange={handleInputChange}
+                          />
+                          {selectedReports.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              📅 {t("form.autoSetToLatestDate")} ({format(parseISO(newDeposit.deposit_date), "MMM dd, yyyy")})
+                            </p>
+                          )}
+                      </div>
+                                          <div className="space-y-2">
+                          <Label htmlFor="amount">{t("form.totalAmount")}</Label>
+                          <Input id="amount" name="amount" type="number" value={newDeposit.amount} readOnly className="font-bold bg-gray-100" />
+                      </div>
                     
-                    {/* Bank Slip Upload */}
-                    <div className="space-y-2">
-                      <Label htmlFor="bank_slip">{t("form.bankSlipAttachment")}</Label>
+                                          {/* Bank Slip Upload */}
                       <div className="space-y-2">
-                        <Input
-                          id="bank_slip"
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={handleFileChange}
-                          className="cursor-pointer"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {t("form.uploadBankSlip")}
-                        </p>
-                      {bankSlipFile && (
-                        <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                          <Paperclip className="h-4 w-4 text-green-600" />
+                        <Label htmlFor="bank_slip">{t("form.bankSlipAttachment")}</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="bank_slip"
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleFileChange}
+                            className="cursor-pointer"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t("form.uploadBankSlip")}
+                          </p>
+                        {bankSlipFile && (
+                          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                            <Paperclip className="h-4 w-4 text-green-600" />
                           <span className="text-sm text-green-700 truncate">{bankSlipFile.name}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setBankSlipFile(null)}
-                            className="ml-auto h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                          >
-                            ×
-                          </Button>
-                        </div>
-                      )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setBankSlipFile(null)}
+                              className="ml-auto h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   </div>
                   {/* Available Reports - Right Column */}
                   <div className="lg:col-span-3 space-y-2 flex flex-col overflow-hidden">
@@ -730,30 +730,30 @@ export default function BankDepositsPage() {
                                             {isDateExpanded && (
                                                 <div className="divide-y divide-gray-100">
                                                     {dateGroup.reports.map((report) => {
-                                                        const netBalance = calculateNetBalance(report);
-                                                        const isDepositable = netBalance > 0;
+                                        const netBalance = calculateNetBalance(report);
+                                        const isDepositable = netBalance > 0;
                                                         const isAlreadyDeposited = report.deposit_reports && report.deposit_reports.length > 0;
                                                         const isReportSelected = selectedReports.includes(report.id);
                                                         const canSelect = isDepositable && !isAlreadyDeposited;
 
-                                                        return (
+                                        return (
                                                             <div 
-                                                                key={report.id} 
-                                                                className={cn(
+                                              key={report.id} 
+                                              className={cn(
                                                                     "p-2 sm:p-3 flex items-center gap-2 sm:gap-3 ml-4 sm:ml-6 transition-colors",
                                                                     !canSelect && "text-muted-foreground bg-muted/20",
                                                                     isReportSelected && "bg-blue-100 border-l-4 border-blue-500",
                                                                     canSelect && "hover:bg-gray-50 cursor-pointer"
-                                                                )}
-                                                            >
-                                                                <Checkbox
+                                              )}
+                                            >
+                                                    <Checkbox
                                                                     checked={isReportSelected}
                                                                     disabled={!canSelect}
                                                                     onCheckedChange={(checked) => {
                                                                         if (canSelect) {
-                                                                            handleReportSelection(report.id);
-                                                                        }
-                                                                    }}
+                                                                handleReportSelection(report.id);
+                                                            }
+                                                        }}
                                                                 />
                                                                 <div 
                                                                     className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 items-start sm:items-center"
@@ -765,10 +765,10 @@ export default function BankDepositsPage() {
                                                                 >
                                                                     <div>
                                                                         <div className="font-medium text-sm">{report.vehicles?.plate}</div>
-                                                                        {report.route && (
+                                                    {report.route && (
                                                                             <div className="text-xs text-muted-foreground">{report.route}</div>
-                                                                        )}
-                                                                    </div>
+                                                    )}
+                                                  </div>
                                                                     <div className="text-sm">
                                                                         <span className="sm:hidden text-xs text-muted-foreground">Date: </span>
                                                                         {format(parseISO(report.report_date), "EEE, dd/MM")}
@@ -776,21 +776,21 @@ export default function BankDepositsPage() {
                                                                     <div className="sm:text-right">
                                                                         <div className={cn(
                                                                             "font-medium text-sm",
-                                                                            isDepositable ? "text-green-600" : "text-red-500"
-                                                                        )}>
+                                                      isDepositable ? "text-green-600" : "text-red-500"
+                                                    )}>
                                                                             <span className="sm:hidden text-xs text-muted-foreground">Net: </span>
-                                                                            {formatCurrency(netBalance)}
+                                                      {formatCurrency(netBalance)}
                                                                         </div>
-                                                                        {!isDepositable && (
+                                                    {!isDepositable && (
                                                                             <div className="text-xs text-red-500">{t("form.loss")}</div>
                                                                         )}
                                                                         {isAlreadyDeposited && (
                                                                             <div className="text-xs text-blue-500">Already deposited</div>
-                                                                        )}
+                                                    )}
                                                                         {!canSelect && (
                                                                             <div className="text-xs text-gray-500">
                                                                                 {!isDepositable ? "Loss report" : "Already deposited"}
-                                                                            </div>
+                                                  </div>
                                                                         )}
                                                                     </div>
                                                                 </div>
@@ -800,30 +800,30 @@ export default function BankDepositsPage() {
                                                 </div>
                                             )}
                                         </div>
-                                    );
-                                })
-                            ) : (
+                                        );
+                                    })
+                                ) : (
                                 <div className="text-center py-8">
-                                    <div className="flex flex-col items-center gap-2">
-                                      <span className="text-muted-foreground">{t("form.noReportsAvailable")}</span>
-                                      <span className="text-xs text-muted-foreground">{t("form.allReportsDeposited")}</span>
-                                    </div>
+                                            <div className="flex flex-col items-center gap-2">
+                                              <span className="text-muted-foreground">{t("form.noReportsAvailable")}</span>
+                                              <span className="text-xs text-muted-foreground">{t("form.allReportsDeposited")}</span>
+                                            </div>
                                 </div>
-                            )}
+                                )}
                         </div>
                     </ScrollArea>
-                    {selectedReports.length > 0 && (
+                                          {selectedReports.length > 0 && (
                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
-                          <span className="text-blue-700">
-                            📋 {selectedReports.length === 1 ? t("form.reportSelected", { count: selectedReports.length }) : t("form.reportsSelected", { count: selectedReports.length })}
-                          </span>
-                          <span className="font-medium text-blue-800">
-                            {t("table.total")}: {formatCurrency(newDeposit.amount)}
-                          </span>
+                            <span className="text-blue-700">
+                              📋 {selectedReports.length === 1 ? t("form.reportSelected", { count: selectedReports.length }) : t("form.reportsSelected", { count: selectedReports.length })}
+                            </span>
+                            <span className="font-medium text-blue-800">
+                              {t("table.total")}: {formatCurrency(newDeposit.amount)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </div>
                 <DialogFooter className="flex-shrink-0">
@@ -836,9 +836,9 @@ export default function BankDepositsPage() {
                             disabled={isSubmitting || selectedReports.length === 0 || !bankSlipFile} 
                             className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto"
                         >
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t("buttons.logDeposit")}
-                        </Button>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {t("buttons.logDeposit")}
+                    </Button>
                     </div>
                 </DialogFooter>
             </DialogContent>

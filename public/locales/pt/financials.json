@@ -2,6 +2,7 @@
   "title": "Financeiro",
   "navigation": {
     "allDailyReports": "Todos os Relatórios Diários",
+    "allExpenses": "Todas as Despesas",
     "bankDeposits": "Depósitos Bancários",
     "analytics": "Análise Financeira"
   },
@@ -22,6 +23,16 @@
     "regularCount": "{{count}} Regulares",
     "deleteReportConfirmationTitle": "Tem a certeza absoluta?",
     "deleteReportConfirmationDescription": "Esta ação não pode ser desfeita. Isto irá eliminar permanentemente o relatório diário do {{plate}} em {{date}} e todas as suas despesas associadas."
+  },
+  "allExpenses": {
+    "title": "Todas as Despesas",
+    "subtitle": "Visão geral de todas as despesas dos veículos",
+    "noExpensesFound": "Nenhuma despesa encontrada",
+    "expenseCount": "{{count}} despesas",
+    "totalAmount": "Valor Total",
+    "groupedByDate": "Agrupado por Data",
+    "individualExpenses": "Despesas Individuais",
+    "expenseDetails": "Detalhes da Despesa"
   },
   "bankDeposits": {
     "title": "Depósitos Bancários",
@@ -204,9 +215,9 @@
     "specifyType": "Especificar tipo",
     "noExpensesIndicator": "Nenhuma despesa registada",
     "categories": {
-      "fuel": "Combustível",
-      "subsidy": "Subsídio",
-      "other": "Outros",
+      "fuel": "🔷 Combustível",
+      "subsidy": "💰 Subsídio",
+      "other": "📝 Outros",
       "maintenance": "Manutenção",
       "tolls": "Portagens",
       "parking": "Estacionamento",

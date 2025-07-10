@@ -19,6 +19,10 @@ export default function FinancialsLayout({
       href: "/dashboard/financials",
     },
     {
+      name: t("navigation.allExpenses"),
+      href: "/dashboard/financials/expenses",
+    },
+    {
       name: t("navigation.bankDeposits"),
       href: "/dashboard/financials/deposits",
     },

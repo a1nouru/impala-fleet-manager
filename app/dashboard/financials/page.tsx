@@ -368,9 +368,15 @@ export default function AllDailyReportsPage() {
   const handleExpenseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (editingExpense) {
-        setEditedExpenseData(prev => ({ ...prev, [name]: value }));
+        setEditedExpenseData(prev => ({ 
+          ...prev, 
+          [name]: name === "amount" ? parseFloat(value) || 0 : value 
+        }));
     } else {
-        setNewExpenseData(prev => ({ ...prev, [name]: value }));
+        setNewExpenseData(prev => ({ 
+          ...prev, 
+          [name]: name === "amount" ? parseFloat(value) || 0 : value 
+        }));
     }
   };
 
