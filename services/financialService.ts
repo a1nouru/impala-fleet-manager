@@ -66,7 +66,7 @@ export const financialService = {
         vehicles (
           plate
         ),
-        daily_expenses (id, amount),
+        daily_expenses (*),
         deposit_reports (deposit_id)
       `)
       .order('report_date', { ascending: false });
@@ -143,9 +143,15 @@ export const financialService = {
    * @param expenseData - The data for the new expense.
    */
   async createDailyExpense(expenseData: Omit<DailyExpense, 'id' | 'created_at' | 'updated_at'>): Promise<DailyExpense> {
+    // Normalize category
+    let normalizedCategory = expenseData.category;
+    if (typeof normalizedCategory === 'string') {
+      if (normalizedCategory.trim().toLowerCase() === 'fuel') normalizedCategory = 'Fuel';
+      else if (normalizedCategory.trim().toLowerCase() === 'subsidy') normalizedCategory = 'Subsidy';
+    }
     const { data, error } = await supabase
       .from('daily_expenses')
-      .insert([expenseData])
+      .insert([{ ...expenseData, category: normalizedCategory }])
       .select('*')
       .single();
 
@@ -186,7 +192,7 @@ export const financialService = {
       .select(`
         *,
         vehicles (plate),
-        daily_expenses (id, amount),
+        daily_expenses (*),
         deposit_reports!left(deposit_id)
       `)
       .eq('status', 'Operational')
@@ -570,9 +576,15 @@ export const financialService = {
    * @param expenseData - The data to update.
    */
   async updateDailyExpense(expenseId: string, expenseData: Partial<Omit<DailyExpense, 'id' | 'report_id' | 'created_at' | 'updated_at'>>): Promise<DailyExpense> {
+    // Normalize category
+    let normalizedCategory = expenseData.category;
+    if (typeof normalizedCategory === 'string') {
+      if (normalizedCategory.trim().toLowerCase() === 'fuel') normalizedCategory = 'Fuel';
+      else if (normalizedCategory.trim().toLowerCase() === 'subsidy') normalizedCategory = 'Subsidy';
+    }
     const { data, error } = await supabase
       .from('daily_expenses')
-      .update(expenseData)
+      .update({ ...expenseData, category: normalizedCategory })
       .eq('id', expenseId)
       .select('*')
       .single();

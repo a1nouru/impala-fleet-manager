@@ -606,7 +606,7 @@ export default function BankDepositsPage() {
   // Helper to get net balance for a group of deposits (for grouped by date view)
   const getGroupNetBalance = (group: any) => {
     // group.deposits is an array of BankDeposit
-    return group.deposits.reduce((sum, deposit) => sum + getDepositNetBalance(deposit), 0);
+    return group.deposits.reduce((sum: number, deposit: BankDeposit) => sum + getDepositNetBalance(deposit), 0);
   };
 
   return (

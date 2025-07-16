@@ -119,17 +119,19 @@ export default function AllDailyReportsPage() {
     fetchReports();
   }, []);
 
+  
+
   // Handlers for expenses
   const handleEditExpenseClick = (expense: DailyExpense) => {
     setEditingExpense(expense);
     setEditedExpenseData({
-        category: expense.category,
-        description: expense.description,
-        amount: expense.amount,
+      category: expense.category,
+      description: expense.description,
+      amount: expense.amount,
     });
     // Set the expense type for editing
-    if (["Fuel", "Subsidy"].includes(expense.category)) {
-      setSelectedExpenseType(expense.category);
+    if (["fuel", "subsidy"].includes(expense.category.toLowerCase())) {
+      setSelectedExpenseType(expense.category.charAt(0).toUpperCase() + expense.category.slice(1).toLowerCase());
       setCustomExpenseType("");
     } else {
       setSelectedExpenseType("Other");
@@ -155,11 +157,18 @@ export default function AllDailyReportsPage() {
 
   const handleExpenseTypeChange = (value: string) => {
     setSelectedExpenseType(value);
-    if (value !== "Other") {
+    if (value.toLowerCase() === "fuel") {
       if (editingExpense) {
-        setEditedExpenseData(prev => ({ ...prev, category: value }));
+        setEditedExpenseData(prev => ({ ...prev, category: "Fuel" }));
       } else {
-        setNewExpenseData(prev => ({ ...prev, category: value }));
+        setNewExpenseData(prev => ({ ...prev, category: "Fuel" }));
+      }
+      setCustomExpenseType("");
+    } else if (value.toLowerCase() === "subsidy") {
+      if (editingExpense) {
+        setEditedExpenseData(prev => ({ ...prev, category: "Subsidy" }));
+      } else {
+        setNewExpenseData(prev => ({ ...prev, category: "Subsidy" }));
       }
       setCustomExpenseType("");
     } else {
@@ -396,8 +405,10 @@ export default function AllDailyReportsPage() {
                                 {editingReport.daily_expenses && editingReport.daily_expenses.map(expense => (
                                     <div key={expense.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
                                         <div>
-                                            <p className="font-medium">{expense.category}</p>
-                                            <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)}</p>
+                                            <div className="font-medium flex items-center gap-2">
+                                                <span>{expense.category}:</span>
+                                                <span className="text-muted-foreground">{formatCurrency(expense.amount)}</span>
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditExpenseClick(expense)}>

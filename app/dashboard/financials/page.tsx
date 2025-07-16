@@ -349,20 +349,24 @@ export default function AllDailyReportsPage() {
   // Expense Handlers
   const handleEditExpenseClick = (expense: DailyExpense) => {
     setEditingExpense(expense);
+    
+    // Safety check for undefined/null category
+    const category = expense.category || "";
+    
     setEditedExpenseData({
-        category: expense.category,
+        category: category,
         description: expense.description,
         amount: expense.amount,
     });
-    // Set the expense type for editing
-    if (["Fuel", "Subsidy"].includes(expense.category)) {
-      setSelectedExpenseType(expense.category);
+    // Set the expense type for editing - FIXED: case-insensitive comparison
+    if (category && ["fuel", "subsidy"].includes(category.toLowerCase())) {
+      const mappedType = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+      setSelectedExpenseType(mappedType);
       setCustomExpenseType("");
     } else {
       setSelectedExpenseType("Other");
-      setCustomExpenseType(expense.category);
+      setCustomExpenseType(category);
     }
-    setIsExpenseDialogOpen(true);
   };
 
   const handleExpenseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -382,18 +386,37 @@ export default function AllDailyReportsPage() {
 
   const handleExpenseTypeChange = (value: string) => {
     setSelectedExpenseType(value);
-    if (value !== "Other") {
-      setNewExpenseData(prev => ({ ...prev, category: value }));
+    if (value.toLowerCase() === "fuel") {
+      if (editingExpense) {
+        setEditedExpenseData(prev => ({ ...prev, category: "Fuel" }));
+      } else {
+        setNewExpenseData(prev => ({ ...prev, category: "Fuel" }));
+      }
+      setCustomExpenseType("");
+    } else if (value.toLowerCase() === "subsidy") {
+      if (editingExpense) {
+        setEditedExpenseData(prev => ({ ...prev, category: "Subsidy" }));
+      } else {
+        setNewExpenseData(prev => ({ ...prev, category: "Subsidy" }));
+      }
       setCustomExpenseType("");
     } else {
-      setNewExpenseData(prev => ({ ...prev, category: "" }));
+      if (editingExpense) {
+        setEditedExpenseData(prev => ({ ...prev, category: customExpenseType }));
+      } else {
+        setNewExpenseData(prev => ({ ...prev, category: "" }));
+      }
     }
   };
 
   const handleCustomExpenseTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCustomExpenseType(value);
-    setNewExpenseData(prev => ({ ...prev, category: value }));
+    if (editingExpense) {
+      setEditedExpenseData(prev => ({ ...prev, category: value }));
+    } else {
+      setNewExpenseData(prev => ({ ...prev, category: value }));
+    }
   };
 
   const handleAddNewExpense = async () => {
