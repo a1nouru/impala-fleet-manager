@@ -158,6 +158,9 @@ export default function BankDepositsPage() {
     amount: 0,
   });
 
+  // Add state for all reports
+  const [allReports, setAllReports] = useState<DailyReport[]>([]);
+
   const fetchPageData = async () => {
     try {
       setIsLoading(true);
@@ -177,6 +180,19 @@ export default function BankDepositsPage() {
       setIsLoading(false);
     }
   };
+
+  // Fetch all reports on mount for net balance calculation
+  useEffect(() => {
+    const fetchAllReports = async () => {
+      try {
+        const reports = await financialService.getDailyReports();
+        setAllReports(reports);
+      } catch (error) {
+        // Optionally toast error
+      }
+    };
+    fetchAllReports();
+  }, []);
 
   useEffect(() => {
     fetchPageData();
@@ -577,6 +593,21 @@ export default function BankDepositsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newDeposit.bank_name, undepositedReports]);
+
+  // Helper to get net balance for a deposit (array of report_ids)
+  const getDepositNetBalance = (deposit: BankDeposit) => {
+    if (!deposit.deposit_reports) return 0;
+    return deposit.deposit_reports.reduce((sum, dr) => {
+      const report = allReports.find(r => r.id === dr.report_id);
+      return sum + (report ? calculateNetBalance(report) : 0);
+    }, 0);
+  };
+
+  // Helper to get net balance for a group of deposits (for grouped by date view)
+  const getGroupNetBalance = (group: any) => {
+    // group.deposits is an array of BankDeposit
+    return group.deposits.reduce((sum, deposit) => sum + getDepositNetBalance(deposit), 0);
+  };
 
   return (
     <div className="space-y-6">
@@ -1022,7 +1053,7 @@ export default function BankDepositsPage() {
                   <TableHead>{t("table.banks")}</TableHead>
                   <TableHead>{t("table.deposits")}</TableHead>
                   <TableHead>{t("table.reportsCovered")}</TableHead>
-                  <TableHead>{t("table.totalRevenue")}</TableHead>
+                  <TableHead>{t("table.netBalance")}</TableHead>
                   <TableHead className="text-right">{t("table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1047,7 +1078,7 @@ export default function BankDepositsPage() {
                     <TableCell>
                       <span className="font-medium">{group.reportCount} {t("table.reports")}</span>
                     </TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(group.totalAmount)}</TableCell>
+                    <TableCell className="font-semibold">{formatCurrency(getGroupNetBalance(group))}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
@@ -1069,7 +1100,7 @@ export default function BankDepositsPage() {
                   <TableHead>{t("table.depositDate")}</TableHead>
                   <TableHead>{t("table.bank")}</TableHead>
                   <TableHead>{t("table.reportsCovered")}</TableHead>
-                  <TableHead className="text-right">{t("table.amount")}</TableHead>
+                  <TableHead className="text-right">{t("table.netBalance")}</TableHead>
                   <TableHead className="w-[50px] text-right">{t("table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1105,7 +1136,7 @@ export default function BankDepositsPage() {
                       </TableCell>
                       <TableCell>{deposit.deposit_reports?.length || 0}</TableCell>
                       <TableCell className="text-right">
-                        {formatCurrency(deposit.amount)}
+                        {formatCurrency(getDepositNetBalance(deposit))}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
