@@ -367,6 +367,7 @@ export default function AllDailyReportsPage() {
       setSelectedExpenseType("Other");
       setCustomExpenseType(category);
     }
+    setIsExpenseDialogOpen(true);
   };
 
   const handleExpenseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
