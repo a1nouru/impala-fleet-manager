@@ -55,6 +55,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 
 // Helper function to calculate total revenue
 const calculateNetBalance = (report: DailyReport) => {
@@ -554,6 +555,29 @@ export default function BankDepositsPage() {
     }
   };
 
+  // Filter reports for display based on selected bank
+  const getFilteredReports = () => {
+    if (newDeposit.bank_name === "Caixa Angola") {
+      return undepositedReports.filter(
+        (report) => !isAgasekeVehicle(report.vehicles?.plate)
+      );
+    }
+    return undepositedReports;
+  };
+
+  // Clear selected AGASEKE reports if switching to Caixa Angola
+  useEffect(() => {
+    if (newDeposit.bank_name === "Caixa Angola") {
+      setSelectedReports((prev) =>
+        prev.filter((reportId) => {
+          const report = undepositedReports.find((r) => r.id === reportId);
+          return report && !isAgasekeVehicle(report.vehicles?.plate);
+        })
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newDeposit.bank_name, undepositedReports]);
+
   return (
     <div className="space-y-6">
       {/* Header with New Deposit Button and Filters */}
@@ -661,8 +685,8 @@ export default function BankDepositsPage() {
                     </div>
                     <ScrollArea className="flex-1 w-full rounded-md border">
                         <div className="p-2 sm:p-4">
-                            {groupReportsByDate(undepositedReports).length > 0 ? (
-                                groupReportsByDate(undepositedReports).map((dateGroup) => {
+                            {groupReportsByDate(getFilteredReports()).length > 0 ? (
+                                groupReportsByDate(getFilteredReports()).map((dateGroup) => {
                                     const hasDepositableReports = dateGroup.depositableReports.length > 0;
                                     const isDateSelected = selectedDates.includes(dateGroup.date);
                                     const isDateExpanded = expandedDates.includes(dateGroup.date);
@@ -734,7 +758,10 @@ export default function BankDepositsPage() {
                                         const isDepositable = netBalance > 0;
                                                         const isAlreadyDeposited = report.deposit_reports && report.deposit_reports.length > 0;
                                                         const isReportSelected = selectedReports.includes(report.id);
-                                                        const canSelect = isDepositable && !isAlreadyDeposited;
+                                                        const isAgaseke = isAgasekeVehicle(report.vehicles?.plate);
+                                                        // Disable if Caixa Angola and AGASEKE
+                                                        const isCaixaAngola = newDeposit.bank_name === "Caixa Angola";
+                                                        const canSelect = isDepositable && !isAlreadyDeposited && !(isCaixaAngola && isAgaseke);
 
                                         return (
                                                             <div 
@@ -746,15 +773,28 @@ export default function BankDepositsPage() {
                                                                     canSelect && "hover:bg-gray-50 cursor-pointer"
                                               )}
                                             >
-                                                    <Checkbox
-                                                                    checked={isReportSelected}
-                                                                    disabled={!canSelect}
-                                                                    onCheckedChange={(checked) => {
-                                                                        if (canSelect) {
-                                                                handleReportSelection(report.id);
-                                                            }
-                                                        }}
-                                                                />
+                                                    <TooltipProvider>
+                                                      <Tooltip delayDuration={200}>
+                                                        <TooltipTrigger asChild>
+                                                          <span>
+                                                            <Checkbox
+                                                              checked={isReportSelected}
+                                                              disabled={!canSelect}
+                                                              onCheckedChange={(checked) => {
+                                                                if (canSelect) {
+                                                                  handleReportSelection(report.id);
+                                                                }
+                                                              }}
+                                                            />
+                                                          </span>
+                                                        </TooltipTrigger>
+                                                        {isCaixaAngola && isAgaseke && (
+                                                          <TooltipContent side="right">
+                                                            AGASEKE vehicles cannot be deposited in Caixa Angola. Please use Standard Bank.
+                                                          </TooltipContent>
+                                                        )}
+                                                      </Tooltip>
+                                                    </TooltipProvider>
                                                                 <div 
                                                                     className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 items-start sm:items-center"
                                                                     onClick={() => {
@@ -789,7 +829,7 @@ export default function BankDepositsPage() {
                                                     )}
                                                                         {!canSelect && (
                                                                             <div className="text-xs text-gray-500">
-                                                                                {!isDepositable ? "Loss report" : "Already deposited"}
+                                                                                {isCaixaAngola && isAgaseke ? "Not depositable in Caixa Angola" : (!isDepositable ? "Loss report" : "Already deposited")}
                                                   </div>
                                                                         )}
                                                                     </div>
