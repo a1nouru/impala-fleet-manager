@@ -59,7 +59,7 @@ const nextConfig = {
     ];
   },
   
-  // Function to validate environment variables before build
+  // Optimize webpack configuration for vendor chunk handling
   webpack: (config, { dev, isServer }) => {
     // We only want to run validation in non-dev environments to avoid
     // disrupting the development experience
@@ -88,6 +88,18 @@ const nextConfig = {
       } else {
         console.log('✅ All required environment variables are set!\n');
       }
+    }
+
+    // Fix vendor chunk resolution issues in development
+    if (dev && !isServer) {
+      // Disable vendor chunks in development to prevent resolution issues
+      config.optimization.splitChunks = {
+        chunks: 'async',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+        },
+      };
     }
     
     return config;
