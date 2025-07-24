@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Banknote, Paperclip, Eye, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Banknote, Paperclip, Eye, Trash2, ChevronDown, ChevronRight, Edit3 } from "lucide-react";
 import { financialService, BankDeposit, DailyReport } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -111,8 +111,8 @@ const groupReportsByDate = (reports: DailyReport[]) => {
     depositableReports: reports.filter(report => {
       const netBalance = calculateNetBalance(report);
       const isDepositable = netBalance > 0;
-      const isAlreadyDeposited = report.deposit_reports && report.deposit_reports.length > 0;
-      return isDepositable && !isAlreadyDeposited;
+      // Since reports come from getUndepositedReports(), they're already filtered to exclude deposited ones
+      return isDepositable;
     }),
   })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
@@ -135,8 +135,17 @@ export default function BankDepositsPage() {
   const [depositReports, setDepositReports] = useState<DailyReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
   
-  // State for the edit dialog - simplified
+  // State for the edit dialog
   const [editingDeposit, setEditingDeposit] = useState<BankDeposit | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editSelectedReports, setEditSelectedReports] = useState<string[]>([]);
+  const [editAvailableReports, setEditAvailableReports] = useState<DailyReport[]>([]);
+  const [editCurrentSlips, setEditCurrentSlips] = useState<any[]>([]);
+  
+  // State for adding more slips to existing deposits
+  const [addSlipsDeposit, setAddSlipsDeposit] = useState<BankDeposit | null>(null);
+  const [addSlipsDialogOpen, setAddSlipsDialogOpen] = useState(false);
+  const [additionalSlipFiles, setAdditionalSlipFiles] = useState<File[]>([]);
 
   // Filter states
   const [dateFilter, setDateFilter] = useState<{
@@ -151,7 +160,7 @@ export default function BankDepositsPage() {
 
   // State for creating new deposits
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false);
-  const [bankSlipFile, setBankSlipFile] = useState<File | null>(null);
+  const [bankSlipFiles, setBankSlipFiles] = useState<File[]>([]);
   const [newDeposit, setNewDeposit] = useState({
     bank_name: "Caixa Angola" as const,
     deposit_date: format(new Date(), "yyyy-MM-dd"),
@@ -420,14 +429,14 @@ export default function BankDepositsPage() {
       return;
     }
     
-          if (!bankSlipFile) {
-        toast({
+    if (bankSlipFiles.length === 0) {
+      toast({
         title: "📄 Bank Slip Required",
-        description: "Please upload a bank slip (PDF, JPG, or PNG) before proceeding.",
-          variant: "destructive",
-        });
-        return;
-      }
+        description: "Please upload at least one bank slip (PDF, JPG, or PNG) before proceeding.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
     setIsSubmitting(true);
@@ -442,7 +451,7 @@ export default function BankDepositsPage() {
       await financialService.createBankDepositWithFile(
         depositData,
         selectedReports,
-        bankSlipFile
+        bankSlipFiles
       );
 
       toast({
@@ -475,34 +484,253 @@ export default function BankDepositsPage() {
     setSelectedReports([]);
     setSelectedDates([]);
     setExpandedDates([]);
-    setBankSlipFile(null);
+    setBankSlipFiles([]);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
       const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        toast({
-          title: "Invalid File Type",
-          description: t("messages.invalidFileType"),
-          variant: "destructive",
-        });
-        return;
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      // Validate all files
+      for (const file of files) {
+        if (!allowedTypes.includes(file.type)) {
+          toast({
+            title: "Invalid File Type",
+            description: `${file.name} is not a valid file type. Please upload PDF, JPG, or PNG files only.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (file.size > maxSize) {
+          toast({
+            title: "File Too Large",
+            description: `${file.name} is too large. Maximum file size is 5MB.`,
+            variant: "destructive",
+          });
+          return;
+        }
       }
       
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File Too Large",
-          description: t("messages.fileTooLarge"),
-          variant: "destructive",
-        });
-        return;
+      // Add files to existing ones (allow multiple uploads)
+      setBankSlipFiles(prev => [...prev, ...files]);
+    }
+  };
+
+  const removeSlipFile = (index: number) => {
+    setBankSlipFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeAdditionalSlipFile = (index: number) => {
+    setAdditionalSlipFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAdditionalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      // Validate all files
+      for (const file of files) {
+        if (!allowedTypes.includes(file.type)) {
+          toast({
+            title: "Invalid File Type",
+            description: `${file.name} is not a valid file type. Please upload PDF, JPG, or PNG files only.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (file.size > maxSize) {
+          toast({
+            title: "File Too Large",
+            description: `${file.name} is too large. Maximum file size is 5MB.`,
+            variant: "destructive",
+          });
+          return;
+        }
       }
       
-      setBankSlipFile(file);
+      // Add files to existing ones
+      setAdditionalSlipFiles(prev => [...prev, ...files]);
+    }
+  };
+
+  const handleAddSlipsToDeposit = async () => {
+    if (!addSlipsDeposit || additionalSlipFiles.length === 0) {
+      toast({
+        title: "No Files Selected",
+        description: "Please select at least one file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      await financialService.addSlipsToDeposit(addSlipsDeposit.id, additionalSlipFiles);
+      
+      toast({
+        title: "✅ Slips Added Successfully",
+        description: `Added ${additionalSlipFiles.length} slip(s) to the deposit.`,
+      });
+
+      // Reset and close dialog
+      setAdditionalSlipFiles([]);
+      setAddSlipsDialogOpen(false);
+      setAddSlipsDeposit(null);
+      
+      // Refresh data
+      await fetchPageData();
+    } catch (error) {
+      console.error("❌ Error adding slips:", error);
+      toast({
+        title: "❌ Error Adding Slips",
+        description: "There was an error adding the slips. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenAddSlipsDialog = (deposit: BankDeposit) => {
+    setAddSlipsDeposit(deposit);
+    setAdditionalSlipFiles([]);
+    setAddSlipsDialogOpen(true);
+  };
+
+  const handleOpenEditDialog = async (deposit: BankDeposit) => {
+    try {
+      setEditingDeposit(deposit);
+      
+      // Fetch available reports for this deposit
+      const availableReports = await financialService.getReportsForEditingDeposit(deposit.id);
+      setEditAvailableReports(availableReports);
+      
+      // Set currently selected reports
+      const currentReportIds = deposit.deposit_reports?.map(dr => dr.report_id) || [];
+      setEditSelectedReports(currentReportIds);
+      
+      // Set current slips (using new system only)
+      const slips = deposit.bank_deposit_slips || [];
+      const currentSlips = slips.map(slip => ({
+        id: slip.id,
+        url: slip.slip_url,
+        name: slip.file_name || 'Bank Slip',
+        isLegacy: false
+      }));
+      
+      setEditCurrentSlips(currentSlips);
+      setEditDialogOpen(true);
+    } catch (error) {
+      console.error('Error opening edit dialog:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load edit dialog. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditReportSelection = (reportId: string) => {
+    setEditSelectedReports((prev) =>
+      prev.includes(reportId)
+        ? prev.filter((id) => id !== reportId)
+        : [...prev, reportId]
+    );
+  };
+
+  const handleUpdateDeposit = async () => {
+    if (!editingDeposit) return;
+    
+    if (editSelectedReports.length === 0) {
+      toast({
+        title: "⚠️ No Reports Selected",
+        description: "Please select at least one report for this deposit.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      // Calculate new amount based on selected reports
+      const newAmount = editSelectedReports.reduce((sum, reportId) => {
+        const report = editAvailableReports.find((r) => r.id === reportId);
+        return sum + (report ? calculateNetBalance(report) : 0);
+      }, 0);
+
+      const updateData = {
+        bank_name: editingDeposit.bank_name,
+        deposit_date: editingDeposit.deposit_date,
+        amount: newAmount,
+      };
+
+      await financialService.updateBankDeposit(
+        editingDeposit.id,
+        updateData,
+        editSelectedReports
+      );
+
+      toast({
+        title: "✅ Deposit Updated Successfully",
+        description: `Bank deposit updated with ${editSelectedReports.length} reports.`,
+      });
+
+      // Reset and close dialog
+      setEditDialogOpen(false);
+      setEditingDeposit(null);
+      setEditSelectedReports([]);
+      setEditAvailableReports([]);
+      
+      // Refresh data
+      await fetchPageData();
+    } catch (error) {
+      console.error("❌ Error updating deposit:", error);
+      toast({
+        title: "❌ Error Updating Deposit",
+        description: "There was an error updating the deposit. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditInputChange = (field: keyof BankDeposit, value: any) => {
+    if (!editingDeposit) return;
+    setEditingDeposit(prev => prev ? ({ ...prev, [field]: value }) : null);
+  };
+
+  const handleRemoveSlipFromEdit = async (slipIndex: number) => {
+    const slipToRemove = editCurrentSlips[slipIndex];
+    
+    if (!slipToRemove) return;
+
+    try {
+      // Delete from database
+      await financialService.deleteBankSlip(slipToRemove.id);
+
+      // Remove from local state
+      setEditCurrentSlips(prev => prev.filter((_, index) => index !== slipIndex));
+      
+      toast({
+        title: "✅ Slip Removed",
+        description: "Bank slip has been removed successfully.",
+      });
+    } catch (error) {
+      console.error('Error removing slip:', error);
+      toast({
+        title: "❌ Error",
+        description: "Failed to remove the slip. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -539,28 +767,44 @@ export default function BankDepositsPage() {
   };
 
   const handleDepositRowClick = (deposit: BankDeposit) => {
-    if (deposit.deposit_slip_url) {
+    // Use the new slip system only (legacy URLs should be migrated)
+    const slips = deposit.bank_deposit_slips || [];
+    const slipUrls = slips.map(slip => slip.slip_url).filter(Boolean);
+
+    if (slipUrls.length > 0) {
       try {
-        const newWindow = window.open(deposit.deposit_slip_url, '_blank', 'noopener,noreferrer');
+        // Open each slip in a new tab with a small delay between them
+        slipUrls.forEach((url, index) => {
+          setTimeout(() => {
+            try {
+              const newWindow = window.open(url, `_blank_${index}`, 'noopener,noreferrer');
+              
+              // Fallback if popup was blocked
+              if (!newWindow || newWindow.closed) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }
+            } catch (error) {
+              console.error('❌ Error opening URL:', url, error);
+            }
+          }, index * 100); // Small delay to prevent browser blocking
+        });
         
-        // Check if popup was blocked
-        if (newWindow && !newWindow.closed) {
-          // Window opened successfully
-        } else {
-          // Fallback: create a temporary link and click it
-          const link = document.createElement('a');
-          link.href = deposit.deposit_slip_url;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      } catch (error) {
-        console.error('❌ Error opening URL:', error);
+        // Show success message
         toast({
-          title: "Error Opening Bank Slip",
-          description: t("messages.errorOpeningBankSlip"),
+          title: `✅ Opening ${slipUrls.length} slip(s)`,
+          description: `Opening ${slipUrls.length} bank slip${slipUrls.length > 1 ? 's' : ''} in new tabs`,
+        });
+      } catch (error) {
+        console.error('❌ Error opening bank slips:', error);
+        toast({
+          title: "Error Opening Bank Slips",
+          description: "There was an error opening the bank slips. Please try again.",
           variant: "destructive",
         });
       }
@@ -682,25 +926,33 @@ export default function BankDepositsPage() {
                           <Input
                             id="bank_slip"
                             type="file"
+                            multiple
                             accept=".pdf,.jpg,.jpeg,.png"
                             onChange={handleFileChange}
                             className="cursor-pointer"
                           />
                           <p className="text-xs text-muted-foreground">
-                            {t("form.uploadBankSlip")}
+                            {t("form.uploadMultipleBankSlips")}
                           </p>
-                        {bankSlipFile && (
-                          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                            <Paperclip className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-700 truncate">{bankSlipFile.name}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setBankSlipFile(null)}
-                              className="ml-auto h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                            >
-                              ×
-                            </Button>
+                        {bankSlipFiles.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium text-gray-700">
+                              {bankSlipFiles.length} file(s) selected
+                            </div>
+                            {bankSlipFiles.map((file, index) => (
+                              <div key={index} className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                                <Paperclip className="h-4 w-4 text-green-600" />
+                                <span className="text-sm text-green-700 truncate flex-1">{file.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeSlipFile(index)}
+                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-700 flex-shrink-0"
+                                >
+                                  ×
+                                </Button>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -904,7 +1156,7 @@ export default function BankDepositsPage() {
                         </Button>
                         <Button 
                             onClick={handleSubmit} 
-                            disabled={isSubmitting || selectedReports.length === 0 || !bankSlipFile} 
+                            disabled={isSubmitting || selectedReports.length === 0 || bankSlipFiles.length === 0} 
                             className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto"
                         >
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1117,18 +1369,28 @@ export default function BankDepositsPage() {
                         handleDepositRowClick(deposit);
                       }}
                       className={cn(
-                        deposit.deposit_slip_url && "cursor-pointer hover:bg-muted/50"
+                        // Show cursor pointer if deposit has slips
+                        (deposit.bank_deposit_slips && deposit.bank_deposit_slips.length > 0) && "cursor-pointer hover:bg-muted/50"
                       )}
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {format(parseISO(deposit.deposit_date), "MMM dd, yyyy")}
-                          {deposit.deposit_slip_url && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Paperclip className="h-3 w-3 mr-1" />
-                              {t("table.slipAttached")}
-                            </Badge>
-                          )}
+                          {(() => {
+                            // Use new slip system only (legacy URLs migrated)
+                            const slips = deposit.bank_deposit_slips || [];
+                            const slipCount = slips.length;
+                              
+                            if (slipCount > 0) {
+                              return (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Paperclip className="h-3 w-3 mr-1" />
+                                  {slipCount > 1 ? `${slipCount} slips` : t("table.slipAttached")}
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -1146,6 +1408,46 @@ export default function BankDepositsPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  className="h-8 w-8 p-0 text-black hover:text-gray-800"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenEditDialog(deposit);
+                                  }}
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{t("bankDeposits.editDepositTooltip")}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-black hover:text-gray-700"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenAddSlipsDialog(deposit);
+                                  }}
+                                >
+                                  <PlusCircle className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{t("bankDeposits.addMoreSlipsTooltip")}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1156,7 +1458,7 @@ export default function BankDepositsPage() {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Delete Deposit</p>
+                                <p>{t("bankDeposits.deleteDepositTooltip")}</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -1180,21 +1482,235 @@ export default function BankDepositsPage() {
       <AlertDialog open={deleteConfirmationOpen} onOpenChange={setDeleteConfirmationOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t("bankDeposits.deleteConfirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the bank deposit
-              and its associated bank slip from our servers.
+              {t("bankDeposits.deleteConfirmDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("buttons.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteConfirm} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Continue
+              {t("bankDeposits.deleteConfirmButton")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add More Slips Dialog */}
+      <Dialog open={addSlipsDialogOpen} onOpenChange={setAddSlipsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("bankDeposits.addMoreSlips")}</DialogTitle>
+            <DialogDescription>
+              {t("bankDeposits.addMoreSlipsDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="additional_slips">{t("bankDeposits.selectAdditionalSlips")}</Label>
+              <Input
+                id="additional_slips"
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleAdditionalFileChange}
+                className="cursor-pointer"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t("bankDeposits.uploadAdditionalSlips")}
+              </p>
+            </div>
+            
+            {additionalSlipFiles.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-gray-700">
+                  {additionalSlipFiles.length} {t("bankDeposits.slipsAttached")}
+                </div>
+                {additionalSlipFiles.map((file, index) => (
+                  <div key={index} className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                    <Paperclip className="h-4 w-4 text-green-600" />
+                    <span className="text-sm text-green-700 truncate flex-1">{file.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeAdditionalSlipFile(index)}
+                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700 flex-shrink-0"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setAddSlipsDialogOpen(false)}>
+              {t("buttons.cancel")}
+            </Button>
+            <Button 
+              onClick={handleAddSlipsToDeposit} 
+              disabled={isSubmitting || additionalSlipFiles.length === 0}
+              className="bg-black hover:bg-gray-800 text-white"
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("bankDeposits.addSlips")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Deposit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-6xl h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+                     <DialogHeader>
+             <DialogTitle>{t("bankDeposits.editDeposit")}</DialogTitle>
+             <DialogDescription>
+               {t("bankDeposits.editDepositDescription")}
+             </DialogDescription>
+           </DialogHeader>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 py-4 flex-1 overflow-hidden">
+                         {/* Form Inputs - Left Column */}
+             <div className="lg:col-span-2 space-y-4">
+               <div className="space-y-2">
+                 <Label htmlFor="edit_bank_name">Bank Name</Label>
+                 <Select 
+                   value={editingDeposit?.bank_name} 
+                   onValueChange={(value) => handleEditInputChange('bank_name', value)}
+                 >
+                   <SelectTrigger>
+                     <SelectValue placeholder="Select a bank" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="Caixa Angola">Caixa Angola</SelectItem>
+                     <SelectItem value="BAI">BAI</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               
+               <div className="space-y-2">
+                 <Label htmlFor="edit_deposit_date">Deposit Date</Label>
+                 <Input 
+                   id="edit_deposit_date" 
+                   type="date" 
+                   value={editingDeposit?.deposit_date || ''} 
+                   onChange={(e) => handleEditInputChange('deposit_date', e.target.value)}
+                 />
+               </div>
+               
+               <div className="space-y-2">
+                 <Label htmlFor="edit_amount">Total Amount</Label>
+                 <Input 
+                   id="edit_amount" 
+                   type="number" 
+                   value={editSelectedReports.reduce((sum, reportId) => {
+                     const report = editAvailableReports.find((r) => r.id === reportId);
+                     return sum + (report ? calculateNetBalance(report) : 0);
+                   }, 0)} 
+                   readOnly 
+                   className="font-bold bg-gray-100" 
+                 />
+               </div>
+
+               {/* Current Bank Slips */}
+               <div className="space-y-2">
+                 <Label>{t("bankDeposits.currentBankSlips")}</Label>
+                 {editCurrentSlips.length > 0 ? (
+                   <div className="space-y-2">
+                     <div className="text-sm font-medium text-gray-700">
+                       {editCurrentSlips.length} {t("bankDeposits.slipsAttached")}
+                     </div>
+                     {editCurrentSlips.map((slip, index) => (
+                       <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                         <Paperclip className="h-4 w-4 text-blue-600" />
+                         <span className="text-sm text-blue-700 truncate flex-1">{slip.name}</span>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => handleRemoveSlipFromEdit(index)}
+                           className="h-6 w-6 p-0 text-red-500 hover:text-red-700 flex-shrink-0"
+                         >
+                           ×
+                         </Button>
+                       </div>
+                     ))}
+                   </div>
+                 ) : (
+                   <div className="text-sm text-muted-foreground">{t("bankDeposits.noSlipsAttached")}</div>
+                 )}
+               </div>
+             </div>
+            
+            {/* Available Reports - Right Column */}
+            <div className="lg:col-span-3 space-y-2 flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between">
+                <Label>Available Reports</Label>
+                <Badge variant="outline">
+                  {editAvailableReports.length} reports available
+                </Badge>
+              </div>
+              
+              <ScrollArea className="flex-1 border rounded-md">
+                <div className="p-2 space-y-2">
+                  {editAvailableReports.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No reports available</p>
+                  ) : (
+                    editAvailableReports.map((report) => {
+                      const netBalance = calculateNetBalance(report);
+                      const isSelected = editSelectedReports.includes(report.id);
+                      
+                      return (
+                        <div
+                          key={report.id}
+                          className={cn(
+                            "flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors",
+                            isSelected ? "bg-blue-50 border-blue-200" : "bg-white hover:bg-gray-50"
+                          )}
+                          onClick={() => handleEditReportSelection(report.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Checkbox checked={isSelected} onChange={() => {}} />
+                            <div>
+                              <div className="font-medium">
+                                {format(parseISO(report.report_date), "MMM dd, yyyy")} - {report.vehicles?.plate}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {report.route || 'No route specified'}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className={cn(
+                              "font-semibold",
+                              netBalance > 0 ? "text-green-600" : "text-red-600"
+                            )}>
+                              {formatCurrency(netBalance)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              {t("buttons.cancel")}
+            </Button>
+                         <Button 
+               onClick={handleUpdateDeposit} 
+               disabled={isSubmitting || editSelectedReports.length === 0}
+               className="bg-black hover:bg-gray-800 text-white"
+             >
+               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+               {t("bankDeposits.updateDeposit")}
+             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {selectedDeposit && (
         <Dialog open={showDepositDetails} onOpenChange={setShowDepositDetails}>

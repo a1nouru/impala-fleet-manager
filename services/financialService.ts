@@ -25,8 +25,8 @@ export interface DailyReport {
   total_revenue?: number;
   total_expenses?: number;
   daily_expenses: DailyExpense[];
-  // Add deposit status
-  deposit_reports: { deposit_id: string }[];
+  // Add deposit status (optional since not always included)
+  deposit_reports?: { deposit_id: string }[];
 }
 
 export interface DailyExpense {
@@ -39,17 +39,29 @@ export interface DailyExpense {
   updated_at: string;
 }
 
+export interface BankDepositSlip {
+    id: string;
+    deposit_id: string;
+    slip_url: string;
+    file_name?: string;
+    file_size?: number;
+    upload_date: string;
+    created_by?: string;
+}
+
 export interface BankDeposit {
     id: string;
     bank_name: 'Caixa Angola' | 'BAI';
     deposit_date: string;
     amount: number;
-    deposit_slip_url?: string;
+    deposit_slip_url?: string; // Legacy field - kept for backward compatibility
     created_by?: string;
     created_at: string;
     updated_at: string;
     // Joined data
     deposit_reports?: { report_id: string }[];
+    // New multiple slips support
+    bank_deposit_slips?: BankDepositSlip[];
 }
 
 // --- Service Functions ---
@@ -164,14 +176,15 @@ export const financialService = {
   },
 
   /**
-   * Fetches all bank deposits.
+   * Fetches all bank deposits with associated deposit report links and multiple slips.
    */
   async getBankDeposits(): Promise<BankDeposit[]> {
     const { data, error } = await supabase
       .from('bank_deposits')
       .select(`
         *,
-        deposit_reports(report_id)
+        deposit_reports(report_id),
+        bank_deposit_slips(*)
       `)
       .order('deposit_date', { ascending: false });
 
@@ -187,24 +200,101 @@ export const financialService = {
    * Fetches all operational reports that have not yet been deposited.
    */
   async getUndepositedReports(): Promise<DailyReport[]> {
-    const { data, error } = await supabase
-      .from('daily_reports')
-      .select(`
-        *,
-        vehicles (plate),
-        daily_expenses (*),
-        deposit_reports!left(deposit_id)
-      `)
-      .eq('status', 'Operational')
-      .is('deposit_reports.deposit_id', null)
-      .order('report_date', { ascending: false });
+    try {
+      // Get all operational reports
+      const { data: allReports, error: reportsError } = await supabase
+        .from('daily_reports')
+        .select(`
+          *,
+          vehicles (plate),
+          daily_expenses (*)
+        `)
+        .eq('status', 'Operational')
+        .order('report_date', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching undeposited reports:', error);
+      if (reportsError) {
+        console.error('Error fetching all reports:', reportsError);
+        throw reportsError;
+      }
+
+      // Get all deposited report IDs
+      const { data: depositedReportIds, error: depositsError } = await supabase
+        .from('deposit_reports')
+        .select('report_id');
+
+      if (depositsError) {
+        console.error('Error fetching deposited report IDs:', depositsError);
+        throw depositsError;
+      }
+
+      // Create a set of deposited report IDs for fast lookup
+      const depositedIds = new Set((depositedReportIds || []).map(dr => dr.report_id));
+      
+      // Filter out reports that have been deposited
+      return (allReports || []).filter(report => !depositedIds.has(report.id));
+    } catch (error) {
+      console.error('Error in getUndepositedReports:', error);
       throw error;
     }
+  },
 
-    return data || [];
+  /**
+   * Fetches reports available for editing a specific deposit.
+   * Includes reports not linked to any deposit + reports linked to the specified deposit.
+   */
+  async getReportsForEditingDeposit(depositId: string): Promise<DailyReport[]> {
+    try {
+      // Get all operational reports
+      const { data: allReports, error: allReportsError } = await supabase
+        .from('daily_reports')
+        .select(`
+          *,
+          vehicles (plate),
+          daily_expenses (*)
+        `)
+        .eq('status', 'Operational')
+        .order('report_date', { ascending: false });
+
+      if (allReportsError) {
+        console.error('Error fetching all reports:', allReportsError);
+        throw allReportsError;
+      }
+
+      // Get all deposit links
+      const { data: allDepositLinks, error: linksError } = await supabase
+        .from('deposit_reports')
+        .select('report_id, deposit_id');
+
+      if (linksError) {
+        console.error('Error fetching deposit links:', linksError);
+        throw linksError;
+      }
+
+      // Create a map of report_id -> deposit_id for quick lookup
+      const reportDepositMap = new Map();
+      (allDepositLinks || []).forEach(link => {
+        reportDepositMap.set(link.report_id, link.deposit_id);
+      });
+
+      // Filter reports: include if undeposited OR linked to current deposit
+      const availableReports = (allReports || []).filter(report => {
+        const linkedDepositId = reportDepositMap.get(report.id);
+        
+        // Include if not linked to any deposit
+        if (!linkedDepositId) return true;
+        
+        // Include if linked to the current deposit being edited
+        if (linkedDepositId === depositId) return true;
+        
+        // Exclude if linked to a different deposit
+        return false;
+      });
+
+      return availableReports;
+    } catch (error) {
+      console.error('Error in getReportsForEditingDeposit:', error);
+      throw error;
+    }
   },
 
   /**
@@ -238,20 +328,18 @@ export const financialService = {
   },
 
   /**
-   * Creates a new bank deposit with file upload support
+   * Creates a new bank deposit with multiple file upload support
    * @param depositData - The core data for the bank_deposits table.
    * @param reportIds - An array of report IDs to link in the deposit_reports table.
-   * @param bankSlipFile - Optional bank slip file to upload
+   * @param bankSlipFiles - Array of bank slip files to upload
    */
   async createBankDepositWithFile(
     depositData: Omit<BankDeposit, 'id' | 'created_at' | 'updated_at'>,
     reportIds: string[],
-    bankSlipFile?: File
+    bankSlipFiles?: File[]
   ): Promise<BankDeposit> {
-    let depositSlipUrl = depositData.deposit_slip_url;
-
-    // First create the deposit to get the ID
-    const { data: depositId, error } = await supabase.rpc('create_bank_deposit_with_reports', {
+    // First create the deposit to get the ID using the new function
+    const { data: depositId, error } = await supabase.rpc('create_bank_deposit_with_multiple_reports', {
       p_bank_name: depositData.bank_name,
       p_deposit_date: depositData.deposit_date,
       p_amount: depositData.amount,
@@ -261,35 +349,25 @@ export const financialService = {
     if (error) {
       console.error('Error creating bank deposit:', error);
       throw error;
-    }2
+    }
 
-    // Upload file if provided
-    if (bankSlipFile) {
+    // Upload multiple files if provided
+    if (bankSlipFiles && bankSlipFiles.length > 0) {
       try {
-        depositSlipUrl = await this.uploadBankSlip(bankSlipFile, depositId);
-        
-        // Update the deposit with the file URL
-        const { error: updateError } = await supabase
-          .from('bank_deposits')
-          .update({ deposit_slip_url: depositSlipUrl })
-          .eq('id', depositId);
-
-        if (updateError) {
-          console.error('Error updating deposit with file URL:', updateError);
-          // Don't throw here - deposit was created successfully
-        }
+        await this.uploadMultipleBankSlips(bankSlipFiles, depositId);
       } catch (uploadError) {
-        console.error('Error uploading bank slip file:', uploadError);
+        console.error('Error uploading bank slip files:', uploadError);
         // Don't throw here - deposit was created successfully
       }
     }
 
-    // Fetch and return the complete deposit data
+    // Fetch and return the complete deposit data with slips
     const { data: depositResult, error: fetchError } = await supabase
       .from('bank_deposits')
       .select(`
         *,
-        deposit_reports(report_id)
+        deposit_reports(report_id),
+        bank_deposit_slips(*)
       `)
       .eq('id', depositId)
       .single();
@@ -301,6 +379,129 @@ export const financialService = {
 
     return depositResult;
   },
+
+  /**
+   * Uploads multiple bank slip files for a deposit
+   * @param files - Array of files to upload
+   * @param depositId - The deposit ID to associate with the files
+   */
+  async uploadMultipleBankSlips(files: File[], depositId: string): Promise<BankDepositSlip[]> {
+    const uploadPromises = files.map(async (file) => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${depositId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const filePath = `${depositId}/${fileName}`;
+
+      // Upload to storage
+      const { data, error } = await supabase.storage
+        .from('bank-slips')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading bank slip:', error);
+        throw error;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('bank-slips')
+        .getPublicUrl(filePath);
+
+      // Add slip record to database
+      const { data: slipId, error: slipError } = await supabase.rpc('add_slip_to_deposit', {
+        p_deposit_id: depositId,
+        p_slip_url: publicUrl,
+        p_file_name: file.name,
+        p_file_size: file.size
+      });
+
+      if (slipError) {
+        console.error('Error adding slip record:', slipError);
+        throw slipError;
+      }
+
+      return {
+        id: slipId,
+        deposit_id: depositId,
+        slip_url: publicUrl,
+        file_name: file.name,
+        file_size: file.size,
+        upload_date: new Date().toISOString(),
+        created_by: undefined
+      } as BankDepositSlip;
+    });
+
+    return Promise.all(uploadPromises);
+  },
+
+  /**
+   * Adds additional slip files to an existing deposit
+   * @param depositId - The deposit ID to add slips to
+   * @param files - Array of files to upload
+   */
+  async addSlipsToDeposit(depositId: string, files: File[]): Promise<BankDepositSlip[]> {
+    return this.uploadMultipleBankSlips(files, depositId);
+  },
+
+  /**
+   * Deletes a specific bank slip
+   * @param slipId - The ID of the slip to delete
+   */
+  async deleteBankSlip(slipId: string): Promise<void> {
+    try {
+      // Get slip info first to delete from storage
+      const { data: slip, error: fetchError } = await supabase
+        .from('bank_deposit_slips')
+        .select('slip_url')
+        .eq('id', slipId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching slip for deletion:', fetchError);
+        throw fetchError;
+      }
+
+      // Delete from storage if URL exists
+      if (slip?.slip_url) {
+        try {
+          const url = new URL(slip.slip_url);
+          const filePath = url.pathname.split('/bank-slips/')[1];
+          
+          if (filePath) {
+            const { error: storageError } = await supabase.storage
+              .from('bank-slips')
+              .remove([filePath]);
+
+            if (storageError) {
+              console.error('Error deleting slip from storage:', storageError);
+              // Don't throw here - continue with database deletion
+            }
+          }
+        } catch (urlError) {
+          console.error('Error parsing slip URL:', urlError);
+          // Continue with database deletion
+        }
+      }
+
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('bank_deposit_slips')
+        .delete()
+        .eq('id', slipId);
+
+      if (deleteError) {
+        console.error('Error deleting slip from database:', deleteError);
+        throw deleteError;
+      }
+    } catch (error) {
+      console.error('Error in deleteBankSlip:', error);
+      throw error;
+    }
+  },
+
+
 
   /**
    * Creates a new bank deposit and links it to specified reports (without file upload).
@@ -530,24 +731,77 @@ export const financialService = {
    * Updates an existing bank deposit.
    * @param depositId - The ID of the deposit to update.
    * @param updateData - The data to update.
+   * @param newReportIds - Optional new array of report IDs to link
    */
-  async updateBankDeposit(depositId: string, updateData: Partial<Pick<BankDeposit, 'bank_name' | 'deposit_date' | 'amount'>>): Promise<BankDeposit> {
-    const { data, error } = await supabase
-      .from('bank_deposits')
-      .update(updateData)
-      .eq('id', depositId)
-      .select(`
-        *,
-        deposit_reports(report_id)
-      `)
-      .single();
+  async updateBankDeposit(
+    depositId: string, 
+    updateData: Partial<Pick<BankDeposit, 'bank_name' | 'deposit_date' | 'amount'>>,
+    newReportIds?: string[]
+  ): Promise<BankDeposit> {
+    try {
+      // Update the deposit basic info
+      const { error: updateError } = await supabase
+        .from('bank_deposits')
+        .update(updateData)
+        .eq('id', depositId);
 
-    if (error) {
-      console.error('Error updating bank deposit:', error);
+      if (updateError) {
+        console.error('Error updating deposit:', updateError);
+        throw updateError;
+      }
+
+      // Update report links if provided
+      if (newReportIds !== undefined) {
+        // Remove all existing report links
+        const { error: deleteError } = await supabase
+          .from('deposit_reports')
+          .delete()
+          .eq('deposit_id', depositId);
+
+        if (deleteError) {
+          console.error('Error removing old report links:', deleteError);
+          throw deleteError;
+        }
+
+        // Add new report links
+        if (newReportIds.length > 0) {
+          const newLinks = newReportIds.map(reportId => ({
+            deposit_id: depositId,
+            report_id: reportId
+          }));
+
+          const { error: insertError } = await supabase
+            .from('deposit_reports')
+            .insert(newLinks);
+
+          if (insertError) {
+            console.error('Error inserting new report links:', insertError);
+            throw insertError;
+          }
+        }
+      }
+
+      // Fetch and return the updated deposit with slips
+      const { data: updatedDeposit, error: fetchError } = await supabase
+        .from('bank_deposits')
+        .select(`
+          *,
+          deposit_reports(report_id),
+          bank_deposit_slips(*)
+        `)
+        .eq('id', depositId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching updated deposit:', fetchError);
+        throw fetchError;
+      }
+
+      return updatedDeposit;
+    } catch (error) {
+      console.error('Error in updateBankDeposit:', error);
       throw error;
     }
-
-    return data;
   },
 
   /**
