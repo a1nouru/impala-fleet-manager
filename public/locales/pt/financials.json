@@ -4,7 +4,8 @@
     "allDailyReports": "Todos os Relatórios Diários",
     "allExpenses": "Todas as Despesas",
     "bankDeposits": "Depósitos Bancários",
-    "analytics": "Análise Financeira"
+    "analytics": "Análise Financeira",
+    "bankVerification": "Verificação Bancária"
   },
   "allDailyReports": {
     "title": "Todos os Relatórios Diários",
@@ -251,5 +252,27 @@
     "reportsCount": "{{count}} Relatórios",
     "depositsCount": "{{count}} Depósitos",
     "vehiclesCount": "{{count}} Veículos"
+  },
+  "bankVerification": {
+    "title": "Verificação de Extractos Bancários",
+    "description": "Carregue extractos bancários e verifique se os relatórios diários foram devidamente depositados",
+    "selectBank": "Selecionar Banco",
+    "selectDateRange": "Selecionar Intervalo de Datas",
+    "startDate": "Data de Início",
+    "endDate": "Data de Fim",
+    "account001": "Conta 001 (TPA/POS)",
+    "account002": "Conta 002 (Dinheiro)",
+    "dragDropStatement": "Arraste e largue o PDF do extracto bancário aqui ou clique para carregar",
+    "uploadedStatement": "Extracto Bancário Carregado",
+    "verifyDeposits": "Verificar Depósitos",
+    "verificationResults": "Resultados da Verificação",
+    "processing": "Processando verificação...",
+    "noStatements": "Por favor carregue extractos bancários para ambas as contas",
+    "selectValidDateRange": "Por favor selecione um intervalo de datas válido",
+    "account001Description": "Carregar extracto para depósitos TPA/POS",
+    "account002Description": "Carregar extracto para depósitos em dinheiro",
+    "removeStatement": "Remover Extracto",
+    "fileSize": "Tamanho do ficheiro",
+    "uploadDate": "Data de carregamento"
   }
 }

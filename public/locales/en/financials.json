@@ -4,7 +4,8 @@
     "allDailyReports": "All Daily Reports",
     "allExpenses": "All Expenses",
     "bankDeposits": "Bank Deposits",
-    "analytics": "Financial Analytics"
+    "analytics": "Financial Analytics",
+    "bankVerification": "Bank Verification"
   },
   "allDailyReports": {
     "title": "All Daily Reports",
@@ -251,5 +252,27 @@
     "reportsCount": "{{count}} Reports",
     "depositsCount": "{{count}} Deposits",
     "vehiclesCount": "{{count}} Vehicles"
+  },
+  "bankVerification": {
+    "title": "Bank Statement Verification",
+    "description": "Upload bank statements and verify that daily reports have been properly deposited",
+    "selectBank": "Select Bank",
+    "selectDateRange": "Select Date Range",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "account001": "Account 001 (TPA/POS)",
+    "account002": "Account 002 (Cash)",
+    "dragDropStatement": "Drag & drop bank statement PDF here or click to upload",
+    "uploadedStatement": "Uploaded Bank Statement",
+    "verifyDeposits": "Verify Deposits",
+    "verificationResults": "Verification Results",
+    "processing": "Processing verification...",
+    "noStatements": "Please upload bank statements for both accounts",
+    "selectValidDateRange": "Please select a valid date range",
+    "account001Description": "Upload statement for TPA/POS deposits",
+    "account002Description": "Upload statement for cash deposits",
+    "removeStatement": "Remove Statement",
+    "fileSize": "File size",
+    "uploadDate": "Upload date"
   }
 }
