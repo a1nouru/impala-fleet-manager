@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Upload, X, FileText, CalendarIcon, Building2, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { Loader2, Upload, X, FileSpreadsheet, CalendarIcon, Building2, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -132,19 +132,24 @@ export default function BankVerificationPage() {
 
   // File validation
   const validateFile = (file: File): boolean => {
-    if (file.type !== "application/pdf") {
+    const allowedTypes = ["text/csv", "application/vnd.ms-excel", ".csv"];
+    const isValidType = file.type === "text/csv" || 
+                       file.type === "application/vnd.ms-excel" || 
+                       file.name.toLowerCase().endsWith('.csv');
+    
+    if (!isValidType) {
       toast({
         title: "Invalid File Type",
-        description: "Please upload a PDF file.",
+        description: "Please upload a CSV file.",
         variant: "destructive",
       });
       return false;
     }
     
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit for CSV
       toast({
         title: "File Too Large",
-        description: "File size must be less than 10MB.",
+        description: "File size must be less than 5MB.",
         variant: "destructive",
       });
       return false;
@@ -346,13 +351,13 @@ export default function BankVerificationPage() {
               >
                 <Upload className="h-10 w-10 text-gray-400 mx-auto mb-4" />
                 <p className="text-sm text-gray-600 mb-2">
-                  {t("bankVerification.dragDropStatement")}
+                  Drag & drop bank statement CSV here or click to upload
                 </p>
-                <p className="text-xs text-gray-500">PDF files only, max 10MB</p>
+                <p className="text-xs text-gray-500">CSV files only, max 5MB</p>
                 <input
                   ref={account001FileRef}
                   type="file"
-                  accept=".pdf"
+                  accept=".csv,text/csv,application/vnd.ms-excel"
                   onChange={(e) => handleFileInputChange(e, "001")}
                   className="hidden"
                 />
@@ -361,7 +366,7 @@ export default function BankVerificationPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <FileText className="h-8 w-8 text-red-500" />
+                    <FileSpreadsheet className="h-8 w-8 text-green-600" />
                     <div>
                       <p className="font-medium text-sm">{account001Statement.file.name}</p>
                       <p className="text-xs text-gray-500">
@@ -406,13 +411,13 @@ export default function BankVerificationPage() {
               >
                 <Upload className="h-10 w-10 text-gray-400 mx-auto mb-4" />
                 <p className="text-sm text-gray-600 mb-2">
-                  {t("bankVerification.dragDropStatement")}
+                  Drag & drop bank statement CSV here or click to upload
                 </p>
-                <p className="text-xs text-gray-500">PDF files only, max 10MB</p>
+                <p className="text-xs text-gray-500">CSV files only, max 5MB</p>
                 <input
                   ref={account002FileRef}
                   type="file"
-                  accept=".pdf"
+                  accept=".csv,text/csv,application/vnd.ms-excel"
                   onChange={(e) => handleFileInputChange(e, "002")}
                   className="hidden"
                 />
@@ -421,7 +426,7 @@ export default function BankVerificationPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <FileText className="h-8 w-8 text-red-500" />
+                    <FileSpreadsheet className="h-8 w-8 text-green-600" />
                     <div>
                       <p className="font-medium text-sm">{account002Statement.file.name}</p>
                       <p className="text-xs text-gray-500">

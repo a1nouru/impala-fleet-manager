@@ -120,11 +120,11 @@ export async function POST(request: NextRequest) {
       console.log(`⚠️ ${datesWithMissingExpenses} reports missing expense data`);
     }
 
-    // Convert files to base64 for Claude API
+    // Convert CSV files to text for Claude API
     const account001Buffer = await account001Statement.arrayBuffer();
     const account002Buffer = await account002Statement.arrayBuffer();
-    const account001Base64 = Buffer.from(account001Buffer).toString('base64');
-    const account002Base64 = Buffer.from(account002Buffer).toString('base64');
+    const account001Text = new TextDecoder('utf-8').decode(account001Buffer);
+    const account002Text = new TextDecoder('utf-8').decode(account002Buffer);
 
     // Create Claude prompt
     const claudePrompt = createClaudePrompt(bank, totalNetRevenue, startDate, endDate);
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     if (claudeApiKey && claudeApiKey !== "your_claude_api_key_here") {
       // Call Claude API for actual verification
       try {
-        const claudeResponse = await callClaudeAPI(claudePrompt, account001Base64, account002Base64, claudeApiKey, totalNetRevenue);
+        const claudeResponse = await callClaudeAPI(claudePrompt, account001Text, account002Text, claudeApiKey, totalNetRevenue);
         
         console.log("Claude Response Structure:", JSON.stringify(claudeResponse, null, 2));
         
@@ -281,7 +281,7 @@ function createClaudePrompt(
   endDate: string
 ): string {
   return `
-You are a financial auditor tasked with verifying total revenue against bank statements.
+You are a financial auditor tasked with verifying total revenue against bank statements provided as CSV files.
 
 **Bank**: ${bank}
 **Date Range**: ${startDate} to ${endDate}
@@ -289,14 +289,14 @@ You are a financial auditor tasked with verifying total revenue against bank sta
 **Bank Specific Rules**: ${bank === "Caixa Angola" ? "Regular vehicles only (Agaseke vehicles excluded)" : "All vehicle types"}
 
 **SIMPLIFIED TASK**: 
-1. Parse Account 001 statement and sum all TPA credits/deposits
-2. Parse Account 002 statement and sum all "Depósito" transactions  
+1. Parse Account 001 CSV statement and sum all TPA credits/deposits
+2. Parse Account 002 CSV statement and sum all "Depósito" transactions  
 3. Add Account 001 + Account 002 totals = Total Bank Deposits
 4. Compare Total Bank Deposits vs Total NET Revenue
 
-**What to look for in statements**:
-- **Account 001**: Look for TPA credits, electronic transfers, POS deposits
-- **Account 002**: Look for cash deposits marked as "Depósito" or similar
+**What to look for in CSV statements**:
+- **Account 001**: Look for TPA credits, electronic transfers, POS deposits in amount/value columns
+- **Account 002**: Look for cash deposits marked as "Depósito" or similar in description columns
 
 **Expected Response Format**:
 \`\`\`json
@@ -320,15 +320,15 @@ You are a financial auditor tasked with verifying total revenue against bank sta
 - "Verified: Bank deposits (Account 001: 2,500,000 + Account 002: 321,100 = 2,821,100 AOA) match NET revenue exactly"
 - "Mismatch: Bank deposits total 2,750,000 AOA vs NET revenue 2,821,100 AOA (difference: 71,100 AOA)"
 
-Please parse both bank statements and provide accurate totals.
+Please parse both CSV bank statements and provide accurate totals.
 `;
 }
 
 // Function to call Claude API
-async function callClaudeAPI(prompt: string, account001Base64: string, account002Base64: string, apiKey: string, totalNetRevenue: number) {
+async function callClaudeAPI(prompt: string, account001Text: string, account002Text: string, apiKey: string, totalNetRevenue: number) {
   console.log("🤖 Calling Claude API...");
-  console.log("📄 Account 001 PDF size:", account001Base64.length);
-  console.log("📄 Account 002 PDF size:", account002Base64.length);
+  console.log("📄 Account 001 CSV length:", account001Text.length);
+  console.log("📄 Account 002 CSV length:", account002Text.length);
   
   try {
     const requestBody = {
@@ -339,12 +339,20 @@ async function callClaudeAPI(prompt: string, account001Base64: string, account00
           role: 'user',
           content: `${prompt}
 
-**IMPORTANT NOTE**: I have uploaded two PDF bank statements for analysis:
-- Account 001 Statement: ${Math.round(account001Base64.length / 1024)}KB PDF
-- Account 002 Statement: ${Math.round(account002Base64.length / 1024)}KB PDF
+**IMPORTANT NOTE**: I have provided two CSV bank statements for analysis:
 
-For this implementation, please generate realistic verification results that demonstrate:
-1. Parsing both account statements
+**Account 001 Statement (TPA/POS):**
+\`\`\`csv
+${account001Text.substring(0, 1000)}${account001Text.length > 1000 ? '...' : ''}
+\`\`\`
+
+**Account 002 Statement (Cash Deposits):**
+\`\`\`csv
+${account002Text.substring(0, 1000)}${account002Text.length > 1000 ? '...' : ''}
+\`\`\`
+
+Please analyze these CSV files and provide verification results that demonstrate:
+1. Parsing both account statements from the CSV data
 2. Summing TPA credits in Account 001
 3. Summing cash deposits in Account 002  
 4. Comparing totals with NET revenue
