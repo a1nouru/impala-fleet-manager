@@ -1137,6 +1137,7 @@ function MaintenanceContent() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.date")}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">
                       {t("table.vehicle")}
                       {plateFilter !== "all" && (
@@ -1145,11 +1146,9 @@ function MaintenanceContent() {
                         </div>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.date")}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">{t("table.description")}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">{t("table.parts")}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">{t("table.technician")}</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.createdBy")}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">{t("table.status")}</th>
                     <th className="px-4 py-3 text-right text-sm font-medium">{t("table.cost")}</th>
                     <th className="px-4 py-3 text-right text-sm font-medium">{t("table.actions")}</th>
@@ -1158,14 +1157,13 @@ function MaintenanceContent() {
                 <tbody>
                   {filteredRecords.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <td colSpan={8} className="text-center py-8 text-muted-foreground">
                         {t("table.noRecords")}
                       </td>
                     </tr>
                   ) : (
                     filteredRecords.map((record) => (
                       <tr key={record.id} className="border-b hover:bg-muted/50">
-                        <td className="px-4 py-3 text-sm">{record.vehicles?.plate || record.vehiclePlate}</td>
                         <td className="px-4 py-3 text-sm">
                           {(() => {
                             // Format the date while preserving the day
@@ -1188,6 +1186,7 @@ function MaintenanceContent() {
                             }
                           })()}
                         </td>
+                        <td className="px-4 py-3 text-sm">{record.vehicles?.plate || record.vehiclePlate}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">{record.description}</td>
                         <td className="px-4 py-3 text-sm">
                           {record.parts && record.parts.length > 0 ? (
@@ -1232,9 +1231,6 @@ function MaintenanceContent() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm">{record.technicians?.name || record.technician}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {formatCreatedBy(record.created_by)}
-                        </td>
                         <td className="px-4 py-3 text-sm">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             record.status === "Completed" 
@@ -1303,8 +1299,7 @@ function MaintenanceContent() {
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h3 className="font-semibold text-lg">{record.vehicles?.plate || record.vehiclePlate}</h3>
-                            <p className="text-sm text-muted-foreground">
+                            <h3 className="font-semibold text-lg">
                               {(() => {
                                 try {
                                   if (record.date.includes('-')) {
@@ -1318,7 +1313,8 @@ function MaintenanceContent() {
                                   return new Date(record.date).toLocaleDateString();
                                 }
                               })()}
-                            </p>
+                            </h3>
+                            <p className="text-sm text-muted-foreground">{record.vehicles?.plate || record.vehiclePlate}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button 
@@ -1409,12 +1405,6 @@ function MaintenanceContent() {
                             </div>
                           )}
                           
-                          {record.created_by && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">Created By</p>
-                              <p className="text-sm text-gray-600">{formatCreatedBy(record.created_by)}</p>
-                            </div>
-                          )}
                         </div>
                       </CardContent>
                     </Card>

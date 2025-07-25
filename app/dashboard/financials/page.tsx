@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PlusCircle, FileText, CheckCircle, Clock, Edit, Trash2, CalendarIcon, Filter } from "lucide-react";
-import { financialService, DailyReport, DailyExpense, COMMON_ROUTES } from "@/services/financialService";
+import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter } from "lucide-react";
+import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
 import { vehicleService } from "@/services/vehicleService";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -104,6 +104,58 @@ const groupReportsByDate = (reports: DailyReport[]) => {
   })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
+// Utility function to export data to Excel
+const exportReportsToExcel = (data: DailyReport[], filename: string) => {
+  const headers = [
+    "Date",
+    "Vehicle Plate", 
+    "Route",
+    "Status",
+    "Ticket Revenue (AOA)",
+    "Baggage Revenue (AOA)",
+    "Cargo Revenue (AOA)",
+    "Total Revenue (AOA)",
+    "Total Expenses (AOA)",
+    "Net Balance (AOA)",
+    "Non-Operational Reason"
+  ];
+
+  const excelData = [
+    headers.join('\t'),
+    ...data.map(report => {
+      const totalRevenue = (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
+      const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
+      const netBalance = totalRevenue - totalExpenses;
+      
+      return [
+        report.report_date,
+        report.vehicles?.plate || '',
+        report.route || '',
+        report.status || '',
+        report.ticket_revenue || 0,
+        report.baggage_revenue || 0,
+        report.cargo_revenue || 0,
+        totalRevenue,
+        totalExpenses,
+        netBalance,
+        report.non_operational_reason || '',
+      ].join('\t');
+    })
+  ].join('\n');
+
+  const blob = new Blob([excelData], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;' 
+  });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 export default function AllDailyReportsPage() {
   const { t } = useTranslation('financials');
   const [reports, setReports] = useState<DailyReport[]>([]);
@@ -155,6 +207,20 @@ export default function AllDailyReportsPage() {
   });
   const [groupByDate, setGroupByDate] = useState(true);
   const [reportTypeFilter, setReportTypeFilter] = useState<"all" | "agaseke" | "regular">("all");
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 20;
+
+  // Download state
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [downloadDateRange, setDownloadDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+    to: new Date(),
+  });
   
   // New report form state
   const [newReport, setNewReport] = useState<{
@@ -237,6 +303,13 @@ export default function AllDailyReportsPage() {
     
     return passesDateFilter && passesReportTypeFilter;
   });
+
+  // Pagination logic for individual reports view
+  const totalRecords = filteredReports.length;
+  const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+  const currentPageReports = filteredReports.slice(startIndex, endIndex);
 
   // Group or show individual reports
   const displayData = groupByDate ? groupReportsByDate(filteredReports) : null;
@@ -560,11 +633,12 @@ export default function AllDailyReportsPage() {
                     <SelectValue placeholder={t("form.selectRoute")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {COMMON_ROUTES.map((route) => (
-                      <SelectItem key={route} value={route}>
-                        {route}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="Luanda - Benguela">Luanda - Benguela</SelectItem>
+                    <SelectItem value="Luanda - Huambo">Luanda - Huambo</SelectItem>
+                    <SelectItem value="Luanda - Lobito">Luanda - Lobito</SelectItem>
+                    <SelectItem value="Luanda - Malanje">Luanda - Malanje</SelectItem>
+                    <SelectItem value="Benguela - Huambo">Benguela - Huambo</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -755,6 +829,18 @@ export default function AllDailyReportsPage() {
             >
               {t("filters.clearFilters")}
             </Button>
+
+            {/* Download Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDownloadDialogOpen(true)}
+              className="h-9"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Download</span>
+              <span className="sm:hidden">Excel</span>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -855,7 +941,7 @@ export default function AllDailyReportsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredReports.map((report) => (
+                    {currentPageReports.map((report) => (
                       <TableRow key={report.id}>
                         <TableCell>{format(parseISO(report.report_date), "PP")}</TableCell>
                         <TableCell>
@@ -929,6 +1015,37 @@ export default function AllDailyReportsPage() {
                   <p className="text-sm">{t("allDailyReports.noReportsFound")}</p>
                 </div>
               )}
+              
+              {/* Pagination Controls for Individual Reports */}
+              {!groupByDate && filteredReports.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t space-y-2 sm:space-y-0">
+                  <div className="text-sm text-muted-foreground text-center sm:text-left">
+                    Showing <span className="font-medium">{currentPageReports.length}</span> of{" "}
+                    <span className="font-medium">{totalRecords}</span> reports
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardContent>
@@ -980,11 +1097,12 @@ export default function AllDailyReportsPage() {
                       <SelectValue placeholder="Select a route" />
                     </SelectTrigger>
                     <SelectContent>
-                      {COMMON_ROUTES.map((route) => (
-                        <SelectItem key={route} value={route}>
-                          {route}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="Luanda - Benguela">Luanda - Benguela</SelectItem>
+                      <SelectItem value="Luanda - Huambo">Luanda - Huambo</SelectItem>
+                      <SelectItem value="Luanda - Lobito">Luanda - Lobito</SelectItem>
+                      <SelectItem value="Luanda - Malanje">Luanda - Malanje</SelectItem>
+                      <SelectItem value="Benguela - Huambo">Benguela - Huambo</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1214,6 +1332,95 @@ export default function AllDailyReportsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Download dialog */}
+      <Dialog open={downloadDialogOpen} onOpenChange={setDownloadDialogOpen}>
+        <DialogContent>
+                     <DialogHeader>
+             <DialogTitle>Download Daily Reports</DialogTitle>
+             <DialogDescription>
+               Select a date range to download daily reports as Excel file.
+             </DialogDescription>
+           </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="downloadFrom">From Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !downloadDateRange.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {downloadDateRange.from ? format(downloadDateRange.from, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={downloadDateRange.from}
+                    onSelect={(date) => setDownloadDateRange(prev => ({ ...prev, from: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="downloadTo">To Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !downloadDateRange.to && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {downloadDateRange.to ? format(downloadDateRange.to, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={downloadDateRange.to}
+                    onSelect={(date) => setDownloadDateRange(prev => ({ ...prev, to: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDownloadDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const from = downloadDateRange.from ? format(downloadDateRange.from, "yyyy-MM-dd") : undefined;
+                const to = downloadDateRange.to ? format(downloadDateRange.to, "yyyy-MM-dd") : undefined;
+                const filteredData = reports.filter(r => {
+                  const recordDate = new Date(r.report_date);
+                  const isFromDate = from ? recordDate >= new Date(from) : true;
+                  const isToDate = to ? recordDate <= new Date(to) : true;
+                  return isFromDate && isToDate;
+                });
+                                 exportReportsToExcel(filteredData, `daily_reports_${from || 'all'}_to_${to || 'all'}.xlsx`);
+                setDownloadDialogOpen(false);
+                toast({
+                  title: "Download Started",
+                  description: `Downloading ${filteredData.length} reports...`
+                });
+              }}
+            >
+                             Download Excel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

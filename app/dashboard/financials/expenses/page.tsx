@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Filter, CalendarIcon, Receipt, Eye, Edit, Trash2 } from "lucide-react";
+import { Loader2, Filter, CalendarIcon, Receipt, Eye, Edit, Trash2, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -86,6 +87,42 @@ const groupExpensesByDate = (expenses: ExpenseWithReport[]) => {
   })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
+// Utility function to export expenses to Excel
+const exportExpensesToExcel = (data: ExpenseWithReport[], filename: string) => {
+  const headers = [
+    "Date",
+    "Vehicle Plate",
+    "Route",
+    "Category",
+    "Description",
+    "Amount (AOA)"
+  ];
+
+  const excelData = [
+    headers.join('\t'),
+    ...data.map(expense => [
+      expense.report.report_date,
+      expense.report.vehicle_plate,
+      expense.report.route || '',
+      expense.category || '',
+      expense.description || '',
+      expense.amount || 0,
+    ].join('\t'))
+  ].join('\n');
+
+  const blob = new Blob([excelData], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;' 
+  });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 export default function AllExpensesPage() {
   const { t } = useTranslation('financials');
   const [expenses, setExpenses] = useState<ExpenseWithReport[]>([]);
@@ -122,6 +159,20 @@ export default function AllExpensesPage() {
   });
   const [selectedExpenseType, setSelectedExpenseType] = useState<string>("");
   const [customExpenseType, setCustomExpenseType] = useState<string>("");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 20;
+
+  // Download state
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [downloadDateRange, setDownloadDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+    to: new Date(),
+  });
 
   const fetchExpenses = async () => {
     try {
@@ -194,6 +245,13 @@ export default function AllExpensesPage() {
     
     return dateMatch && typeMatch && reportTypeMatch;
   });
+
+  // Pagination logic for individual expenses view
+  const totalRecords = filteredExpenses.length;
+  const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+  const currentPageExpenses = filteredExpenses.slice(startIndex, endIndex);
 
   // Group or show individual expenses
   const displayData = groupByDate ? groupExpensesByDate(filteredExpenses) : null;
@@ -455,6 +513,18 @@ export default function AllExpensesPage() {
             >
               {t("filters.clearFilters")}
             </Button>
+
+            {/* Download Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDownloadDialogOpen(true)}
+              className="h-9"
+            >
+              <Download className="h-4 w-4 mr-2" />
+                             <span className="hidden sm:inline">Download</span>
+               <span className="sm:hidden">Excel</span>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -537,7 +607,7 @@ export default function AllExpensesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredExpenses.map((expense) => (
+                    {currentPageExpenses.map((expense) => (
                       <TableRow key={expense.id}>
                         <TableCell>{format(parseISO(expense.report.report_date), "PP")}</TableCell>
                         <TableCell>
@@ -602,6 +672,37 @@ export default function AllExpensesPage() {
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <p className="text-sm">{t("allExpenses.noExpensesFound")}</p>
+                </div>
+              )}
+              
+              {/* Pagination Controls for Individual Expenses */}
+              {!groupByDate && filteredExpenses.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t space-y-2 sm:space-y-0">
+                  <div className="text-sm text-muted-foreground text-center sm:text-left">
+                    Showing <span className="font-medium">{currentPageExpenses.length}</span> of{" "}
+                    <span className="font-medium">{totalRecords}</span> expenses
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </>
@@ -745,6 +846,95 @@ export default function AllExpensesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Download dialog */}
+      <Dialog open={downloadDialogOpen} onOpenChange={setDownloadDialogOpen}>
+        <DialogContent>
+                     <DialogHeader>
+             <DialogTitle>Download Expenses</DialogTitle>
+             <DialogDescription>
+               Select a date range to download expenses as Excel file.
+             </DialogDescription>
+           </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="downloadFrom">From Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !downloadDateRange.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {downloadDateRange.from ? format(downloadDateRange.from, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={downloadDateRange.from}
+                    onSelect={(date) => setDownloadDateRange(prev => ({ ...prev, from: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="downloadTo">To Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !downloadDateRange.to && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {downloadDateRange.to ? format(downloadDateRange.to, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={downloadDateRange.to}
+                    onSelect={(date) => setDownloadDateRange(prev => ({ ...prev, to: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDownloadDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const from = downloadDateRange.from ? format(downloadDateRange.from, "yyyy-MM-dd") : undefined;
+                const to = downloadDateRange.to ? format(downloadDateRange.to, "yyyy-MM-dd") : undefined;
+                const filteredData = expenses.filter(e => {
+                  const recordDate = new Date(e.report.report_date);
+                  const isFromDate = from ? recordDate >= new Date(from) : true;
+                  const isToDate = to ? recordDate <= new Date(to) : true;
+                  return isFromDate && isToDate;
+                });
+                                 exportExpensesToExcel(filteredData, `expenses_${from || 'all'}_to_${to || 'all'}.xlsx`);
+                setDownloadDialogOpen(false);
+                toast({
+                  title: "Download Started",
+                  description: `Downloading ${filteredData.length} expenses...`
+                });
+              }}
+            >
+                             Download Excel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

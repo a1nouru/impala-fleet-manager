@@ -1,57 +1,62 @@
-# Environment Variables Setup
+# Environment Setup
 
-This document explains how to configure the required environment variables for the Royal Express Fleet Manager application.
+This document outlines the environment variables required for the Royal Express Fleet Manager application.
 
 ## Required Environment Variables
 
-The following environment variables are required for the application to function properly:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | `https://xyzproject.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anonymous key | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
-
-## Setting Up Environment Variables
-
-### Local Development
-
-1. Create a `.env.local` file in the root directory of the project
-2. Add the required variables to this file:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+### Database Configuration
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
-### Production Deployment
+### AI API Configuration
+```bash
+# Gemini API Configuration (for bank verification)
+GEMINI_API_KEY=your_gemini_api_key_here
+```
 
-When deploying to production, add these environment variables to your deployment platform's configuration.
+### Application Configuration
+```bash
+# Next.js Configuration
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
+```
 
-## Verifying Environment Variables
+## Setup Instructions
 
-You can verify that you've set up the environment variables correctly by running:
+### 1. Supabase Setup
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to Settings > API to find your project URL and anon key
+3. Go to Settings > API > Service Role to find your service role key
+
+### 2. Gemini API Setup
+1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Create a new API key
+3. Copy the API key and add it to your environment variables
+
+### 3. Environment File Setup
+Create a `.env.local` file in your project root:
 
 ```bash
-npm run check-env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
+# Gemini AI
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# NextAuth
+NEXTAUTH_SECRET=your_random_secret_string
+NEXTAUTH_URL=http://localhost:3000
 ```
 
-This script will check if all required environment variables are properly set and provide appropriate feedback.
+## Notes
 
-## Error Handling
-
-The application includes built-in validation for environment variables:
-
-1. **Development Environment**: If variables are missing in development, warning messages will be displayed in the console, but the application will continue to run.
-
-2. **Production Build**: During `npm run build` or deployment, missing environment variables will cause the build to fail with clear error messages.
-
-## Troubleshooting
-
-If you encounter issues related to environment variables:
-
-1. Verify that you've created the `.env.local` file in the root directory of the project
-2. Check for typos in your variable names and values
-3. Ensure your Supabase project URL and anonymous key are correct
-4. For production deployments, confirm that the environment variables are properly configured in your deployment platform
-
-For more information on Supabase configuration, refer to the [Supabase documentation](https://supabase.com/docs). 
+- Never commit your `.env.local` file to version control
+- Make sure your Gemini API key has the necessary permissions for text generation
+- The Gemini API will be used for bank statement verification with mathematical functions
+- For production deployment, set these environment variables in your hosting platform 
