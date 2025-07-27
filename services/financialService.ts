@@ -14,6 +14,7 @@ export interface DailyReport {
   ticket_revenue: number;
   baggage_revenue: number;
   cargo_revenue: number;
+  explanation?: string; // Explanation for flagged reports (low net revenue or high expenses)
   created_by?: string;
   created_at: string;
   updated_at: string;
@@ -106,11 +107,17 @@ export const financialService = {
     ticket_revenue: number;
     baggage_revenue: number;
     cargo_revenue: number;
+    explanation?: string | null;
     created_by?: string;
   }): Promise<DailyReport> {
+    // Remove explanation field if it's not provided to avoid database errors
+    // until the migration is applied
+    const { explanation, ...dataToInsert } = reportData;
+    const insertData = explanation ? reportData : dataToInsert;
+    
     const { data, error } = await supabase
       .from('daily_reports')
-      .insert([reportData])
+      .insert([insertData])
       .select(`
         *,
         vehicles (
@@ -121,7 +128,8 @@ export const financialService = {
 
     if (error) {
       console.error('Error creating daily report:', error);
-      throw error;
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      throw new Error(`Failed to create daily report: ${error.message || JSON.stringify(error)}`);
     }
 
     return data;
