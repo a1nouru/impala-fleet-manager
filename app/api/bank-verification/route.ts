@@ -5,8 +5,8 @@ import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 interface VerificationResult {
   dateRange: string;
   totalNetRevenue: number;
-  account001Total: number;
-  account002Total: number;
+  account930508110002Total: number;
+  account930508110001Total: number;
   bankTotalDeposits: number;
   status: "verified" | "mismatch";
   difference: number;
@@ -162,98 +162,90 @@ export async function POST(request: NextRequest) {
     }
 
     // Convert CSV files to text for Gemini API
+    console.log(`📄 Processing CSV files for Gemini analysis:`);
+    console.log(`   📊 Account 001 file: "${account001Statement.name}" (size: ${account001Statement.size} bytes)`);
+    console.log(`   💰 Account 002 file: "${account002Statement.name}" (size: ${account002Statement.size} bytes)`);
+    
     const account001Buffer = await account001Statement.arrayBuffer();
     const account002Buffer = await account002Statement.arrayBuffer();
     const account001Text = new TextDecoder('utf-8').decode(account001Buffer);
     const account002Text = new TextDecoder('utf-8').decode(account002Buffer);
 
-    // Create Gemini prompt with math functions
-    const geminiPrompt = createGeminiPrompt(bank, totalNetRevenue, startDate, endDate);
+    // Log first few lines of each CSV to verify correct mapping
+    const account001Preview = account001Text.split('\n').slice(0, 3).join('\n');
+    const account002Preview = account002Text.split('\n').slice(0, 3).join('\n');
+    
+    console.log(`💰 Account 002 (Cash) CSV preview:`);
+    console.log(account002Preview);
+    console.log(`📊 Account 001 (Electronic) CSV preview:`);
+    console.log(account001Preview);
 
-    // Get Gemini API key from environment
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-
-    let verificationResults: VerificationResult[];
-
-    if (geminiApiKey && geminiApiKey !== "your_gemini_api_key_here") {
-      // Call Gemini API for actual verification with math functions
-      try {
-        const geminiResponse = await callGeminiAPI(geminiPrompt, account001Text, account002Text, geminiApiKey, totalNetRevenue);
-        
-        console.log("🤖 Gemini Response Structure:", JSON.stringify(geminiResponse, null, 2));
-        
-        // Parse Gemini response with improved error handling
-        let responseText = "";
-        
-        // Handle Gemini response format
-        if (geminiResponse.candidates && geminiResponse.candidates[0]?.content?.parts?.[0]?.text) {
-          responseText = geminiResponse.candidates[0].content.parts[0].text;
-        } else if (geminiResponse.text) {
-          responseText = geminiResponse.text;
-        } else if (geminiResponse.content) {
-          responseText = geminiResponse.content;
-        } else {
-          console.error("❌ Unexpected Gemini response format:", geminiResponse);
-          throw new Error("Could not extract text from Gemini response");
-        }
-
-        console.log("📄 Extracted Response Text:", responseText);
-        
-        // Try multiple JSON extraction methods
-        let jsonData = null;
-        
-        // Method 1: Look for ```json blocks
-        const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/);
-        if (jsonMatch) {
-          jsonData = JSON.parse(jsonMatch[1]);
-        } else {
-          // Method 2: Look for { object directly (for single object responses)
-          const objectMatch = responseText.match(/\{([\s\S]*?)\}/);
-          if (objectMatch) {
-            jsonData = JSON.parse(`{${objectMatch[1]}}`);
-          } else {
-            // Method 3: Look for [ array directly
-            const arrayMatch = responseText.match(/\[([\s\S]*?)\]/);
-            if (arrayMatch) {
-              jsonData = JSON.parse(`[${arrayMatch[1]}]`);
-            } else {
-              // Method 4: Try to parse the entire response as JSON
-              try {
-                jsonData = JSON.parse(responseText);
-              } catch (parseError) {
-                console.error("❌ Failed to parse Gemini response as JSON:", parseError);
-                console.error("Response text:", responseText);
-                throw new Error("Could not extract JSON from Gemini response");
-              }
-            }
-          }
-        }
-        
-        // Ensure we always return an array
-        if (Array.isArray(jsonData)) {
-          verificationResults = jsonData;
-        } else if (jsonData && typeof jsonData === 'object') {
-          // Single object response, convert to array
-          verificationResults = [jsonData];
-        } else {
-          throw new Error("Invalid JSON data format");
-        }
-        
-        console.log("✅ Successfully parsed verification results:", verificationResults);
-        
-      } catch (error) {
-        console.error("❌ Gemini API error:", error);
-        console.error("📋 Falling back to mock data");
-        // Fallback to mock data if Gemini API fails
-        verificationResults = [createMockResult(totalNetRevenue, startDate, endDate)];
+    // Parse CSV files directly and perform verification
+    console.log("🧮 Starting direct CSV parsing and verification...");
+    
+    try {
+      // Parse Account 002 (Cash) CSV for "Depósito" credits
+      const account002Total = parseAccount002CSV(account002Text);
+      console.log(`💰 Account 002 (Cash) - Total Depósito credits: ${account002Total.toLocaleString()} AOA`);
+      
+      // Parse Account 001 (Electronic) CSV for "Fecho TPA" credits  
+      const account001Total = parseAccount001CSV(account001Text);
+      console.log(`📊 Account 001 (Electronic) - Total Fecho TPA credits: ${account001Total.toLocaleString()} AOA`);
+      
+      // Calculate totals and verification
+      const bankTotalDeposits = account002Total + account001Total;
+      const difference = bankTotalDeposits - totalNetRevenue;
+      const status: "verified" | "mismatch" = Math.abs(difference) <= 1000 ? "verified" : "mismatch";
+      
+      console.log(`\n📊 DIRECT VERIFICATION RESULTS:`);
+      console.log(`💰 Account 002 (Cash): ${account002Total.toLocaleString()} AOA`);
+      console.log(`📊 Account 001 (Electronic): ${account001Total.toLocaleString()} AOA`);
+      console.log(`🏦 Total Bank Deposits: ${bankTotalDeposits.toLocaleString()} AOA`);
+      console.log(`📈 NET Revenue from Reports: ${totalNetRevenue.toLocaleString()} AOA`);
+      console.log(`⚖️ Difference: ${difference.toLocaleString()} AOA`);
+      console.log(`✅ Status: ${status.toUpperCase()}`);
+      
+      let details = "";
+      if (status === "verified") {
+        details = `✅ Verified: Bank deposits (Account 002 Cash: ${account002Total.toLocaleString()} + Account 001 Electronic: ${account001Total.toLocaleString()} = ${bankTotalDeposits.toLocaleString()} AOA) match NET revenue within tolerance (difference: ${Math.abs(difference).toLocaleString()} AOA)`;
+      } else {
+        details = `⚠️ Mismatch: Bank deposits total ${bankTotalDeposits.toLocaleString()} AOA vs NET revenue ${totalNetRevenue.toLocaleString()} AOA (difference: ${Math.abs(difference).toLocaleString()} AOA exceeds 1,000 AOA tolerance)`;
       }
-    } else {
-      // Use mock data when Gemini API key is not configured
-      console.log("🔑 Gemini API key not configured, using mock data");
-      verificationResults = [createMockResult(totalNetRevenue, startDate, endDate)];
+      
+      const verificationResult: VerificationResult = {
+        dateRange: `${startDate} to ${endDate}`,
+        totalNetRevenue,
+        account930508110002Total: account002Total,
+        account930508110001Total: account001Total,
+        bankTotalDeposits,
+        status,
+        difference,
+        details
+      };
+      
+             const verificationResults = [verificationResult];
+       
+       return NextResponse.json(verificationResults);
+       
+    } catch (error) {
+      console.error("❌ CSV parsing error:", error);
+      
+      // Return detailed error information to the user
+      return NextResponse.json(
+        { 
+          error: "CSV parsing failed",
+          message: `Failed to parse bank statement CSV files: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: "Please check that the uploaded CSV files are in the correct format and contain the expected transaction data.",
+          troubleshooting: [
+            "Verify Account 001 CSV contains 'Fecho TPA' transactions",
+            "Verify Account 002 CSV contains 'Depósito nº' transactions", 
+            "Check CSV file format and encoding",
+            "Ensure files are not corrupted or empty"
+          ]
+        },
+        { status: 400 }
+      );
     }
-
-    return NextResponse.json(verificationResults);
   } catch (error) {
     console.error("Bank verification error:", error);
     return NextResponse.json(
@@ -282,222 +274,254 @@ function calculateTotalRevenue(report: DailyReport): number {
   return (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
 }
 
-// Create mock verification result for testing
-function createMockResult(totalNetRevenue: number, startDate: string, endDate: string): VerificationResult {
-  // Simulate realistic bank totals with slight variation
-  const account001Percentage = 0.72 + (Math.random() * 0.06); // 72-78% from electronic payments
-  const account001Total = Math.floor(totalNetRevenue * account001Percentage);
-  const account002Total = Math.floor(totalNetRevenue * (1 - account001Percentage)); // Remaining from cash deposits
-  const bankTotalDeposits = account001Total + account002Total;
-  const difference = bankTotalDeposits - totalNetRevenue;
+
+
+// Function to parse Account 002 CSV and sum "Depósito" credits
+function parseAccount002CSV(csvText: string): number {
+  console.log("💰 Parsing Account 002 (Cash) CSV for Depósito credits...");
   
-  // Determine status based on difference
-  const status: "verified" | "mismatch" = Math.abs(difference) <= 1000 ? "verified" : "mismatch";
-  
-  let details = "";
-  if (status === "verified") {
-    details = `✅ Verified: Bank deposits (Account 001 Electronic: ${account001Total.toLocaleString()} + Account 002 Cash: ${account002Total.toLocaleString()} = ${bankTotalDeposits.toLocaleString()} AOA) match NET revenue exactly`;
-  } else {
-    details = `⚠️ Mismatch: Bank deposits total ${bankTotalDeposits.toLocaleString()} AOA vs NET revenue ${totalNetRevenue.toLocaleString()} AOA (difference: ${Math.abs(difference).toLocaleString()} AOA)`;
+  if (!csvText || csvText.trim().length === 0) {
+    throw new Error("Account 002 CSV file is empty or invalid");
   }
   
-  console.log(`📋 Mock Result Generated:`);
-  console.log(`   Account 001 (Electronic): ${account001Total.toLocaleString()} AOA (${(account001Percentage * 100).toFixed(1)}%)`);
-  console.log(`   Account 002 (Cash): ${account002Total.toLocaleString()} AOA (${((1-account001Percentage) * 100).toFixed(1)}%)`);
-  console.log(`   Status: ${status}`);
+  const lines = csvText.split('\n');
+  let total = 0;
+  let depositCount = 0;
+  let transactionRowsStarted = false;
   
-  return {
-    dateRange: `${startDate} to ${endDate}`,
-    totalNetRevenue,
-    account001Total,
-    account002Total,
-    bankTotalDeposits,
-    status,
-    difference,
-    details
-  };
-}
-
-// Create Gemini prompt for bank statement verification with math functions
-function createGeminiPrompt(
-  bank: string,
-  totalNetRevenue: number,
-  startDate: string,
-  endDate: string
-): string {
-  return `
-You are a financial auditor with access to mathematical calculation functions. Use mathematical functions to verify total revenue against bank statements provided as CSV files.
-
-**IMPORTANT**: Use built-in math functions for all calculations to ensure accuracy.
-
-**Bank**: ${bank}
-**Date Range**: ${startDate} to ${endDate}
-**Total NET Revenue to Verify**: ${totalNetRevenue.toLocaleString()} AOA
-**Bank Specific Rules**: ${bank === "Caixa Angola" ? "Regular vehicles only (Agaseke vehicles excluded)" : "All vehicle types"}
-
-**TASK WITH MATH FUNCTIONS**: 
-1. Parse Account 001 CSV statement and use SUM() function to calculate all TPA credits/deposits
-2. Parse Account 002 CSV statement and use SUM() function to calculate all "Depósito" transactions  
-3. Use ADD() function: Account 001 + Account 002 = Total Bank Deposits
-4. Use SUBTRACT() function to find difference: Total Bank Deposits - Total NET Revenue
-5. Use ABS() function to get absolute difference for status determination
-
-**CSV Parsing Instructions**:
-- **Account 001 (Electronic)**: Sum all electronic payments, TPA transactions, POS deposits
-- **Account 002 (Cash)**: Sum all cash deposits marked as "Depósito" or similar
-
-**Mathematical Operations Required**:
-- SUM(account001_amounts) → account001Total
-- SUM(account002_amounts) → account002Total  
-- ADD(account001Total, account002Total) → bankTotalDeposits
-- SUBTRACT(bankTotalDeposits, ${totalNetRevenue}) → difference
-- ABS(difference) → absolute_difference
-
-**Response Format** (use exact JSON structure):
-\`\`\`json
-{
-  "dateRange": "${startDate} to ${endDate}",
-  "totalNetRevenue": ${totalNetRevenue},
-  "account001Total": 0,
-  "account002Total": 0, 
-  "bankTotalDeposits": 0,
-  "status": "verified|mismatch",
-  "difference": 0,
-  "details": "Mathematical verification explanation"
-}
-\`\`\`
-
-**Status Logic** (use math functions):
-- "verified": ABS(difference) ≤ 1000 AOA
-- "mismatch": ABS(difference) > 1000 AOA
-
-Use mathematical precision for all calculations and provide the exact JSON response.
-`;
-}
-
-// Function to call Gemini API with math functions
-async function callGeminiAPI(prompt: string, account001Text: string, account002Text: string, apiKey: string, totalNetRevenue: number) {
-  console.log("🤖 Calling Gemini 2.5 Pro API with math functions...");
-  console.log("📄 Account 001 CSV length:", account001Text.length);
-  console.log("📄 Account 002 CSV length:", account002Text.length);
+  console.log(`📄 Processing ${lines.length} lines from Account 002 CSV`);
   
-  try {
-    const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              text: `${prompt}
-
-**IMPORTANT NOTE**: I have provided two CSV bank statements for mathematical analysis:
-
-**🏧 Account 001 Statement (Electronic Payments - TPA/POS/Card):**
-This file contains electronic payment deposits, TPA transactions, and card payments.
-Use SUM() function to calculate total:
-\`\`\`csv
-${account001Text.substring(0, 1000)}${account001Text.length > 1000 ? '...' : ''}
-\`\`\`
-
-**💰 Account 002 Statement (Cash Deposits):**
-This file contains manual cash deposits marked as "Depósito" or similar.
-Use SUM() function to calculate total:
-\`\`\`csv
-${account002Text.substring(0, 1000)}${account002Text.length > 1000 ? '...' : ''}
-\`\`\`
-
-**MATHEMATICAL VERIFICATION STEPS:**
-1. **SUM(Account 001)**: Sum ALL electronic credits/deposits from the FIRST CSV
-2. **SUM(Account 002)**: Sum ALL cash deposits from the SECOND CSV
-3. **ADD()**: Account001Total + Account002Total = BankTotalDeposits
-4. **SUBTRACT()**: BankTotalDeposits - ${totalNetRevenue} = Difference
-5. **ABS()**: Absolute value of difference for status determination
-
-**CRITICAL**: Use mathematical functions for precision. Expected split: ~75% electronic, ~25% cash.
-
-Return ONLY the exact JSON object with calculated values.`
-            }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0,
-        topK: 1,
-        topP: 1,
-        maxOutputTokens: 2048,
-        responseMimeType: "application/json"
-      },
-      tools: [
-        {
-          functionDeclarations: [
-            {
-              name: "calculate_sum",
-              description: "Calculate the sum of numerical values",
-              parameters: {
-                type: "object",
-                properties: {
-                  values: {
-                    type: "array",
-                    items: { type: "number" },
-                    description: "Array of numbers to sum"
-                  }
-                },
-                required: ["values"]
-              }
-            },
-            {
-              name: "calculate_difference",
-              description: "Calculate the difference between two numbers",
-              parameters: {
-                type: "object",
-                properties: {
-                  a: { type: "number", description: "First number" },
-                  b: { type: "number", description: "Second number" }
-                },
-                required: ["a", "b"]
-              }
-            },
-            {
-              name: "calculate_absolute",
-              description: "Calculate the absolute value of a number",
-              parameters: {
-                type: "object",
-                properties: {
-                  value: { type: "number", description: "Number to get absolute value of" }
-                },
-                required: ["value"]
-              }
-            }
-          ]
-        }
-      ]
-    };
-
-    console.log("📤 Sending request to Gemini 2.5 Pro...");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
     
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    });
+    try {
+      // Try different splitting approaches for better CSV parsing
+      let columns: string[];
+      
+      if (line.includes('\t')) {
+        // Tab-separated
+        columns = line.split('\t');
+      } else if (line.includes(',')) {
+        // Comma-separated (handle quoted values)
+        columns = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+      } else {
+        // Single column or unknown format
+        columns = [line];
+      }
+      
+      // Skip header rows until we find transaction data
+      // Look for date patterns to identify when transaction rows start
+      if (!transactionRowsStarted) {
+        const hasDatePattern = columns.some(col => /^\d{2}\/\d{2}\/\d{4}$/.test(col?.trim()));
+        if (hasDatePattern) {
+          transactionRowsStarted = true;
+          console.log(`📅 Account 002 transaction rows started at line ${i + 1}`);
+          console.log(`📄 Column count: ${columns.length}, Sample columns: [${columns.slice(0, 8).map(c => `"${c?.trim()}"`).join(', ')}]`);
+          console.log(`📄 Description (col 2): "${columns[2]?.trim()}", Value (col 3): "${columns[3]?.trim()}"`);
+        } else {
+          continue; // Skip header rows
+        }
+      }
+      
+            // Bank statement format: Movement Date | Effective Date | Description | Value | Currency | Balance After | Currency | Operation Number | Document Number
+      // Look for "Depósito nº" in the description column (index 2) and get value from column 3
+      
+      if (columns.length >= 4) {
+        const description = columns[2]?.trim().replace(/"/g, '') || '';
+        const valueColumn = columns[3]?.trim().replace(/"/g, '') || '';
+        
+        // Debug every 10th transaction line to understand the structure
+        if ((i % 10) === 0 && transactionRowsStarted) {
+          console.log(`🔍 Line ${i + 1} structure: Desc="${description}" | Value="${valueColumn}" | Columns=${columns.length}`);
+        }
+        
+        // Check if description contains "Depósito nº" or "Depósito n" (case insensitive and flexible)
+        if (description && (description.toLowerCase().includes('depósito n') || description.toLowerCase().includes('deposito n'))) {
+          // Parse the value column
+          const cleanValue = valueColumn.replace(/[^\d.-]/g, ''); // Remove non-numeric except decimal and minus
+          const amount = parseFloat(cleanValue);
+          
+          if (!isNaN(amount) && amount > 0) {
+            total += amount;
+            depositCount++;
+            console.log(`💰 Found Depósito: ${amount.toLocaleString()} AOA - "${description}"`);
+          } else {
+            console.log(`⚠️ Found Depósito description but invalid amount: "${description}" - Value: "${valueColumn}" - Clean: "${cleanValue}"`);
+          }
+        }
+      } else {
+        // Fallback: search through all columns if structure is different
+        let description = "";
+        let valueStr = "";
+        
+        for (let j = 0; j < columns.length; j++) {
+          const col = columns[j]?.trim().replace(/"/g, '');
+          if (col && col.toLowerCase().includes('depósito n')) {
+            description = col;
+            // Value is typically in the next few columns
+            for (let k = j + 1; k < Math.min(j + 4, columns.length); k++) {
+              const potentialValue = columns[k]?.trim().replace(/"/g, '');
+              // Handle various number formats: 131000, 1.500000, 15000.50, etc.
+              if (potentialValue && /^-?\d+(\.\d+)?$/.test(potentialValue.replace(/,/g, ''))) {
+                const numericValue = parseFloat(potentialValue.replace(/,/g, ''));
+                if (numericValue > 0) { // Only positive values for deposits
+                  valueStr = potentialValue.replace(/,/g, '');
+                  break;
+                }
+              }
+            }
+            break;
+          }
+        }
+        
+        if (description && valueStr) {
+          const amount = parseFloat(valueStr);
+          if (!isNaN(amount) && amount > 0) {
+            total += amount;
+            depositCount++;
+            console.log(`💰 Found Depósito (fallback): ${amount.toLocaleString()} AOA - "${description}"`);
+          }
+        }
+      }
+      
 
-    console.log("📥 Gemini response status:", response.status);
-    console.log("📥 Gemini response headers:", Object.fromEntries(response.headers.entries()));
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ Gemini API error response:", errorText);
-      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+    } catch (lineError) {
+      console.warn(`⚠️ Error parsing line ${i + 1} in Account 002 CSV:`, lineError);
+      // Continue processing other lines
     }
-
-    const responseData = await response.json();
-    console.log("✅ Gemini API call successful");
-    
-    return responseData;
-    
-  } catch (error) {
-    console.error("💥 Gemini API call failed:", error);
-    throw error;
   }
-} 
+  
+  if (depositCount === 0) {
+    throw new Error(`No 'Depósito nº' transactions found in Account 002 CSV. Please verify the file contains cash deposit transactions.`);
+  }
+  
+  console.log(`💰 Account 002 Summary: Found ${depositCount} Depósito transactions totaling ${total.toLocaleString()} AOA`);
+  return total;
+}
+
+// Function to parse Account 001 CSV and sum "Fecho TPA" credits  
+function parseAccount001CSV(csvText: string): number {
+  console.log("📊 Parsing Account 001 (Electronic) CSV for Fecho TPA credits...");
+  
+  if (!csvText || csvText.trim().length === 0) {
+    throw new Error("Account 001 CSV file is empty or invalid");
+  }
+  
+  const lines = csvText.split('\n');
+  let total = 0;
+  let tpaCount = 0;
+  let transactionRowsStarted = false;
+  
+  console.log(`📄 Processing ${lines.length} lines from Account 001 CSV`);
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    try {
+      // Try different splitting approaches for better CSV parsing
+      let columns: string[];
+      
+      if (line.includes('\t')) {
+        // Tab-separated
+        columns = line.split('\t');
+      } else if (line.includes(',')) {
+        // Comma-separated (handle quoted values)
+        columns = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+      } else {
+        // Single column or unknown format
+        columns = [line];
+      }
+      
+      // Skip header rows until we find transaction data
+      // Look for date patterns to identify when transaction rows start
+      if (!transactionRowsStarted) {
+        const hasDatePattern = columns.some(col => /^\d{2}\/\d{2}\/\d{4}$/.test(col?.trim()));
+        if (hasDatePattern) {
+          transactionRowsStarted = true;
+          console.log(`📅 Account 001 transaction rows started at line ${i + 1}`);
+          console.log(`📄 Column count: ${columns.length}, Sample columns: [${columns.slice(0, 8).map(c => `"${c?.trim()}"`).join(', ')}]`);
+          console.log(`📄 Description (col 2): "${columns[2]?.trim()}", Value (col 3): "${columns[3]?.trim()}"`);
+        } else {
+          continue; // Skip header rows
+        }
+      }
+      
+            // Bank statement format: Movement Date | Effective Date | Description | Value | Currency | Balance After | Currency | Operation Number | Document Number
+      // Look for "Fecho TPA" in the description column (index 2) and get value from column 3, EXCLUDE "Comissões-Fecho TPA" (fees)
+      
+      if (columns.length >= 4) {
+        const description = columns[2]?.trim().replace(/"/g, '') || '';
+        const valueColumn = columns[3]?.trim().replace(/"/g, '') || '';
+        
+        // Debug every 10th transaction line to understand the structure
+        if ((i % 10) === 0 && transactionRowsStarted) {
+          console.log(`🔍 Line ${i + 1} structure: Desc="${description}" | Value="${valueColumn}" | Columns=${columns.length}`);
+        }
+        
+        // Check if description contains "Fecho TPA" but NOT "Comissões" (case insensitive)
+        if (description && description.toLowerCase().includes('fecho tpa') && !description.toLowerCase().includes('comissões')) {
+          // Parse the value column
+          const cleanValue = valueColumn.replace(/[^\d.-]/g, ''); // Remove non-numeric except decimal and minus
+          const amount = parseFloat(cleanValue);
+          
+          if (!isNaN(amount) && amount > 0) {
+            total += amount;
+            tpaCount++;
+            console.log(`📊 Found Fecho TPA: ${amount.toLocaleString()} AOA - "${description}"`);
+          } else {
+            console.log(`⚠️ Found Fecho TPA description but invalid amount: "${description}" - Value: "${valueColumn}"`);
+          }
+        }
+      } else {
+        // Fallback: search through all columns if structure is different
+        let description = "";
+        let valueStr = "";
+        
+        for (let j = 0; j < columns.length; j++) {
+          const col = columns[j]?.trim().replace(/"/g, '');
+          if (col && col.toLowerCase().includes('fecho tpa') && !col.toLowerCase().includes('comissões')) {
+            description = col;
+            // Value is typically in the next few columns
+            for (let k = j + 1; k < Math.min(j + 4, columns.length); k++) {
+              const potentialValue = columns[k]?.trim().replace(/"/g, '');
+              // Handle various number formats: 96000, 1.500000, 15000.50, etc.
+              if (potentialValue && /^-?\d+(\.\d+)?$/.test(potentialValue.replace(/,/g, ''))) {
+                const numericValue = parseFloat(potentialValue.replace(/,/g, ''));
+                if (numericValue > 0) { // Only positive values for TPA credits
+                  valueStr = potentialValue.replace(/,/g, '');
+                  break;
+                }
+              }
+            }
+            break;
+          }
+        }
+        
+        if (description && valueStr) {
+          const amount = parseFloat(valueStr);
+          if (!isNaN(amount) && amount > 0) {
+            total += amount;
+            tpaCount++;
+            console.log(`📊 Found Fecho TPA (fallback): ${amount.toLocaleString()} AOA - "${description}"`);
+          }
+        }
+      }
+    } catch (lineError) {
+      console.warn(`⚠️ Error parsing line ${i + 1} in Account 001 CSV:`, lineError);
+      // Continue processing other lines
+    }
+  }
+  
+  if (tpaCount === 0) {
+    throw new Error(`No 'Fecho TPA' transactions found in Account 001 CSV. Please verify the file contains electronic payment transactions (excluding commission fees).`);
+  }
+  
+  console.log(`📊 Account 001 Summary: Found ${tpaCount} Fecho TPA transactions totaling ${total.toLocaleString()} AOA`);
+  return total;
+}
+
+
+
+ 

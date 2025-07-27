@@ -28,8 +28,8 @@ interface BankStatement {
 interface VerificationResult {
   dateRange: string;
   totalNetRevenue: number;
-  account001Total: number;
-  account002Total: number;
+  account930508110002Total: number;
+  account930508110001Total: number;
   bankTotalDeposits: number;
   status: "verified" | "mismatch";
   difference: number;
@@ -107,11 +107,37 @@ export default function BankVerificationPage() {
         body: formData,
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error("Verification failed");
+        // Handle API error response with detailed information
+        console.error("API Error Response:", responseData);
+        
+        // Extract error details from API response
+        const errorMessage = responseData.message || "Verification failed";
+        const errorDetails = responseData.details || "";
+        const troubleshooting = responseData.troubleshooting || [];
+        
+        // Show detailed error information
+        toast({
+          title: responseData.error || "Verification Failed",
+          description: `${errorMessage}${errorDetails ? ` ${errorDetails}` : ''}`,
+          variant: "destructive",
+        });
+        
+        // Log troubleshooting steps for user reference
+        if (troubleshooting.length > 0) {
+          console.log("🔧 Troubleshooting Steps:");
+          troubleshooting.forEach((step: string, index: number) => {
+            console.log(`${index + 1}. ${step}`);
+          });
+        }
+        
+        return;
       }
 
-      const results: VerificationResult[] = await response.json();
+      // Handle successful response
+      const results: VerificationResult[] = responseData;
       setVerificationResults(results);
 
       toast({
@@ -119,10 +145,10 @@ export default function BankVerificationPage() {
         description: `Verified ${results.length} reports against bank statements.`,
       });
     } catch (error) {
-      console.error("Verification error:", error);
+      console.error("Network/Parsing error:", error);
       toast({
-        title: "Verification Failed",
-        description: "There was an error processing the verification. Please try again.",
+        title: "Connection Error",
+        description: "Failed to connect to verification service. Please check your connection and try again.",
         variant: "destructive",
       });
     } finally {
@@ -328,7 +354,67 @@ export default function BankVerificationPage() {
 
       {/* Bank Statements Upload */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Account 001 (TPA/POS) */}
+        {/* Account 002 (Cash Deposits) - Show First */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {t("bankVerification.account002")}
+            </CardTitle>
+            <CardDescription>
+              {t("bankVerification.account002Description")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!account002Statement ? (
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                  dragOver002 ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
+                }`}
+                onDragOver={(e) => handleDragOver(e, "002")}
+                onDragLeave={(e) => handleDragLeave(e, "002")}
+                onDrop={(e) => handleDrop(e, "002")}
+                onClick={() => account002FileRef.current?.click()}
+              >
+                <Upload className="h-10 w-10 text-gray-400 mx-auto mb-4" />
+                <p className="text-sm text-gray-600 mb-2">
+                  Drag & drop bank statement CSV here or click to upload
+                </p>
+                <p className="text-xs text-gray-500">CSV files only, max 5MB</p>
+                <input
+                  ref={account002FileRef}
+                  type="file"
+                  accept=".csv,text/csv,application/vnd.ms-excel"
+                  onChange={(e) => handleFileInputChange(e, "002")}
+                  className="hidden"
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                    <div>
+                      <p className="font-medium text-sm">{account002Statement.file.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {formatFileSize(account002Statement.file.size)} • {format(account002Statement.uploadDate, "MMM dd, yyyy HH:mm")}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeStatement("002")}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Account 001 (TPA/POS) - Show Second */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -388,65 +474,7 @@ export default function BankVerificationPage() {
           </CardContent>
         </Card>
 
-        {/* Account 002 (Cash) */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {t("bankVerification.account002")}
-            </CardTitle>
-            <CardDescription>
-              {t("bankVerification.account002Description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!account002Statement ? (
-              <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
-                  dragOver002 ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
-                }`}
-                onDragOver={(e) => handleDragOver(e, "002")}
-                onDragLeave={(e) => handleDragLeave(e, "002")}
-                onDrop={(e) => handleDrop(e, "002")}
-                onClick={() => account002FileRef.current?.click()}
-              >
-                <Upload className="h-10 w-10 text-gray-400 mx-auto mb-4" />
-                <p className="text-sm text-gray-600 mb-2">
-                  Drag & drop bank statement CSV here or click to upload
-                </p>
-                <p className="text-xs text-gray-500">CSV files only, max 5MB</p>
-                <input
-                  ref={account002FileRef}
-                  type="file"
-                  accept=".csv,text/csv,application/vnd.ms-excel"
-                  onChange={(e) => handleFileInputChange(e, "002")}
-                  className="hidden"
-                />
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileSpreadsheet className="h-8 w-8 text-green-600" />
-                    <div>
-                      <p className="font-medium text-sm">{account002Statement.file.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatFileSize(account002Statement.file.size)} • {format(account002Statement.uploadDate, "MMM dd, yyyy HH:mm")}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeStatement("002")}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
       </div>
 
       {/* Verify Button */}
@@ -516,12 +544,12 @@ export default function BankVerificationPage() {
                           <p className="font-medium">AOA {result.totalNetRevenue.toLocaleString()}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Account 001 (TPA)</p>
-                          <p className="font-medium">AOA {result.account001Total.toLocaleString()}</p>
+                          <p className="text-muted-foreground">Account 930508110002 (Cash)</p>
+                          <p className="font-medium">AOA {result.account930508110002Total.toLocaleString()}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Account 002 (Deposits)</p>
-                          <p className="font-medium">AOA {result.account002Total.toLocaleString()}</p>
+                          <p className="text-muted-foreground">Account 930508110001 (TPA)</p>
+                          <p className="font-medium">AOA {result.account930508110001Total.toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Bank Total</p>
