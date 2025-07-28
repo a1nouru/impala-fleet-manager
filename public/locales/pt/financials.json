@@ -274,5 +274,33 @@
     "removeStatement": "Remover Extracto",
     "fileSize": "Tamanho do ficheiro",
     "uploadDate": "Data de carregamento"
+  },
+  "flaggedReports": {
+    "explanationRequired": "Explicação Obrigatória",
+    "addExplanation": "Adicionar Explicação Obrigatória",
+    "viewEditExplanation": "Ver/Editar Explicação",
+    "reportExplanationRequired": "Explicação do Relatório Obrigatória",
+    "reportFlaggedDescription": "Este relatório foi sinalizado e requer uma explicação. Por favor forneça detalhes abaixo.",
+    "flagReason": "Motivo da Sinalização",
+    "explanation": "Explicação",
+    "explanationPlaceholder": "Por favor explique as circunstâncias que levaram a esta situação financeira...",
+    "explanationRequiredForEdit": "Por favor explique porque a receita líquida é baixa ou as despesas são altas...",
+    "saveExplanation": "Guardar Explicação",
+    "saving": "A guardar...",
+    "cancel": "Cancelar",
+    "success": "Sucesso ✅",
+    "explanationSaved": "Explicação guardada com sucesso.",
+    "error": "Erro",
+    "explanationSaveError": "Falha ao guardar explicação. Por favor tente novamente.",
+    "pleaseProvideExplanation": "Por favor forneça uma explicação para este relatório sinalizado.",
+    "explanationRequiredBeforeSaving": "Por favor forneça uma explicação para este relatório sinalizado antes de guardar.",
+    "addingExpenseWillFlag": "Adicionar esta despesa irá sinalizar este relatório ({{reason}}). Por favor adicione uma explicação primeiro.",
+    "updatingExpenseWillFlag": "Atualizar esta despesa irá sinalizar este relatório ({{reason}}). Por favor adicione uma explicação primeiro.",
+    "explanationWillBeRequired": "Uma explicação será obrigatória antes de guardar.",
+    "flagReasons": {
+      "lowNetRevenueBoth": "Receita líquida é {{percentage}}% da receita total (inferior a 50%) e despesas excedem 210.000 AOA",
+      "lowNetRevenue": "Receita líquida é {{percentage}}% da receita total (inferior a 50%)",
+      "highExpenses": "Despesas excedem 210.000 AOA ({{amount}})"
+    }
   }
 }

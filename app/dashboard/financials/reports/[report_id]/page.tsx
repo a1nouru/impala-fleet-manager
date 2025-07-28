@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, PlusCircle, ArrowLeft } from "lucide-react";
@@ -40,11 +40,10 @@ const calculateTotalExpenses = (expenses: DailyExpense[]) => {
   return expenses.reduce((total, expense) => total + (expense.amount || 0), 0);
 };
 
-export default function ReportDetailPage() {
+export default function ReportDetailPage({ params }: { params: { report_id: string } }) {
   const { t } = useTranslation('financials');
-  const params = useParams();
   const router = useRouter();
-  const reportId = params?.report_id as string;
+  const reportId = params.report_id;
 
   const [report, setReport] = useState<DailyReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -11,18 +11,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname;
-  const isDev = process.env.NODE_ENV === 'development';
   const isStaticAsset = path.startsWith('/_next') || path.includes('.') || path.startsWith('/favicon');
-
-  // Log middleware processing in development
-  if (isDev && !isStaticAsset) {
-    console.log(`🌐 Middleware processing: ${path}`);
-    if (user) {
-      console.log(`👤 User authenticated: ${user.email}`);
-    } else {
-      console.log(`👤 No user session found.`);
-    }
-  }
 
   // Define protected routes
   const protectedRoutes = ['/admin', '/dashboard', '/profile'];
@@ -30,17 +19,11 @@ export async function middleware(request: NextRequest) {
 
   // If no user and trying to access a protected route, redirect to login
   if (!user && isProtectedRoute) {
-    if (isDev) {
-      console.log(`🔒 Unauthorized access to ${path}, redirecting to /login.`);
-    }
     return Response.redirect(new URL('/login', request.url))
   }
   
   // If user is logged in and tries to access login page, redirect to dashboard
   if (user && path === '/login') {
-    if (isDev) {
-      console.log(`↩️ User already logged in, redirecting from /login to /dashboard.`);
-    }
     return Response.redirect(new URL('/dashboard', request.url))
   }
 
@@ -49,10 +32,7 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
-    response.headers.set('X-Session-Validation', 'required'); // Keep custom header for logging if needed
-    if (isDev) {
-      console.log(`🔒 Applied session protection headers for: ${path}`);
-    }
+    response.headers.set('X-Session-Validation', 'required');
   }
 
   return response

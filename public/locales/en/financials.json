@@ -274,5 +274,33 @@
     "removeStatement": "Remove Statement",
     "fileSize": "File size",
     "uploadDate": "Upload date"
+  },
+  "flaggedReports": {
+    "explanationRequired": "Explanation Required",
+    "addExplanation": "Add Required Explanation",
+    "viewEditExplanation": "View/Edit Explanation",
+    "reportExplanationRequired": "Report Explanation Required",
+    "reportFlaggedDescription": "This report has been flagged and requires an explanation. Please provide details below.",
+    "flagReason": "Flag Reason",
+    "explanation": "Explanation",
+    "explanationPlaceholder": "Please explain the circumstances that led to this financial situation...",
+    "explanationRequiredForEdit": "Please explain why the net revenue is low or expenses are high...",
+    "saveExplanation": "Save Explanation",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "success": "Success ✅",
+    "explanationSaved": "Explanation saved successfully.",
+    "error": "Error",
+    "explanationSaveError": "Failed to save explanation. Please try again.",
+    "pleaseProvideExplanation": "Please provide an explanation for this flagged report.",
+    "explanationRequiredBeforeSaving": "Please provide an explanation for this flagged report before saving.",
+    "addingExpenseWillFlag": "Adding this expense will flag this report ({{reason}}). Please add an explanation first.",
+    "updatingExpenseWillFlag": "Updating this expense will flag this report ({{reason}}). Please add an explanation first.",
+    "explanationWillBeRequired": "An explanation will be required before saving.",
+    "flagReasons": {
+      "lowNetRevenueBoth": "Net revenue is {{percentage}}% of total revenue (less than 50%) and expenses exceed 210,000 AOA",
+      "lowNetRevenue": "Net revenue is {{percentage}}% of total revenue (less than 50%)",
+      "highExpenses": "Expenses exceed 210,000 AOA ({{amount}})"
+    }
   }
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle } from "lucide-react";
+import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter } from "lucide-react";
 import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
 import { vehicleService } from "@/services/vehicleService";
 import { toast } from "@/components/ui/use-toast";
@@ -73,41 +73,6 @@ const calculateNetBalance = (report: DailyReport) => {
   const totalRevenue = (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
   const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
   return totalRevenue - totalExpenses;
-};
-
-// Helper function to check if a report is flagged for attention
-const isReportFlagged = (report: DailyReport): boolean => {
-  const totalRevenue = calculateTotalRevenue(report);
-  const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
-  const netRevenue = calculateNetBalance(report);
-  
-  // Flag if net revenue is less than 50% of total revenue OR expenses > 210,000 AOA
-  const netRevenuePercentage = totalRevenue > 0 ? (netRevenue / totalRevenue) * 100 : 0;
-  const isLowNetRevenue = netRevenuePercentage < 50;
-  const isHighExpenses = totalExpenses > 210000;
-  
-  return isLowNetRevenue || isHighExpenses;
-};
-
-// Helper function to get the flag reason for a report
-const getFlagReason = (report: DailyReport): string => {
-  const totalRevenue = calculateTotalRevenue(report);
-  const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
-  const netRevenue = calculateNetBalance(report);
-  
-  const netRevenuePercentage = totalRevenue > 0 ? (netRevenue / totalRevenue) * 100 : 0;
-  const isLowNetRevenue = netRevenuePercentage < 50;
-  const isHighExpenses = totalExpenses > 210000;
-  
-  if (isLowNetRevenue && isHighExpenses) {
-    return `Net revenue is ${netRevenuePercentage.toFixed(1)}% of total revenue (less than 50%) and expenses exceed 210,000 AOA`;
-  } else if (isLowNetRevenue) {
-    return `Net revenue is ${netRevenuePercentage.toFixed(1)}% of total revenue (less than 50%)`;
-  } else if (isHighExpenses) {
-    return `Expenses exceed 210,000 AOA (${formatCurrency(totalExpenses)})`;
-  }
-  
-  return "";
 };
 
 // Helper to format currency
@@ -202,12 +167,6 @@ export default function AllDailyReportsPage() {
   const [newReportDialogOpen, setNewReportDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<DailyReport | null>(null);
-  
-  // Explanation dialog states
-  const [explanationDialogOpen, setExplanationDialogOpen] = useState(false);
-  const [explanationReport, setExplanationReport] = useState<DailyReport | null>(null);
-  const [explanationText, setExplanationText] = useState("");
-  const [isSubmittingExplanation, setIsSubmittingExplanation] = useState(false);
   const [editedReportData, setEditedReportData] = useState<{
     vehicle_id: string;
     report_date: string;
@@ -217,7 +176,6 @@ export default function AllDailyReportsPage() {
     ticket_revenue: number;
     baggage_revenue: number;
     cargo_revenue: number;
-    explanation: string;
   }>({
     vehicle_id: "",
     report_date: "",
@@ -227,7 +185,6 @@ export default function AllDailyReportsPage() {
     ticket_revenue: 0,
     baggage_revenue: 0,
     cargo_revenue: 0,
-    explanation: "",
   });
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<DailyExpense | null>(null);
@@ -405,7 +362,6 @@ export default function AllDailyReportsPage() {
         ticket_revenue: newReport.ticket_revenue,
         baggage_revenue: newReport.baggage_revenue,
         cargo_revenue: newReport.cargo_revenue,
-        // Note: explanation field excluded for new reports - added later via updates when needed
       };
       await financialService.createDailyReport(reportData);
       toast({
@@ -438,7 +394,6 @@ export default function AllDailyReportsPage() {
       ticket_revenue: report.ticket_revenue,
       baggage_revenue: report.baggage_revenue,
       cargo_revenue: report.cargo_revenue,
-      explanation: report.explanation || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -454,27 +409,9 @@ export default function AllDailyReportsPage() {
 
   const handleUpdateReport = async () => {
     if (!editingReport) return;
-    
-    // Create a temporary report object with updated data to check if it will be flagged
-    const tempReport = { 
-      ...editingReport, 
-      ...editedReportData,
-      daily_expenses: editingReport.daily_expenses // Keep existing expenses for validation
-    };
-    
-    // Validate explanation is provided for flagged reports
-    if (isReportFlagged(tempReport) && !editedReportData.explanation?.trim()) {
-      toast({ 
-        title: "Explanation Required", 
-        description: "Please provide an explanation for this flagged report before saving.",
-        variant: "destructive" 
-      });
-      return;
-    }
-    
     try {
         await financialService.updateDailyReport(editingReport.id, editedReportData);
-        toast({ title: "Success ✅", description: "Report updated successfully." });
+        toast({ title: "Success", description: "Report updated successfully." });
         setIsEditDialogOpen(false);
         fetchReports(); // Refresh data
     } catch (error) {
@@ -561,26 +498,9 @@ export default function AllDailyReportsPage() {
         toast({ title: "Error", description: "Please provide a category and amount for the new expense.", variant: "destructive" });
         return;
     }
-    
-    // Create temporary report to check if adding this expense will flag it
-    const tempReport = {
-      ...editingReport,
-      daily_expenses: [...(editingReport.daily_expenses || []), { amount: newExpenseData.amount || 0 } as DailyExpense]
-    };
-    
-    // Check if this will make the report flagged and no explanation exists
-    if (isReportFlagged(tempReport) && !editingReport.explanation?.trim()) {
-      toast({ 
-        title: "Explanation Required", 
-        description: `Adding this expense will flag this report (${getFlagReason(tempReport)}). Please add an explanation first.`,
-        variant: "destructive" 
-      });
-      return;
-    }
-    
     try {
         await financialService.createDailyExpense({ report_id: editingReport.id, ...newExpenseData } as DailyExpense);
-        toast({ title: "Success ✅", description: "Expense added successfully." });
+        toast({ title: "Success", description: "Expense added successfully." });
         setNewExpenseData({ category: "", description: "", amount: 0 });
         setSelectedExpenseType("");
         setCustomExpenseType("");
@@ -594,32 +514,9 @@ export default function AllDailyReportsPage() {
 
   const handleUpdateExpense = async () => {
     if (!editingExpense) return;
-    
-    // Create temporary report with updated expense to check if it will be flagged
-    if (editingReport) {
-      const tempReport = {
-        ...editingReport,
-        daily_expenses: editingReport.daily_expenses?.map(exp => 
-          exp.id === editingExpense.id 
-            ? { ...exp, ...editedExpenseData }
-            : exp
-        ) || []
-      };
-      
-      // Check if this will make the report flagged and no explanation exists
-      if (isReportFlagged(tempReport) && !editingReport.explanation?.trim()) {
-        toast({ 
-          title: "Explanation Required", 
-          description: `Updating this expense will flag this report (${getFlagReason(tempReport)}). Please add an explanation first.`,
-          variant: "destructive" 
-        });
-        return;
-      }
-    }
-    
     try {
         await financialService.updateDailyExpense(editingExpense.id, editedExpenseData);
-        toast({ title: "Success ✅", description: "Expense updated." });
+        toast({ title: "Success", description: "Expense updated." });
         setIsExpenseDialogOpen(false);
         if(editingReport) {
             const updatedReport = await financialService.getDailyReportById(editingReport.id);
@@ -649,56 +546,6 @@ export default function AllDailyReportsPage() {
   const handleDeleteClick = (report: DailyReport) => {
     setReportToDelete(report);
     setDeleteConfirmationOpen(true);
-  };
-
-  // Explanation Handlers
-  const handleExplanationClick = (report: DailyReport) => {
-    setExplanationReport(report);
-    setExplanationText(report.explanation || "");
-    setExplanationDialogOpen(true);
-  };
-
-  const handleExplanationSubmit = async () => {
-    if (!explanationReport || !explanationText.trim()) {
-      toast({
-        title: "Error",
-        description: "Please provide an explanation for this flagged report.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmittingExplanation(true);
-    try {
-      await financialService.updateDailyReport(explanationReport.id, {
-        explanation: explanationText.trim(),
-      });
-
-      // Update the local state
-      setReports(prev => prev.map(r => 
-        r.id === explanationReport.id 
-          ? { ...r, explanation: explanationText.trim() }
-          : r
-      ));
-
-      setExplanationDialogOpen(false);
-      setExplanationReport(null);
-      setExplanationText("");
-
-      toast({
-        title: "Success ✅",
-        description: "Explanation saved successfully.",
-      });
-    } catch (error) {
-      console.error("Error saving explanation:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save explanation. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmittingExplanation(false);
-    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -786,18 +633,12 @@ export default function AllDailyReportsPage() {
                     <SelectValue placeholder={t("form.selectRoute")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
-                    <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
-                    <SelectItem value="LUANDA - HUAMBO">LUANDA - HUAMBO</SelectItem>
-                    <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
-                    <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
-                    <SelectItem value="LUANDA - LUVU">LUANDA - LUVU</SelectItem>
-                    <SelectItem value="MBANZA - HUAMBO">MBANZA - HUAMBO</SelectItem>
-                    <SelectItem value="HUAMBO - MBANZA">HUAMBO - MBANZA</SelectItem>
-                    <SelectItem value="CAXITO - LUANDA">CAXITO - LUANDA</SelectItem>
-                    <SelectItem value="LUANDA - CAXITO">LUANDA - CAXITO</SelectItem>
-                    <SelectItem value="UIGE - LUANDA">UIGE - LUANDA</SelectItem>
-                    <SelectItem value="LUANDA - UIGE">LUANDA - UIGE</SelectItem>
+                    <SelectItem value="Luanda - Benguela">Luanda - Benguela</SelectItem>
+                    <SelectItem value="Luanda - Huambo">Luanda - Huambo</SelectItem>
+                    <SelectItem value="Luanda - Lobito">Luanda - Lobito</SelectItem>
+                    <SelectItem value="Luanda - Malanje">Luanda - Malanje</SelectItem>
+                    <SelectItem value="Benguela - Huambo">Benguela - Huambo</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1101,9 +942,8 @@ export default function AllDailyReportsPage() {
                   </TableHeader>
                   <TableBody>
                     {currentPageReports.map((report) => (
-                      <React.Fragment key={report.id}>
-                        <TableRow className={isReportFlagged(report) ? "bg-red-100 border-red-200" : ""}>
-                          <TableCell>{format(parseISO(report.report_date), "PP")}</TableCell>
+                      <TableRow key={report.id}>
+                        <TableCell>{format(parseISO(report.report_date), "PP")}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span>{report.vehicles?.plate}</span>
@@ -1111,20 +951,6 @@ export default function AllDailyReportsPage() {
                               <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
                                 {t("status.agaseke")}
                               </Badge>
-                            )}
-                            {isReportFlagged(report) && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertTriangle className={`h-4 w-4 cursor-help ${report.explanation ? 'text-green-500' : 'text-amber-500'}`} />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <div className="max-w-xs">
-                                      <p className="text-sm font-medium">{getFlagReason(report)}</p>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
                             )}
                           </div>
                         </TableCell>
@@ -1141,74 +967,31 @@ export default function AllDailyReportsPage() {
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(calculateNetBalance(report))}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(report)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            {isReportFlagged(report) && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="text-amber-600 hover:text-amber-700"
-                                      onClick={() => handleExplanationClick(report)}
-                                    >
-                                      <AlertTriangle className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{report.explanation ? "View/Edit Explanation" : "Add Required Explanation"}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-500 hover:text-red-600"
-                                    onClick={() => handleDeleteClick(report)}
-                                    disabled={report.deposit_reports && report.deposit_reports.length > 0}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{report.deposit_reports && report.deposit_reports.length > 0 
-                                    ? "Cannot delete report that is associated with bank deposits" 
-                                    : "Delete"}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
+                          <Button variant="ghost" size="icon" onClick={() => handleEditClick(report)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-red-500 hover:text-red-600"
+                                  onClick={() => handleDeleteClick(report)}
+                                  disabled={report.deposit_reports && report.deposit_reports.length > 0}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{report.deposit_reports && report.deposit_reports.length > 0 
+                                  ? "Cannot delete report that is associated with bank deposits" 
+                                  : "Delete"}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </TableCell>
                       </TableRow>
-                      
-                      {/* Explanation Row - appears below flagged reports */}
-                      {isReportFlagged(report) && report.explanation && (
-                        <TableRow className="bg-amber-50 border-l-4 border-l-amber-400">
-                          <TableCell colSpan={8} className="py-3">
-                            <div className="flex items-start gap-2">
-                              <div className="text-amber-600 mt-0.5">
-                                <AlertTriangle className="h-4 w-4" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-amber-800 mb-1">
-                                  {getFlagReason(report)}
-                                </p>
-                                <p className="text-sm text-gray-700">
-                                  <span className="font-medium">Explanation:</span> {report.explanation}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      </React.Fragment>
                     ))}
                   </TableBody>
                   <TableFooter>
@@ -1314,18 +1097,12 @@ export default function AllDailyReportsPage() {
                       <SelectValue placeholder="Select a route" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
-                      <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
-                      <SelectItem value="LUANDA - HUAMBO">LUANDA - HUAMBO</SelectItem>
-                      <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
-                      <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
-                      <SelectItem value="LUANDA - LUVU">LUANDA - LUVU</SelectItem>
-                      <SelectItem value="MBANZA - HUAMBO">MBANZA - HUAMBO</SelectItem>
-                      <SelectItem value="HUAMBO - MBANZA">HUAMBO - MBANZA</SelectItem>
-                      <SelectItem value="CAXITO - LUANDA">CAXITO - LUANDA</SelectItem>
-                      <SelectItem value="LUANDA - CAXITO">LUANDA - CAXITO</SelectItem>
-                      <SelectItem value="UIGE - LUANDA">UIGE - LUANDA</SelectItem>
-                      <SelectItem value="LUANDA - UIGE">LUANDA - UIGE</SelectItem>
+                      <SelectItem value="Luanda - Benguela">Luanda - Benguela</SelectItem>
+                      <SelectItem value="Luanda - Huambo">Luanda - Huambo</SelectItem>
+                      <SelectItem value="Luanda - Lobito">Luanda - Lobito</SelectItem>
+                      <SelectItem value="Luanda - Malanje">Luanda - Malanje</SelectItem>
+                      <SelectItem value="Benguela - Huambo">Benguela - Huambo</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1341,26 +1118,6 @@ export default function AllDailyReportsPage() {
                   <Label>Cargo Revenue</Label>
                   <Input name="cargo_revenue" type="number" value={editedReportData.cargo_revenue || 0} onChange={handleReportInputChange} />
                 </div>
-                
-                {/* Explanation field for flagged reports */}
-                {editingReport && isReportFlagged(editingReport) && (
-                  <div className="space-y-2">
-                    <Label className="text-amber-600 font-medium">
-                      Explanation Required *
-                      <span className="text-sm text-muted-foreground block mt-1">
-                        {getFlagReason(editingReport)}
-                      </span>
-                    </Label>
-                    <Textarea 
-                      name="explanation" 
-                      value={editedReportData.explanation || ""} 
-                      onChange={handleReportInputChange}
-                      placeholder="Please explain why the net revenue is low or expenses are high..."
-                      className="min-h-[80px]"
-                      required
-                    />
-                  </div>
-                )}
               </div>
 
               {/* Expenses Section */}
@@ -1475,37 +1232,6 @@ export default function AllDailyReportsPage() {
                         rows={2}
                       />
                       
-                      {/* Real-time warning for flagged reports */}
-                      {editingReport && newExpenseData.amount && (() => {
-                        const tempReport = {
-                          ...editingReport,
-                          daily_expenses: [...(editingReport.daily_expenses || []), { amount: newExpenseData.amount || 0 } as DailyExpense]
-                        };
-                        const willBeFlagged = isReportFlagged(tempReport);
-                        const hasExplanation = editingReport.explanation?.trim();
-                        
-                        if (willBeFlagged) {
-                          return (
-                            <div className={`p-3 rounded-lg border ${hasExplanation ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
-                              <div className="flex items-start gap-2">
-                                <AlertTriangle className={`h-4 w-4 mt-0.5 ${hasExplanation ? 'text-amber-500' : 'text-red-500'}`} />
-                                <div className="flex-1">
-                                  <p className={`text-sm font-medium ${hasExplanation ? 'text-amber-800' : 'text-red-800'}`}>
-                                    {getFlagReason(tempReport)}
-                                  </p>
-                                  {!hasExplanation && (
-                                    <p className="text-sm text-red-700 mt-1">
-                                      An explanation will be required before saving.
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                      
                       <Button 
                         size="sm" 
                         onClick={handleAddNewExpense}
@@ -1582,65 +1308,6 @@ export default function AllDailyReportsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsExpenseDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleUpdateExpense}>Save Expense</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Explanation Dialog */}
-      <Dialog open={explanationDialogOpen} onOpenChange={setExplanationDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Report Explanation Required
-            </DialogTitle>
-            <DialogDescription>
-              This report has been flagged and requires an explanation. Please provide details below.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {explanationReport && (
-            <div className="space-y-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-amber-800">Flag Reason:</p>
-                <p className="text-sm text-amber-700 mt-1">{getFlagReason(explanationReport)}</p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="explanation-text">Explanation *</Label>
-                <Textarea
-                  id="explanation-text"
-                  value={explanationText}
-                  onChange={(e) => setExplanationText(e.target.value)}
-                  placeholder="Please explain the circumstances that led to this financial situation..."
-                  className="min-h-[120px]"
-                  required
-                />
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setExplanationDialogOpen(false)}
-              disabled={isSubmittingExplanation}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleExplanationSubmit}
-              disabled={isSubmittingExplanation || !explanationText.trim()}
-            >
-              {isSubmittingExplanation ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Saving...
-                </>
-              ) : (
-                "Save Explanation"
-              )}
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

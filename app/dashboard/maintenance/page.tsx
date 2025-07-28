@@ -32,7 +32,10 @@ import {
   Loader2,
   PencilIcon,
   TrashIcon,
-  PlusIcon
+  PlusIcon,
+  Download,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react"
 import { maintenanceService } from "@/services/maintenanceService"
 import { vehicleService } from "@/services/vehicleService"
@@ -45,6 +48,58 @@ import { format, parseISO } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
+
+// Type definitions (moved to top for use in utility functions)
+interface Vehicle {
+  id: string;
+  plate: string;
+  model: string;
+}
+
+interface Technician {
+  id: string;
+  name: string;
+  email?: string;
+  active: boolean;
+}
+
+interface Part {
+  id: string;
+  name: string;
+}
+
+interface PartCategory {
+  category: string;
+  items: Part[];
+}
+
+interface CustomPartInput {
+  category: string;
+  value: string;
+  showInput: boolean;
+}
+
+interface MaintenanceRecord {
+  id: string;
+  date: string;
+  description: string;
+  status: string;
+  cost: number;
+  kilometers?: number;
+  vehicle_id?: string;
+  technician_id?: string;
+  vehiclePlate?: string;
+  technician?: string;
+  parts?: string[];
+  created_by?: string;
+  vehicles?: {
+    plate: string;
+    model: string;
+  };
+  technicians?: {
+    name: string;
+  };
+}
 
 // Loading component for better user experience
 function LoadingState() {
@@ -60,6 +115,49 @@ function LoadingState() {
     </div>
   )
 }
+
+// Utility function to export data to Excel (simplified approach)
+const exportToExcel = (data: MaintenanceRecord[], filename: string) => {
+  const headers = [
+    "Date",
+    "Vehicle Plate", 
+    "Description",
+    "Parts",
+    "Technician",
+    "Status",
+    "Cost (Kz)",
+    "Kilometers"
+  ];
+
+  // Create Excel-compatible content
+  const excelData = [
+    headers.join('\t'),
+    ...data.map(record => [
+      record.date,
+      record.vehicles?.plate || record.vehiclePlate || '',
+      record.description || '',
+      record.parts ? record.parts.join('; ') : '',
+      record.technicians?.name || record.technician || '',
+      record.status || '',
+      record.cost || 0,
+      record.kilometers || '',
+    ].join('\t'))
+  ].join('\n');
+
+  // Create Excel file (tab-separated values work well with Excel)
+  const blob = new Blob([excelData], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;' 
+  });
+  
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 export default function MaintenancePage() {
   // Add a loading state at the top level
@@ -90,58 +188,6 @@ export default function MaintenancePage() {
 function MaintenanceContent() {
   const { t } = useTranslation('maintenance');
   
-  // Type definitions
-  interface Vehicle {
-    id: string;
-    plate: string;
-    model: string;
-  }
-
-  interface Technician {
-    id: string;
-    name: string;
-    email?: string;
-    active: boolean;
-  }
-
-  interface Part {
-    id: string;
-    name: string;
-  }
-
-  interface PartCategory {
-    category: string;
-    items: Part[];
-  }
-
-  interface CustomPartInput {
-    category: string;
-    value: string;
-    showInput: boolean;
-  }
-
-  interface MaintenanceRecord {
-    id: string;
-    date: string;
-    description: string;
-    status: string;
-    cost: number;
-    kilometers?: number;
-    vehicle_id?: string;
-    technician_id?: string;
-    vehiclePlate?: string;
-    technician?: string;
-    parts?: string[];
-    created_by?: string;
-    vehicles?: {
-      plate: string;
-      model: string;
-    };
-    technicians?: {
-      name: string;
-    };
-  }
-
   // Status options - translate these dynamically
   const statuses = [
     { value: "Scheduled", label: t("status.scheduled") },
@@ -170,6 +216,20 @@ function MaintenanceContent() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 20;
+
+  // Download state
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [downloadDateRange, setDownloadDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+    to: new Date(),
+  });
   
   // Loading states
   const [isLoading, setIsLoading] = useState({
@@ -359,6 +419,13 @@ function MaintenanceContent() {
     
     return true;
   });
+
+  // Pagination logic
+  const totalRecords = filteredRecords.length;
+  const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+  const currentPageRecords = filteredRecords.slice(startIndex, endIndex);
 
   // Check if all required fields are filled
   const isFormValid = () => {
@@ -1085,6 +1152,17 @@ function MaintenanceContent() {
                     <span className="sm:hidden">{t("filters.filter")}</span>
                     {plateFilter !== "all" && <span className="ml-1 text-black">• {t("filters.filtered")}</span>}
                   </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDownloadDialogOpen(true)}
+                    className="h-9"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Download</span>
+                    <span className="sm:hidden">Excel</span>
+                  </Button>
                   
                   <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
                     <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
@@ -1155,14 +1233,14 @@ function MaintenanceContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRecords.length === 0 ? (
+                  {currentPageRecords.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="text-center py-8 text-muted-foreground">
                         {t("table.noRecords")}
                       </td>
                     </tr>
                   ) : (
-                    filteredRecords.map((record) => (
+                    currentPageRecords.map((record) => (
                       <tr key={record.id} className="border-b hover:bg-muted/50">
                         <td className="px-4 py-3 text-sm">
                           {(() => {
@@ -1288,18 +1366,19 @@ function MaintenanceContent() {
             
             {/* Mobile Card View */}
             <div className="lg:hidden">
-              {filteredRecords.length === 0 ? (
+              {currentPageRecords.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   No maintenance records found
                 </div>
               ) : (
                 <div className="space-y-4 p-4">
-                  {filteredRecords.map((record) => (
+                  {currentPageRecords.map((record) => (
                     <Card key={record.id} className="border border-gray-200">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h3 className="font-semibold text-lg">
+                            <h3 className="font-semibold text-lg">{record.vehicles?.plate || record.vehiclePlate}</h3>
+                            <p className="text-sm text-muted-foreground">
                               {(() => {
                                 try {
                                   if (record.date.includes('-')) {
@@ -1313,8 +1392,7 @@ function MaintenanceContent() {
                                   return new Date(record.date).toLocaleDateString();
                                 }
                               })()}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">{record.vehicles?.plate || record.vehiclePlate}</p>
+                            </p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button 
@@ -1404,7 +1482,7 @@ function MaintenanceContent() {
                               </div>
                             </div>
                           )}
-                          
+
                         </div>
                       </CardContent>
                     </Card>
@@ -1415,8 +1493,8 @@ function MaintenanceContent() {
             
             <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t space-y-2 sm:space-y-0">
               <div className="text-sm text-muted-foreground text-center sm:text-left">
-                Showing <span className="font-medium">{filteredRecords.length}</span> of{" "}
-                <span className="font-medium">{records.length}</span> records
+                Showing <span className="font-medium">{currentPageRecords.length}</span> of{" "}
+                <span className="font-medium">{totalRecords}</span> records
                 {plateFilter !== "all" && (
                   <span className="block sm:inline sm:ml-1">
                     (filtered by plate: <span className="font-medium">{plateFilter}</span>)
@@ -1424,15 +1502,15 @@ function MaintenanceContent() {
                 )}
               </div>
               <div className="flex space-x-2">
-                <Button variant="outline" size="sm" disabled>
-                  Previous
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" disabled>
-                  Next
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-          </div>
+                      </div>
         </>
       )}
 
@@ -1475,6 +1553,102 @@ function MaintenanceContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+             {/* Download dialog */}
+       <Dialog open={downloadDialogOpen} onOpenChange={setDownloadDialogOpen}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>Download Maintenance Records</DialogTitle>
+             <DialogDescription>
+               Select a date range to download maintenance records as Excel file.
+             </DialogDescription>
+           </DialogHeader>
+           <div className="grid gap-4 py-4">
+             <div className="flex items-center gap-4">
+               <div className="flex items-center gap-2">
+                 <Label>From:</Label>
+                 <Popover>
+                   <PopoverTrigger asChild>
+                     <Button
+                       variant={"outline"}
+                       className={cn(
+                         "w-[140px] justify-start text-left font-normal",
+                         !downloadDateRange.from && "text-muted-foreground"
+                       )}
+                     >
+                       <CalendarIcon className="mr-2 h-4 w-4" />
+                       {downloadDateRange.from ? format(downloadDateRange.from, "MMM dd") : "Pick date"}
+                     </Button>
+                   </PopoverTrigger>
+                   <PopoverContent className="w-auto p-0">
+                     <Calendar
+                       mode="single"
+                       selected={downloadDateRange.from}
+                       onSelect={(date) => setDownloadDateRange(prev => ({ ...prev, from: date }))}
+                       initialFocus
+                     />
+                   </PopoverContent>
+                 </Popover>
+               </div>
+               
+               <div className="flex items-center gap-2">
+                 <Label>To:</Label>
+                 <Popover>
+                   <PopoverTrigger asChild>
+                     <Button
+                       variant={"outline"}
+                       className={cn(
+                         "w-[140px] justify-start text-left font-normal",
+                         !downloadDateRange.to && "text-muted-foreground"
+                       )}
+                     >
+                       <CalendarIcon className="mr-2 h-4 w-4" />
+                       {downloadDateRange.to ? format(downloadDateRange.to, "MMM dd") : "Pick date"}
+                     </Button>
+                   </PopoverTrigger>
+                   <PopoverContent className="w-auto p-0">
+                     <Calendar
+                       mode="single"
+                       selected={downloadDateRange.to}
+                       onSelect={(date) => setDownloadDateRange(prev => ({ ...prev, to: date }))}
+                       initialFocus
+                     />
+                   </PopoverContent>
+                 </Popover>
+               </div>
+             </div>
+           </div>
+           <DialogFooter>
+             <Button variant="outline" onClick={() => setDownloadDialogOpen(false)}>
+               Cancel
+             </Button>
+             <Button
+               onClick={() => {
+                 const from = downloadDateRange.from ? format(downloadDateRange.from, "yyyy-MM-dd") : undefined;
+                 const to = downloadDateRange.to ? format(downloadDateRange.to, "yyyy-MM-dd") : undefined;
+                 exportToExcel(records.filter(r => {
+                   const recordDate = new Date(r.date);
+                   const isFromDate = from ? recordDate >= new Date(from) : true;
+                   const isToDate = to ? recordDate <= new Date(to) : true;
+                   return isFromDate && isToDate;
+                 }), `maintenance_records_${from || 'all'}_to_${to || 'all'}.xlsx`);
+                 setDownloadDialogOpen(false);
+                 toast({
+                   title: "Download Started",
+                   description: `Downloading ${records.filter(r => {
+                     const recordDate = new Date(r.date);
+                     const isFromDate = from ? recordDate >= new Date(from) : true;
+                     const isToDate = to ? recordDate <= new Date(to) : true;
+                     return isFromDate && isToDate;
+                   }).length} records...`
+                 });
+               }}
+             >
+               Download Excel
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
     </div>
   )
 } 
