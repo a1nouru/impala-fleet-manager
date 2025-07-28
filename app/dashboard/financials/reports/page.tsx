@@ -351,7 +351,7 @@ export default function AllDailyReportsPage() {
                                                 <AlertTriangle className="h-4 w-4 text-amber-500 cursor-help" />
                                               </TooltipTrigger>
                                               <TooltipContent>
-                                                <p>⚠️ Report flagged: {flaggingReason}</p>
+                                                <p>⚠️ {t("flaggedReports.flagReason")}: {flaggingReason}</p>
                                               </TooltipContent>
                                             </Tooltip>
                                           </TooltipProvider>
