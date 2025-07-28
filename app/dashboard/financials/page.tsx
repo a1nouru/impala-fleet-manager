@@ -641,13 +641,13 @@ export default function AllDailyReportsPage() {
       setExplanationText("");
       
       toast({
-        title: "Success",
-        description: "Explanation saved successfully.",
+        title: t("flaggedReports.success"),
+        description: t("flaggedReports.explanationSaved"),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to save explanation. Please try again.",
+        title: t("flaggedReports.error"),
+        description: t("flaggedReports.explanationSaveError"),
         variant: "destructive",
       });
     }
@@ -1083,7 +1083,7 @@ export default function AllDailyReportsPage() {
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>{report.explanation ? "View/Edit explanation" : "Add explanation"}</p>
+                                    <p>{report.explanation ? t("flaggedReports.viewEditExplanationTooltip") : t("flaggedReports.addExplanationTooltip")}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -1546,9 +1546,9 @@ export default function AllDailyReportsPage() {
       <Dialog open={explanationDialogOpen} onOpenChange={setExplanationDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add Explanation for Flagged Report</DialogTitle>
+            <DialogTitle>{t("flaggedReports.addExplanationDialog")}</DialogTitle>
             <DialogDescription>
-              This report has been flagged and requires an explanation.
+              {t("flaggedReports.reportFlaggedDescription")}
             </DialogDescription>
           </DialogHeader>
           {currentExplanationReport && (
@@ -1560,33 +1560,36 @@ export default function AllDailyReportsPage() {
                     <p className="text-amber-800 font-medium text-sm">
                       {getFlaggingReason(currentExplanationReport)}
                     </p>
-                    <p className="text-amber-700 text-xs mt-1">
-                      Vehicle: {currentExplanationReport.vehicles?.plate} | Date: {format(parseISO(currentExplanationReport.report_date), "PP")}
-                    </p>
+                                         <p className="text-amber-700 text-xs mt-1">
+                       {t("flaggedReports.vehicleAndDate", { 
+                         plate: currentExplanationReport.vehicles?.plate, 
+                         date: format(parseISO(currentExplanationReport.report_date), "PP") 
+                       })}
+                     </p>
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="explanation">Explanation</Label>
-                <Textarea
-                  id="explanation"
-                  placeholder="Please provide an explanation for why this report has been flagged..."
-                  value={explanationText}
-                  onChange={(e) => setExplanationText(e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
+                             <div className="space-y-2">
+                 <Label htmlFor="explanation">{t("flaggedReports.explanation")}</Label>
+                 <Textarea
+                   id="explanation"
+                   placeholder={t("flaggedReports.explanationPlaceholder")}
+                   value={explanationText}
+                   onChange={(e) => setExplanationText(e.target.value)}
+                   rows={4}
+                   className="resize-none"
+                 />
+               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setExplanationDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleExplanationSave} disabled={!explanationText.trim()}>
-              Save Explanation
-            </Button>
-          </DialogFooter>
+                     <DialogFooter>
+             <Button variant="outline" onClick={() => setExplanationDialogOpen(false)}>
+               {t("flaggedReports.cancel")}
+             </Button>
+             <Button onClick={handleExplanationSave} disabled={!explanationText.trim()}>
+               {t("flaggedReports.saveExplanation")}
+             </Button>
+           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
