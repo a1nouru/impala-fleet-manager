@@ -339,7 +339,7 @@ export default function AllDailyReportsPage() {
                             const flaggingReason = isFlagged ? getFlaggingReason(report) : '';
 
                             return (
-                                <TableRow key={report.id} className={isFlagged ? "bg-red-50" : ""}>
+                                <TableRow key={report.id} className={isFlagged ? "bg-red-100" : ""}>
                                     <TableCell>{format(new Date(report.report_date), "PPP")}</TableCell>
                                     <TableCell>
                                       <div className="flex items-center gap-2">
