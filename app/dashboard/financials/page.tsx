@@ -256,6 +256,11 @@ export default function AllDailyReportsPage() {
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
     to: new Date(),
   });
+
+  // Explanation state
+  const [explanationDialogOpen, setExplanationDialogOpen] = useState(false);
+  const [currentExplanationReport, setCurrentExplanationReport] = useState<DailyReport | null>(null);
+  const [explanationText, setExplanationText] = useState("");
   
   // New report form state
   const [newReport, setNewReport] = useState<{
@@ -603,6 +608,48 @@ export default function AllDailyReportsPage() {
       setIsSubmitting(false);
       setDeleteConfirmationOpen(false);
       setReportToDelete(null);
+    }
+  };
+
+  // Explanation functions
+  const handleExplanationClick = (report: DailyReport) => {
+    setCurrentExplanationReport(report);
+    setExplanationText(report.explanation || "");
+    setExplanationDialogOpen(true);
+  };
+
+  const handleExplanationSave = async () => {
+    if (!currentExplanationReport) return;
+    
+    try {
+      const updatedReport = {
+        ...currentExplanationReport,
+        explanation: explanationText.trim()
+      };
+      
+      await financialService.updateDailyReport(currentExplanationReport.id, updatedReport);
+      
+      // Update the reports state
+      setReports(prev => prev.map(r => 
+        r.id === currentExplanationReport.id 
+          ? { ...r, explanation: explanationText.trim() }
+          : r
+      ));
+      
+      setExplanationDialogOpen(false);
+      setCurrentExplanationReport(null);
+      setExplanationText("");
+      
+      toast({
+        title: "Success",
+        description: "Explanation saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save explanation. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1018,29 +1065,50 @@ export default function AllDailyReportsPage() {
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(calculateNetBalance(report))}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditClick(report)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-red-500 hover:text-red-600"
-                                  onClick={() => handleDeleteClick(report)}
-                                  disabled={report.deposit_reports && report.deposit_reports.length > 0}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{report.deposit_reports && report.deposit_reports.length > 0 
-                                  ? "Cannot delete report that is associated with bank deposits" 
-                                  : "Delete"}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(report)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            {isFlagged && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      onClick={() => handleExplanationClick(report)}
+                                      className="text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                                    >
+                                      <AlertTriangle className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{report.explanation ? "View/Edit explanation" : "Add explanation"}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-500 hover:text-red-600"
+                                    onClick={() => handleDeleteClick(report)}
+                                    disabled={report.deposit_reports && report.deposit_reports.length > 0}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{report.deposit_reports && report.deposit_reports.length > 0 
+                                    ? "Cannot delete report that is associated with bank deposits" 
+                                    : "Delete"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </TableCell>
                       </TableRow>
                       );
@@ -1469,6 +1537,54 @@ export default function AllDailyReportsPage() {
               }}
             >
                              Download Excel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Explanation Dialog */}
+      <Dialog open={explanationDialogOpen} onOpenChange={setExplanationDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Explanation for Flagged Report</DialogTitle>
+            <DialogDescription>
+              This report has been flagged and requires an explanation.
+            </DialogDescription>
+          </DialogHeader>
+          {currentExplanationReport && (
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-amber-800 font-medium text-sm">
+                      {getFlaggingReason(currentExplanationReport)}
+                    </p>
+                    <p className="text-amber-700 text-xs mt-1">
+                      Vehicle: {currentExplanationReport.vehicles?.plate} | Date: {format(parseISO(currentExplanationReport.report_date), "PP")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="explanation">Explanation</Label>
+                <Textarea
+                  id="explanation"
+                  placeholder="Please provide an explanation for why this report has been flagged..."
+                  value={explanationText}
+                  onChange={(e) => setExplanationText(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExplanationDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleExplanationSave} disabled={!explanationText.trim()}>
+              Save Explanation
             </Button>
           </DialogFooter>
         </DialogContent>
