@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle } from "lucide-react";
+import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, AlertTriangle } from "lucide-react";
 import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -30,12 +30,53 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useTranslation } from "@/hooks/useTranslation";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Helper function to calculate net balance
 const calculateNetBalance = (report: DailyReport) => {
   const totalRevenue = (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
   const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
   return totalRevenue - totalExpenses;
+};
+
+// Helper function to calculate total revenue
+const calculateTotalRevenue = (report: DailyReport) => {
+  return (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
+};
+
+// Helper function to determine if a report should be flagged
+const isReportFlagged = (report: DailyReport) => {
+  const totalRevenue = calculateTotalRevenue(report);
+  const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
+  const netRevenue = calculateNetBalance(report);
+  
+  // Flag if net revenue is less than 50% of total revenue
+  const lowNetRevenueMargin = totalRevenue > 0 && (netRevenue / totalRevenue) < 0.5;
+  
+  // Flag if total expenses exceed 210,000 AOA
+  const highExpenses = totalExpenses > 210000;
+  
+  return lowNetRevenueMargin || highExpenses;
+};
+
+// Helper function to get flagging reason
+const getFlaggingReason = (report: DailyReport) => {
+  const totalRevenue = calculateTotalRevenue(report);
+  const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
+  const netRevenue = calculateNetBalance(report);
+  
+  const reasons = [];
+  
+  if (totalRevenue > 0 && (netRevenue / totalRevenue) < 0.5) {
+    const margin = ((netRevenue / totalRevenue) * 100).toFixed(1);
+    reasons.push(`Low net revenue margin: ${margin}% (< 50%)`);
+  }
+  
+  if (totalExpenses > 210000) {
+    reasons.push(`High expenses: ${totalExpenses.toLocaleString()} AOA (> 210,000 AOA)`);
+  }
+  
+  return reasons.join('; ');
 };
 
 // Helper to format currency
@@ -291,14 +332,32 @@ export default function AllDailyReportsPage() {
                     <TableBody>
                         {reports.map((report) => {
                             const netBalance = calculateNetBalance(report);
-                            const totalRevenue = (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
+                            const totalRevenue = calculateTotalRevenue(report);
                             const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
                             const isDeposited = report.deposit_reports && report.deposit_reports.length > 0;
+                            const isFlagged = isReportFlagged(report);
+                            const flaggingReason = isFlagged ? getFlaggingReason(report) : '';
 
                             return (
-                                <TableRow key={report.id}>
+                                <TableRow key={report.id} className={isFlagged ? "bg-red-50" : ""}>
                                     <TableCell>{format(new Date(report.report_date), "PPP")}</TableCell>
-                                    <TableCell>{report.vehicles?.plate || "N/A"}</TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-2">
+                                        <span>{report.vehicles?.plate || "N/A"}</span>
+                                        {isFlagged && (
+                                          <TooltipProvider>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <AlertTriangle className="h-4 w-4 text-amber-500 cursor-help" />
+                                              </TooltipTrigger>
+                                              <TooltipContent>
+                                                <p>⚠️ Report flagged: {flaggingReason}</p>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TooltipProvider>
+                                        )}
+                                      </div>
+                                    </TableCell>
                                     <TableCell>
                                         <Badge variant={report.status === "Operational" ? "default" : "destructive"}>
                                             {report.status}
