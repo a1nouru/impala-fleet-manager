@@ -715,12 +715,12 @@ export default function AllDailyReportsPage() {
                     <SelectValue placeholder={t("form.selectRoute")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
-                    <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
                     <SelectItem value="LUANDA - HUAMBO">LUANDA - HUAMBO</SelectItem>
-                    <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
-                    <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
+                    <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
                     <SelectItem value="LUANDA - LUVU">LUANDA - LUVU</SelectItem>
+                    <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
+                    <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
+                    <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
                     <SelectItem value="MBANZA - HUAMBO">MBANZA - HUAMBO</SelectItem>
                     <SelectItem value="HUAMBO - MBANZA">HUAMBO - MBANZA</SelectItem>
                     <SelectItem value="CAXITO - LUANDA">CAXITO - LUANDA</SelectItem>
@@ -1223,12 +1223,12 @@ export default function AllDailyReportsPage() {
                       <SelectValue placeholder="Select a route" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
-                      <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
                       <SelectItem value="LUANDA - HUAMBO">LUANDA - HUAMBO</SelectItem>
-                      <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
-                      <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
+                      <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
                       <SelectItem value="LUANDA - LUVU">LUANDA - LUVU</SelectItem>
+                      <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
+                      <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
+                      <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
                       <SelectItem value="MBANZA - HUAMBO">MBANZA - HUAMBO</SelectItem>
                       <SelectItem value="HUAMBO - MBANZA">HUAMBO - MBANZA</SelectItem>
                       <SelectItem value="CAXITO - LUANDA">CAXITO - LUANDA</SelectItem>
