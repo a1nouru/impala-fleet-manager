@@ -715,12 +715,18 @@ export default function AllDailyReportsPage() {
                     <SelectValue placeholder={t("form.selectRoute")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Luanda - Benguela">Luanda - Benguela</SelectItem>
-                    <SelectItem value="Luanda - Huambo">Luanda - Huambo</SelectItem>
-                    <SelectItem value="Luanda - Lobito">Luanda - Lobito</SelectItem>
-                    <SelectItem value="Luanda - Malanje">Luanda - Malanje</SelectItem>
-                    <SelectItem value="Benguela - Huambo">Benguela - Huambo</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
+                    <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
+                    <SelectItem value="LUANDA - HUAMBO">LUANDA - HUAMBO</SelectItem>
+                    <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
+                    <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
+                    <SelectItem value="LUANDA - LUVU">LUANDA - LUVU</SelectItem>
+                    <SelectItem value="MBANZA - HUAMBO">MBANZA - HUAMBO</SelectItem>
+                    <SelectItem value="HUAMBO - MBANZA">HUAMBO - MBANZA</SelectItem>
+                    <SelectItem value="CAXITO - LUANDA">CAXITO - LUANDA</SelectItem>
+                    <SelectItem value="LUANDA - CAXITO">LUANDA - CAXITO</SelectItem>
+                    <SelectItem value="UIGE - LUANDA">UIGE - LUANDA</SelectItem>
+                    <SelectItem value="LUANDA - UIGE">LUANDA - UIGE</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1217,12 +1223,18 @@ export default function AllDailyReportsPage() {
                       <SelectValue placeholder="Select a route" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Luanda - Benguela">Luanda - Benguela</SelectItem>
-                      <SelectItem value="Luanda - Huambo">Luanda - Huambo</SelectItem>
-                      <SelectItem value="Luanda - Lobito">Luanda - Lobito</SelectItem>
-                      <SelectItem value="Luanda - Malanje">Luanda - Malanje</SelectItem>
-                      <SelectItem value="Benguela - Huambo">Benguela - Huambo</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
+                      <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
+                      <SelectItem value="LUANDA - HUAMBO">LUANDA - HUAMBO</SelectItem>
+                      <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
+                      <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
+                      <SelectItem value="LUANDA - LUVU">LUANDA - LUVU</SelectItem>
+                      <SelectItem value="MBANZA - HUAMBO">MBANZA - HUAMBO</SelectItem>
+                      <SelectItem value="HUAMBO - MBANZA">HUAMBO - MBANZA</SelectItem>
+                      <SelectItem value="CAXITO - LUANDA">CAXITO - LUANDA</SelectItem>
+                      <SelectItem value="LUANDA - CAXITO">LUANDA - CAXITO</SelectItem>
+                      <SelectItem value="UIGE - LUANDA">UIGE - LUANDA</SelectItem>
+                      <SelectItem value="LUANDA - UIGE">LUANDA - UIGE</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
