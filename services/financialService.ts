@@ -65,6 +65,30 @@ export interface BankDeposit {
     bank_deposit_slips?: BankDepositSlip[];
 }
 
+export interface CompanyExpenseReceipt {
+    id: string;
+    expense_id: string;
+    receipt_url: string;
+    file_name?: string;
+    file_size?: number;
+    upload_date: string;
+    created_by?: string;
+}
+
+export interface CompanyExpense {
+    id: string;
+    expense_date: string;
+    category: string;
+    description?: string;
+    amount: number;
+    has_receipt: boolean;
+    created_by?: string;
+    created_at: string;
+    updated_at: string;
+    // Joined data for receipts
+    company_expense_receipts?: CompanyExpenseReceipt[];
+}
+
 // --- Service Functions ---
 
 export const financialService = {
@@ -954,6 +978,305 @@ export const financialService = {
     if (deleteError) {
       console.error('Error deleting daily report:', deleteError);
       throw new Error('Failed to delete daily report.');
+    }
+  },
+
+  // --- Company Expense Functions ---
+
+  /**
+   * Fetches all company expenses with their receipts
+   */
+  async getCompanyExpenses(): Promise<CompanyExpense[]> {
+    try {
+      const { data, error } = await supabase
+        .from('company_expenses')
+        .select('*')
+        .order('expense_date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching company expenses:', error);
+        
+        // Check if it's a "table does not exist" error
+        if (error.message?.includes('relation') && error.message?.includes('company_expenses') && error.message?.includes('does not exist')) {
+          console.warn('Company expenses table does not exist yet. Please run the database migration.');
+          return [];
+        }
+        
+        // Check if it's a permissions/RLS error
+        if (error.message?.includes('permission denied') || 
+            error.message?.includes('RLS') ||
+            error.message?.includes('policy') ||
+            error.code === 'PGRST301') {
+          console.warn('Row Level Security policies missing. Please run the RLS policies setup.');
+          return [];
+        }
+        
+        throw error;
+      }
+
+      // Get receipts for each expense
+      const expenses = data || [];
+      for (const expense of expenses) {
+        try {
+          const { data: receipts } = await supabase
+            .from('company_expense_receipts')
+            .select('*')
+            .eq('expense_id', expense.id);
+          expense.company_expense_receipts = receipts || [];
+        } catch (receiptError) {
+          console.warn('Could not load receipts for expense:', expense.id, receiptError);
+          expense.company_expense_receipts = [];
+        }
+      }
+
+      return expenses;
+    } catch (error: any) {
+      console.error('Caught error in getCompanyExpenses:', error);
+      
+      // Handle any other errors gracefully
+      if (error?.message?.includes('relation') && error?.message?.includes('company_expenses') && error?.message?.includes('does not exist')) {
+        console.warn('Company expenses table does not exist yet. Please run the database migration.');
+        return [];
+      }
+      
+      if (error?.message?.includes('permission denied') || 
+          error?.message?.includes('RLS') ||
+          error?.message?.includes('policy')) {
+        console.warn('Row Level Security policies missing. Please run the RLS policies setup.');
+        return [];
+      }
+      
+      // As absolute last resort, return empty array to prevent page crash
+      console.warn('Returning empty array as fallback for error:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Creates a new company expense
+   */
+  async createCompanyExpense(expenseData: {
+    expense_date: string;
+    category: string;
+    description?: string;
+    amount: number;
+    has_receipt: boolean;
+    created_by?: string;
+  }): Promise<CompanyExpense> {
+    const { data, error } = await supabase
+      .from('company_expenses')
+      .insert([expenseData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating company expense:', error);
+      throw error;
+    }
+
+    return data;
+  },
+
+  /**
+   * Creates a company expense with receipt files
+   */
+  async createCompanyExpenseWithReceipt(
+    expenseData: {
+      expense_date: string;
+      category: string;
+      description?: string;
+      amount: number;
+      has_receipt: boolean;
+      created_by?: string;
+    },
+    receiptFiles: File[]
+  ): Promise<CompanyExpense> {
+    const expense = await this.createCompanyExpense(expenseData);
+    
+    if (receiptFiles.length > 0) {
+      await this.addReceiptsToExpense(expense.id, receiptFiles);
+    }
+
+    return expense;
+  },
+
+  /**
+   * Updates a company expense
+   */
+  async updateCompanyExpense(
+    expenseId: string,
+    updates: {
+      expense_date?: string;
+      category?: string;
+      description?: string;
+      amount?: number;
+      has_receipt?: boolean;
+    }
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('company_expenses')
+      .update(updates)
+      .eq('id', expenseId);
+
+    if (error) {
+      console.error('Error updating company expense:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Deletes a company expense and its associated receipts
+   */
+  async deleteCompanyExpense(expenseId: string): Promise<void> {
+    // First delete all receipts (files and records)
+    const { data: receipts } = await supabase
+      .from('company_expense_receipts')
+      .select('receipt_url, id')
+      .eq('expense_id', expenseId);
+
+    if (receipts) {
+      for (const receipt of receipts) {
+        try {
+          // Delete from storage
+          const urlParts = receipt.receipt_url.split('/');
+          const fileName = urlParts[urlParts.length - 1];
+          await supabase.storage
+            .from('company-expense-receipts')
+            .remove([fileName]);
+        } catch (error) {
+          console.warn('Error deleting receipt file:', error);
+        }
+      }
+
+      // Delete receipt records
+      await supabase
+        .from('company_expense_receipts')
+        .delete()
+        .eq('expense_id', expenseId);
+    }
+
+    // Delete the expense
+    const { error } = await supabase
+      .from('company_expenses')
+      .delete()
+      .eq('id', expenseId);
+
+    if (error) {
+      console.error('Error deleting company expense:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Adds receipt files to an existing company expense
+   */
+  async addReceiptsToExpense(expenseId: string, receiptFiles: File[]): Promise<void> {
+    const uploadPromises = receiptFiles.map(async (file) => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${expenseId}_${Date.now()}.${fileExt}`;
+
+      // Upload to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('company-expense-receipts')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('company-expense-receipts')
+        .getPublicUrl(fileName);
+
+      // Save receipt record
+      const { error: insertError } = await supabase
+        .from('company_expense_receipts')
+        .insert([{
+          expense_id: expenseId,
+          receipt_url: publicUrlData.publicUrl,
+          file_name: file.name,
+          file_size: file.size,
+          upload_date: new Date().toISOString(),
+        }]);
+
+      if (insertError) throw insertError;
+    });
+
+    await Promise.all(uploadPromises);
+  },
+
+  /**
+   * Deletes a specific receipt from a company expense
+   */
+  async deleteCompanyExpenseReceipt(receiptId: string): Promise<void> {
+    // Get receipt info first
+    const { data: receipt } = await supabase
+      .from('company_expense_receipts')
+      .select('receipt_url')
+      .eq('id', receiptId)
+      .single();
+
+    if (receipt) {
+      // Delete from storage
+      try {
+        const urlParts = receipt.receipt_url.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        await supabase.storage
+          .from('company-expense-receipts')
+          .remove([fileName]);
+      } catch (error) {
+        console.warn('Error deleting receipt file:', error);
+      }
+    }
+
+    // Delete receipt record
+    const { error } = await supabase
+      .from('company_expense_receipts')
+      .delete()
+      .eq('id', receiptId);
+
+    if (error) {
+      console.error('Error deleting company expense receipt:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Searches company expenses by category for autocomplete
+   */
+  async searchCompanyExpenseCategories(searchTerm: string): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('company_expenses')
+        .select('category')
+        .ilike('category', `%${searchTerm}%`)
+        .order('category');
+
+      if (error) {
+        // Check if it's a "table does not exist" error
+        if (error.message?.includes('relation "company_expenses" does not exist') || 
+            error.code === 'PGRST116' || 
+            error.message?.includes('does not exist')) {
+          console.warn('Company expenses table does not exist yet. Please run the database migration.');
+          return [];
+        }
+        console.error('Error searching expense categories:', error);
+        throw error;
+      }
+
+      // Return unique categories
+      const uniqueCategories = [...new Set(data?.map(item => item.category) || [])];
+      return uniqueCategories;
+    } catch (error: any) {
+      // Handle any other errors gracefully
+      if (error.message?.includes('relation "company_expenses" does not exist') || 
+          error.message?.includes('does not exist')) {
+        console.warn('Company expenses table does not exist yet. Please run the database migration.');
+        return [];
+      }
+      console.error('Error searching expense categories:', error);
+      // Return empty array as fallback to prevent crashes
+      console.warn('🆘 Returning empty search results as fallback');
+      return [];
     }
   }
 };
