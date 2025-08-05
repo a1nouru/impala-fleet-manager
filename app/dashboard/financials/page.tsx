@@ -17,7 +17,7 @@ import {
   TableFooter,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format, isToday, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -242,6 +242,7 @@ export default function AllDailyReportsPage() {
   });
   const [groupByDate, setGroupByDate] = useState(true);
   const [reportTypeFilter, setReportTypeFilter] = useState<"all" | "agaseke" | "regular">("all");
+  const [vehiclePlateFilter, setVehiclePlateFilter] = useState<string>("all");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -314,7 +315,7 @@ export default function AllDailyReportsPage() {
     fetchReports();
   }, []);
 
-  // Filter reports based on date range and report type
+  // Filter reports based on date range, vehicle type, and vehicle plate
   const filteredReports = reports.filter(report => {
     const reportDate = parseISO(report.report_date);
     
@@ -333,7 +334,7 @@ export default function AllDailyReportsPage() {
       }
     }
     
-    // Report type filter
+    // Vehicle type filter
     let passesReportTypeFilter = true;
     if (reportTypeFilter === "agaseke") {
       passesReportTypeFilter = isAgasekeVehicle(report.vehicles?.plate);
@@ -341,7 +342,13 @@ export default function AllDailyReportsPage() {
       passesReportTypeFilter = !isAgasekeVehicle(report.vehicles?.plate);
     }
     
-    return passesDateFilter && passesReportTypeFilter;
+    // Vehicle plate filter
+    let passesVehicleFilter = true;
+    if (vehiclePlateFilter !== "all") {
+      passesVehicleFilter = report.vehicles?.plate === vehiclePlateFilter;
+    }
+    
+    return passesDateFilter && passesReportTypeFilter && passesVehicleFilter;
   });
 
   // Pagination logic for individual reports view
@@ -669,6 +676,11 @@ export default function AllDailyReportsPage() {
                 {reportTypeFilter === "agaseke" ? t("allDailyReports.agasekeOnly") : t("allDailyReports.regularOnly")}
               </Badge>
             )}
+            {vehiclePlateFilter !== "all" && (
+              <Badge variant="secondary" className="text-xs">
+                {vehiclePlateFilter}
+              </Badge>
+            )}
           </div>
         </div>
         
@@ -879,7 +891,7 @@ export default function AllDailyReportsPage() {
               </Button>
             </div>
 
-            {/* Report Type Filter */}
+            {/* Vehicle Type Filter */}
             <div className="flex items-center gap-2">
               <Label>{t("filters.reportType")}:</Label>
               <Select 
@@ -897,22 +909,35 @@ export default function AllDailyReportsPage() {
               </Select>
             </div>
 
+            {/* Vehicle Plate Filter */}
+            <div className="flex items-center gap-2">
+              <Label>{t("filters.vehiclePlate")}:</Label>
+              <Select 
+                value={vehiclePlateFilter} 
+                onValueChange={(value: string) => setVehiclePlateFilter(value)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("filters.allVehicles")}</SelectItem>
+                  {vehicles.map((vehicle) => (
+                    <SelectItem key={vehicle.id} value={vehicle.plate}>
+                      {vehicle.plate}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Clear Filters */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setDateFilter({ from: new Date(), to: new Date() });
-              }}
-            >
-              {t("filters.today")}
-            </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 setDateFilter({ from: undefined, to: undefined });
                 setReportTypeFilter("all");
+                setVehiclePlateFilter("all");
               }}
             >
               {t("filters.clearFilters")}

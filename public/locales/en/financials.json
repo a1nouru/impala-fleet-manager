@@ -1,8 +1,9 @@
 {
   "title": "Financials",
   "navigation": {
-    "allDailyReports": "All Daily Reports",
-    "allExpenses": "All Expenses",
+    "dailyReports": "Daily Reports",
+    "expenses": "Expenses",
+    "companyExpenses": "Company Expenses",
     "bankDeposits": "Bank Deposits",
     "analytics": "Financial Analytics",
     "bankVerification": "Bank Verification"
@@ -34,6 +35,33 @@
     "groupedByDate": "Grouped by Date",
     "individualExpenses": "Individual Expenses",
     "expenseDetails": "Expense Details"
+  },
+  "companyExpenses": {
+    "title": "Company Expenses",
+    "subtitle": "Manage company-wide expenses",
+    "addExpense": "Add Expense",
+    "addExpenseTitle": "Add New Company Expense",
+    "addExpenseDescription": "Record a new company expense with receipt or note if no receipt available.",
+          "noExpensesFound": "No company expenses yet",
+      "noExpensesSubtext": "Start tracking your company expenses by adding your first expense. Upload receipts and categorize expenses to keep your finances organized.",
+      "addFirstExpense": "Add Your First Expense",
+    "expenseCount": "{{count}} expenses",
+    "totalAmount": "Total Amount",
+    "groupedByDate": "Grouped by Date",
+    "individualExpenses": "Individual Expenses",
+    "expenseDetails": "Expense Details",
+    "searchPlaceholder": "Search previous expenses...",
+    "noReceipt": "No Receipt",
+    "receiptRequired": "Receipt Required",
+    "uploadReceipt": "Upload Receipt",
+          "receiptAttached": "View Receipt",
+    "category": "Category",
+    "description": "Description",
+    "amount": "Amount",
+    "date": "Date",
+    "editExpense": "Edit Expense",
+    "deleteExpense": "Delete Expense",
+    "confirmDelete": "Are you sure you want to delete this expense?"
   },
   "bankDeposits": {
     "title": "Bank Deposits",
@@ -161,7 +189,8 @@
     "view": "View",
     "groupedByDate": "Grouped by Date",
     "individualReports": "Individual Reports",
-    "reportType": "Report Type",
+    "reportType": "Vehicle Type",
+    "vehiclePlate": "Vehicle Plate",
     "allVehicles": "All Vehicles",
     "agasekeVehicles": "Agaseke Vehicles",
     "regularVehicles": "Regular Vehicles",
@@ -170,7 +199,6 @@
     "bankFilter": "Bank Filter",
     "allBanks": "All Banks",
     "bank": "Bank",
-    "groupedByDate": "Grouped by Date",
     "individualDeposits": "Individual Deposits"
   },
   "buttons": {

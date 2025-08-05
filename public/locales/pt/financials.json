@@ -1,8 +1,9 @@
 {
   "title": "Financeiro",
   "navigation": {
-    "allDailyReports": "Todos os Relatórios Diários",
-    "allExpenses": "Todas as Despesas",
+    "dailyReports": "Relatórios Diários",
+    "expenses": "Despesas",
+    "companyExpenses": "Despesas da Empresa",
     "bankDeposits": "Depósitos Bancários",
     "analytics": "Análise Financeira",
     "bankVerification": "Verificação Bancária"
@@ -34,6 +35,33 @@
     "groupedByDate": "Agrupado por Data",
     "individualExpenses": "Despesas Individuais",
     "expenseDetails": "Detalhes da Despesa"
+  },
+  "companyExpenses": {
+    "title": "Despesas da Empresa",
+    "subtitle": "Gerir despesas da empresa",
+    "addExpense": "Adicionar Despesa",
+    "addExpenseTitle": "Adicionar Nova Despesa da Empresa",
+    "addExpenseDescription": "Registar uma nova despesa da empresa com recibo ou nota se não há recibo disponível.",
+          "noExpensesFound": "Ainda sem despesas da empresa",
+      "noExpensesSubtext": "Comece a rastrear as despesas da sua empresa adicionando a sua primeira despesa. Carregue recibos e categorize despesas para manter as suas finanças organizadas.",
+      "addFirstExpense": "Adicionar Primeira Despesa",
+    "expenseCount": "{{count}} despesas",
+    "totalAmount": "Valor Total",
+    "groupedByDate": "Agrupado por Data",
+    "individualExpenses": "Despesas Individuais",
+    "expenseDetails": "Detalhes da Despesa",
+    "searchPlaceholder": "Pesquisar despesas anteriores...",
+    "noReceipt": "Sem Recibo",
+    "receiptRequired": "Recibo Obrigatório",
+    "uploadReceipt": "Carregar Recibo",
+          "receiptAttached": "Ver Recibo",
+    "category": "Categoria",
+    "description": "Descrição",
+    "amount": "Valor",
+    "date": "Data",
+    "editExpense": "Editar Despesa",
+    "deleteExpense": "Eliminar Despesa",
+    "confirmDelete": "Tem certeza que quer eliminar esta despesa?"
   },
   "bankDeposits": {
     "title": "Depósitos Bancários",
@@ -161,7 +189,8 @@
     "view": "Vista",
     "groupedByDate": "Agrupado por Data",
     "individualReports": "Relatórios Individuais",
-    "reportType": "Tipo de Relatório",
+    "reportType": "Tipo de Veículo",
+    "vehiclePlate": "Matrícula do Veículo",
     "allVehicles": "Todos os Veículos",
     "agasekeVehicles": "Veículos Agaseke",
     "regularVehicles": "Veículos Regulares",
@@ -170,7 +199,6 @@
     "bankFilter": "Filtro do Banco",
     "allBanks": "Todos os Bancos",
     "bank": "Banco",
-    "groupedByDate": "Agrupado por Data",
     "individualDeposits": "Depósitos Individuais"
   },
   "buttons": {
