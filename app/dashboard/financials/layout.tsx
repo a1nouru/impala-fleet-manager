@@ -15,11 +15,11 @@ export default function FinancialsLayout({
 
   const financialNavItems = [
     {
-      name: t("navigation.allDailyReports"),
+      name: t("allDailyReports.title"),
       href: "/dashboard/financials",
     },
     {
-      name: t("navigation.allExpenses"),
+      name: t("allExpenses.title"),
       href: "/dashboard/financials/expenses",
     },
     {
@@ -45,7 +45,7 @@ export default function FinancialsLayout({
             href={item.href}
             className={cn(
               "px-4 py-2 text-sm font-medium",
-              pathname === item.href
+              pathname === item.href || (item.href === "/dashboard/financials/expenses" && pathname === "/dashboard/financials/company-expenses")
                 ? "border-b-2 border-black text-black"
                 : "text-muted-foreground hover:text-black"
             )}

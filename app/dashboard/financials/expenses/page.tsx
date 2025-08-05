@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Filter, CalendarIcon, Receipt, Eye, Edit, Trash2, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -45,7 +48,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -125,6 +127,7 @@ const exportExpensesToExcel = (data: ExpenseWithReport[], filename: string) => {
 
 export default function AllExpensesPage() {
   const { t } = useTranslation('financials');
+  const pathname = usePathname();
   const [expenses, setExpenses] = useState<ExpenseWithReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -369,6 +372,17 @@ export default function AllExpensesPage() {
     }
   };
 
+  const expenseSubNavItems = [
+    {
+      name: "Operating Expenses",
+      href: "/dashboard/financials/expenses",
+    },
+    {
+      name: t("navigation.companyExpenses"),
+      href: "/dashboard/financials/company-expenses",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -380,6 +394,24 @@ export default function AllExpensesPage() {
           </h2>
           <p className="text-muted-foreground">{t("allExpenses.subtitle")}</p>
         </div>
+      </div>
+
+      {/* Sub Navigation */}
+      <div className="flex border-b">
+        {expenseSubNavItems.map((item) => (
+          <Link
+            key={item.name}
+            href={item.href}
+            className={cn(
+              "px-4 py-2 text-sm font-medium",
+              pathname === item.href
+                ? "bg-black text-white border-b-2 border-black"
+                : "text-muted-foreground hover:text-black"
+            )}
+          >
+            {item.name}
+          </Link>
+        ))}
       </div>
 
       {/* Filters */}
