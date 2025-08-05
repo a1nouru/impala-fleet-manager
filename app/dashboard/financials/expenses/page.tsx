@@ -374,7 +374,7 @@ export default function AllExpensesPage() {
 
   const expenseSubNavItems = [
     {
-      name: "Operating Expenses",
+      name: t("allExpenses.title"),
       href: "/dashboard/financials/expenses",
     },
     {
