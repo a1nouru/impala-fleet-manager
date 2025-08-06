@@ -885,7 +885,7 @@ export default function AllExpensesPage() {
                 {/* Receipt section for fuel expenses */}
                 {selectedExpense.category.toLowerCase() === "fuel" && (
                   <div>
-                    <Label className="text-sm font-medium">Fuel Receipt</Label>
+                    <Label className="text-sm font-medium">{t("expenses.fuelReceiptShort")}</Label>
                     {selectedExpense.receipt_url ? (
                       <div className="flex items-center gap-2 mt-1">
                         <Button
@@ -895,11 +895,11 @@ export default function AllExpensesPage() {
                           className="h-8"
                         >
                           <FileText className="h-4 w-4 mr-2" />
-                          View Receipt
+                          {t("expenses.viewReceipt")}
                         </Button>
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">No receipt uploaded</p>
+                      <p className="text-sm text-gray-500">{t("expenses.noReceiptUploaded")}</p>
                     )}
                   </div>
                 )}
@@ -973,14 +973,14 @@ export default function AllExpensesPage() {
             {/* Fuel Receipt Upload Section */}
             {selectedExpenseType === "Fuel" && (
               <div className="space-y-2">
-                <Label>Fuel Receipt (Optional)</Label>
+                <Label>{t("expenses.fuelReceipt")}</Label>
                 <div className="space-y-2">
                   {/* Current Receipt Display */}
                   {currentReceiptUrl && !receiptFile && (
                     <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md border">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-700">Current receipt</span>
+                        <span className="text-sm text-gray-700">{t("expenses.currentReceipt")}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -1033,10 +1033,10 @@ export default function AllExpensesPage() {
                       />
                       <label htmlFor="receipt-upload-edit-expenses" className="cursor-pointer">
                         <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-600">
-                          {receiptFile ? "Replace with different file" : "Upload fuel receipt"}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG up to 5MB</p>
+                                                    <p className="text-sm text-gray-600">
+                              {receiptFile ? t("expenses.replaceReceipt") : t("expenses.uploadFuelReceipt")}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">{t("expenses.receiptFileFormats")}</p>
                       </label>
                     </div>
                   )}

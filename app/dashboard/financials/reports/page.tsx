@@ -615,11 +615,11 @@ export default function AllDailyReportsPage() {
                                                         onClick={() => window.open(expense.receipt_url, '_blank')}
                                                       >
                                                         <FileText className="h-4 w-4" />
-                                                        <span className="text-xs">Receipt</span>
+                                                        <span className="text-xs">{t("expenses.receiptIndicator")}</span>
                                                       </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                      <p>Click to view fuel receipt</p>
+                                                      <p>{t("expenses.clickToViewReceipt")}</p>
                                                     </TooltipContent>
                                                   </Tooltip>
                                                 )}
@@ -676,7 +676,7 @@ export default function AllDailyReportsPage() {
                                    {/* Fuel Receipt Upload Section for New Expense */}
                                    {selectedExpenseType === "Fuel" && (
                                      <div className="space-y-2">
-                                       <Label>Fuel Receipt (Optional)</Label>
+                                       <Label>{t("expenses.fuelReceipt")}</Label>
                                        <div className="space-y-2">
                                          {/* New File Selected */}
                                          {receiptFile && (
@@ -708,9 +708,9 @@ export default function AllDailyReportsPage() {
                                            <label htmlFor="receipt-upload-new" className="cursor-pointer">
                                              <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                                              <p className="text-sm text-gray-600">
-                                               {receiptFile ? "Replace with different file" : "Upload fuel receipt"}
+                                               {receiptFile ? t("expenses.replaceReceipt") : t("expenses.uploadFuelReceipt")}
                                              </p>
-                                             <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG up to 5MB</p>
+                                             <p className="text-xs text-gray-400 mt-1">{t("expenses.receiptFileFormats")}</p>
                                            </label>
                                          </div>
                                        </div>
@@ -782,14 +782,14 @@ export default function AllDailyReportsPage() {
                     {/* Fuel Receipt Upload Section */}
                     {selectedExpenseType === "Fuel" && (
                       <div className="space-y-2">
-                        <Label>Fuel Receipt (Optional)</Label>
+                        <Label>{t("expenses.fuelReceipt")}</Label>
                         <div className="space-y-2">
                           {/* Current Receipt Display */}
                           {currentReceiptUrl && !receiptFile && (
                             <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md border">
                               <div className="flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm text-gray-700">Current receipt</span>
+                                                                               <span className="text-sm text-gray-700">{t("expenses.currentReceipt")}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Button
@@ -840,13 +840,13 @@ export default function AllDailyReportsPage() {
                                 className="hidden"
                                 id="receipt-upload-edit"
                               />
-                              <label htmlFor="receipt-upload-edit" className="cursor-pointer">
-                                <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                                <p className="text-sm text-gray-600">
-                                  {receiptFile ? "Replace with different file" : "Upload fuel receipt"}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG up to 5MB</p>
-                              </label>
+                                                                             <label htmlFor="receipt-upload-edit" className="cursor-pointer">
+                                                 <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                                                 <p className="text-sm text-gray-600">
+                                                   {receiptFile ? t("expenses.replaceReceipt") : t("expenses.uploadFuelReceipt")}
+                                                 </p>
+                                                 <p className="text-xs text-gray-400 mt-1">{t("expenses.receiptFileFormats")}</p>
+                                               </label>
                             </div>
                           )}
                         </div>
