@@ -48,6 +48,9 @@ import { format, parseISO } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { DateRange } from "react-day-picker"
+import { startOfMonth } from "date-fns"
 
 // Type definitions (moved to top for use in utility functions)
 interface Vehicle {
@@ -220,6 +223,12 @@ function MaintenanceContent() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 20;
+  
+  // Date range state
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: new Date(),
+  });
 
   // Download state
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
@@ -353,6 +362,11 @@ function MaintenanceContent() {
     };
   }, []);
   
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeTab, plateFilter, dateRange]);
+  
   // Skip the rest of the render if data isn't initialized
   if (!isLoading.pageReady) {
     return <LoadingState />;
@@ -387,7 +401,7 @@ function MaintenanceContent() {
   const completedMonthRecords = currentMonthRecords.filter(record => record.status === "Completed");
   const upcomingMaintenance = records.filter(record => record.status === "Scheduled").length;
 
-  // Filter records based on active tab, search term, and plate filter
+  // Filter records based on active tab, search term, plate filter, and date range
   const filteredRecords = records.filter(record => {
     // Debug: Log the record and its parts to see what's coming from the database
     if (record.id) {
@@ -403,6 +417,24 @@ function MaintenanceContent() {
     if (plateFilter !== "all" && 
         (record.vehicles?.plate !== plateFilter && record.vehiclePlate !== plateFilter)) {
       return false;
+    }
+    
+    // Filter by date range
+    if (dateRange?.from || dateRange?.to) {
+      const recordDate = new Date(record.date);
+      
+      if (dateRange.from && recordDate < dateRange.from) {
+        return false;
+      }
+      
+      if (dateRange.to) {
+        // Set to end of day for the 'to' date
+        const endOfDay = new Date(dateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (recordDate > endOfDay) {
+          return false;
+        }
+      }
     }
     
     // Then filter by search term
@@ -1036,23 +1068,8 @@ function MaintenanceContent() {
         </div>
       ) : (
         <>
-          {/* Financial Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
-            <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-100">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-indigo-900">
-                  {t("summary.totalLifetimeCost")}
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-indigo-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl md:text-2xl font-bold text-indigo-900">{totalLifetimeCost.toLocaleString()} Kz</div>
-                <p className="text-xs text-indigo-700">
-                  {t("summary.accumulatedCost")}
-                </p>
-              </CardContent>
-            </Card>
-            
+          {/* Current Month Cost and Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-4 md:mb-6">
             <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-emerald-900">
@@ -1067,9 +1084,6 @@ function MaintenanceContent() {
                 </p>
               </CardContent>
             </Card>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -1098,7 +1112,7 @@ function MaintenanceContent() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="sm:col-span-2 lg:col-span-1">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
                   {t("summary.upcomingScheduled")}
@@ -1116,22 +1130,30 @@ function MaintenanceContent() {
 
           <div className="bg-white rounded-lg shadow-sm">
             <div className="p-4 border-b">
-              <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                  <Button 
-                    variant={activeTab === "all" ? "default" : "outline"}
-                    onClick={() => setActiveTab("all")}
-                    className={`h-9 ${activeTab === "all" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
-                  >
-                    {t("filters.allRecords")}
-                  </Button>
-                  <Button
-                    variant={activeTab === "scheduled" ? "default" : "outline"}
-                    onClick={() => setActiveTab("scheduled")}
-                    className={`h-9 ${activeTab === "scheduled" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
-                  >
-                    {t("filters.scheduledOnly")}
-                  </Button>
+              <div className="flex flex-col space-y-4">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <Button 
+                      variant={activeTab === "all" ? "default" : "outline"}
+                      onClick={() => setActiveTab("all")}
+                      className={`h-9 ${activeTab === "all" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
+                    >
+                      {t("filters.allRecords")}
+                    </Button>
+                    <Button
+                      variant={activeTab === "scheduled" ? "default" : "outline"}
+                      onClick={() => setActiveTab("scheduled")}
+                      className={`h-9 ${activeTab === "scheduled" ? "bg-black hover:bg-gray-800 text-white" : ""}`}
+                    >
+                      {t("filters.scheduledOnly")}
+                    </Button>
+                  </div>
+                  
+                  <DateRangePicker 
+                    date={dateRange} 
+                    onDateChange={setDateRange}
+                    className="w-full sm:w-auto"
+                  />
                 </div>
                 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
