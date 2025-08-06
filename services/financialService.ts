@@ -36,6 +36,7 @@ export interface DailyExpense {
   category: string;
   description?: string;
   amount: number;
+  receipt_url?: string; // URL to fuel receipt image
   created_at: string;
   updated_at: string;
 }
@@ -894,6 +895,70 @@ export const financialService = {
 
     if (error) {
       console.error('Error deleting daily expense:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Uploads a fuel receipt to Supabase storage
+   * @param file - The file to upload (PDF or image)
+   * @param userId - The user ID to organize files by user
+   */
+  async uploadFuelReceipt(file: File, userId: string): Promise<string> {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${userId}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('fuel-receipts')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading fuel receipt:', error);
+        throw error;
+      }
+
+      // Get the public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('fuel-receipts')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error in uploadFuelReceipt:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Deletes a fuel receipt from Supabase storage
+   * @param receiptUrl - The URL of the receipt to delete
+   */
+  async deleteFuelReceipt(receiptUrl: string): Promise<void> {
+    try {
+      // Extract the file path from the URL
+      const urlParts = receiptUrl.split('/');
+      const bucketIndex = urlParts.findIndex(part => part === 'fuel-receipts');
+      if (bucketIndex === -1) {
+        throw new Error('Invalid receipt URL format');
+      }
+      
+      const filePath = urlParts.slice(bucketIndex + 1).join('/');
+
+      const { error } = await supabase.storage
+        .from('fuel-receipts')
+        .remove([filePath]);
+
+      if (error) {
+        console.error('Error deleting fuel receipt:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in deleteFuelReceipt:', error);
       throw error;
     }
   },

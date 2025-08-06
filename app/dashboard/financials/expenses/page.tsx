@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Filter, CalendarIcon, Receipt, Eye, Edit, Trash2, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Filter, CalendarIcon, Receipt, Eye, Edit, Trash2, Download, ChevronLeft, ChevronRight, Upload, X, FileText } from "lucide-react";
+
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
@@ -50,6 +51,7 @@ import {
 } from "@/components/ui/popover";
 import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useAuth } from "@/context/AuthContext";
 
 // Extended expense interface with report data
 interface ExpenseWithReport extends DailyExpense {
@@ -127,6 +129,7 @@ const exportExpensesToExcel = (data: ExpenseWithReport[], filename: string) => {
 
 export default function AllExpensesPage() {
   const { t } = useTranslation('financials');
+  const { user } = useAuth();
   const pathname = usePathname();
   const [expenses, setExpenses] = useState<ExpenseWithReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,6 +158,7 @@ export default function AllExpensesPage() {
     category: string;
     description: string;
     amount: number;
+    receipt_url?: string;
   }>({
     category: "",
     description: "",
@@ -162,6 +166,11 @@ export default function AllExpensesPage() {
   });
   const [selectedExpenseType, setSelectedExpenseType] = useState<string>("");
   const [customExpenseType, setCustomExpenseType] = useState<string>("");
+
+  // State for fuel receipt uploads
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [currentReceiptUrl, setCurrentReceiptUrl] = useState<string>("");
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -277,16 +286,23 @@ export default function AllExpensesPage() {
       category: expense.category || "",
       description: expense.description || "",
       amount: expense.amount || 0,
+      receipt_url: expense.receipt_url,
     });
 
     // Set the expense type for editing
     if (["Fuel", "Subsidy"].includes(expense.category || "")) {
       setSelectedExpenseType(expense.category);
       setCustomExpenseType("");
+      if (expense.category === "Fuel") {
+        setCurrentReceiptUrl(expense.receipt_url || "");
+      }
     } else {
       setSelectedExpenseType("Other");
       setCustomExpenseType(expense.category || "");
     }
+    
+    // Reset file state
+    setReceiptFile(null);
     setIsEditDialogOpen(true);
   };
 
@@ -319,6 +335,44 @@ export default function AllExpensesPage() {
     setEditedExpenseData(prev => ({ ...prev, category: value }));
   };
 
+  // Receipt upload handlers
+  const handleReceiptFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "❌ Invalid File Type",
+          description: "Please upload PDF, JPG, or PNG files only.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (file.size > maxSize) {
+        toast({
+          title: "❌ File Too Large",
+          description: "Maximum file size is 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setReceiptFile(file);
+    }
+  };
+
+  const removeReceiptFile = () => {
+    setReceiptFile(null);
+  };
+
+  const removeCurrentReceipt = () => {
+    setCurrentReceiptUrl("");
+    setEditedExpenseData(prev => ({ ...prev, receipt_url: "" }));
+  };
+
   const handleUpdateExpense = async () => {
     if (!selectedExpense || !editedExpenseData.category || !editedExpenseData.amount) {
       toast({
@@ -331,12 +385,52 @@ export default function AllExpensesPage() {
 
     setIsUpdating(true);
     try {
-      await financialService.updateDailyExpense(selectedExpense.id, editedExpenseData);
+      let finalExpenseData = { ...editedExpenseData };
+      
+      // Handle receipt upload/update for fuel expenses
+      if (selectedExpenseType === "Fuel") {
+        if (receiptFile && user?.id) {
+          setIsUploadingReceipt(true);
+          try {
+            // Delete old receipt if exists
+            if (selectedExpense.receipt_url) {
+              await financialService.deleteFuelReceipt(selectedExpense.receipt_url);
+            }
+            // Upload new receipt
+            const receiptUrl = await financialService.uploadFuelReceipt(receiptFile, user.id);
+            finalExpenseData.receipt_url = receiptUrl;
+          } catch (uploadError) {
+            console.error("Receipt upload failed:", uploadError);
+            toast({
+              title: "⚠️ Receipt Upload Failed",
+              description: "Expense will be updated without new receipt.",
+              variant: "destructive",
+            });
+          } finally {
+            setIsUploadingReceipt(false);
+          }
+        } else if (currentReceiptUrl === "" && selectedExpense.receipt_url) {
+          // Receipt was removed
+          try {
+            await financialService.deleteFuelReceipt(selectedExpense.receipt_url);
+            finalExpenseData.receipt_url = "";
+          } catch (deleteError) {
+            console.error("Receipt deletion failed:", deleteError);
+          }
+        }
+      }
+
+      await financialService.updateDailyExpense(selectedExpense.id, finalExpenseData);
       toast({
         title: "✅ Success",
         description: "Expense updated successfully.",
       });
       setIsEditDialogOpen(false);
+      
+      // Reset receipt state
+      setReceiptFile(null);
+      setCurrentReceiptUrl("");
+      
       fetchExpenses(); // Refresh expenses list
     } catch (error) {
       toast({
@@ -654,7 +748,19 @@ export default function AllExpensesPage() {
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">{expense.report.route || "-"}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{expense.category}</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{expense.category}</Badge>
+                            {/* Receipt indicator for fuel expenses */}
+                            {expense.category.toLowerCase() === "fuel" && expense.receipt_url && (
+                              <div 
+                                className="flex items-center cursor-pointer text-blue-600 hover:text-blue-800"
+                                onClick={() => window.open(expense.receipt_url, '_blank')}
+                                title="Click to view fuel receipt"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">{expense.description || "-"}</TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(expense.amount)}</TableCell>
@@ -775,6 +881,28 @@ export default function AllExpensesPage() {
                   <Label className="text-sm font-medium">Description</Label>
                   <p className="text-sm">{selectedExpense.description || "-"}</p>
                 </div>
+                
+                {/* Receipt section for fuel expenses */}
+                {selectedExpense.category.toLowerCase() === "fuel" && (
+                  <div>
+                    <Label className="text-sm font-medium">Fuel Receipt</Label>
+                    {selectedExpense.receipt_url ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(selectedExpense.receipt_url, '_blank')}
+                          className="h-8"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          View Receipt
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">No receipt uploaded</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -841,14 +969,88 @@ export default function AllExpensesPage() {
                 placeholder="Optional description..."
               />
             </div>
+            
+            {/* Fuel Receipt Upload Section */}
+            {selectedExpenseType === "Fuel" && (
+              <div className="space-y-2">
+                <Label>Fuel Receipt (Optional)</Label>
+                <div className="space-y-2">
+                  {/* Current Receipt Display */}
+                  {currentReceiptUrl && !receiptFile && (
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md border">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-700">Current receipt</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(currentReceiptUrl, '_blank')}
+                          className="h-7 w-7 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeCurrentReceipt}
+                          className="h-7 w-7 p-0 text-red-500 hover:text-red-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* New File Selected */}
+                  {receiptFile && (
+                    <div className="flex items-center justify-between p-2 bg-blue-50 rounded-md border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        <Upload className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm text-blue-700">{receiptFile.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeReceiptFile}
+                        className="h-7 w-7 p-0 text-red-500 hover:text-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* File Upload Input */}
+                  {(!currentReceiptUrl || receiptFile) && (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleReceiptFileChange}
+                        className="hidden"
+                        id="receipt-upload-edit-expenses"
+                      />
+                      <label htmlFor="receipt-upload-edit-expenses" className="cursor-pointer">
+                        <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-600">
+                          {receiptFile ? "Replace with different file" : "Upload fuel receipt"}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG up to 5MB</p>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               {t("buttons.cancel")}
             </Button>
-            <Button onClick={handleUpdateExpense} disabled={isUpdating}>
-              {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("buttons.save")}
+            <Button onClick={handleUpdateExpense} disabled={isUpdating || isUploadingReceipt}>
+              {(isUpdating || isUploadingReceipt) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isUploadingReceipt ? "Uploading..." : t("buttons.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
