@@ -1411,6 +1411,23 @@ function MaintenanceContent() {
                     ))
                   )}
                 </tbody>
+                {/* Totals Footer Row */}
+                {filteredRecords.length > 0 && (
+                  <tfoot className="bg-black text-white">
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-bold">Total</td>
+                      <td className="px-4 py-3 text-sm"></td>
+                      <td className="px-4 py-3 text-sm"></td>
+                      <td className="px-4 py-3 text-sm"></td>
+                      <td className="px-4 py-3 text-sm"></td>
+                      <td className="px-4 py-3 text-sm"></td>
+                      <td className="px-4 py-3 text-sm text-right font-bold">
+                        AOA {filteredRecords.reduce((sum, record) => sum + (record.cost || 0), 0).toLocaleString()}.00
+                      </td>
+                      <td className="px-4 py-3 text-sm"></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
             
@@ -1537,6 +1554,18 @@ function MaintenanceContent() {
                       </CardContent>
                     </Card>
                   ))}
+                </div>
+              )}
+              
+              {/* Mobile Totals Footer */}
+              {filteredRecords.length > 0 && (
+                <div className="p-4 bg-black text-white rounded-lg mx-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-sm">Total</span>
+                    <span className="font-bold text-sm">
+                      AOA {filteredRecords.reduce((sum, record) => sum + (record.cost || 0), 0).toLocaleString()}.00
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
