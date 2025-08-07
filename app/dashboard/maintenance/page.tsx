@@ -1574,7 +1574,7 @@ function MaintenanceContent() {
 
              {/* Download dialog */}
        <Dialog open={downloadDialogOpen} onOpenChange={setDownloadDialogOpen}>
-         <DialogContent>
+         <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
            <DialogHeader>
              <DialogTitle>Download Maintenance Records</DialogTitle>
              <DialogDescription>
@@ -1582,15 +1582,15 @@ function MaintenanceContent() {
              </DialogDescription>
            </DialogHeader>
            <div className="grid gap-4 py-4">
-             <div className="flex items-center gap-4">
-               <div className="flex items-center gap-2">
-                 <Label>From:</Label>
+             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+               <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+                 <Label className="text-sm font-medium shrink-0">From:</Label>
                  <Popover>
                    <PopoverTrigger asChild>
                      <Button
                        variant={"outline"}
                        className={cn(
-                         "w-[140px] justify-start text-left font-normal",
+                         "w-full sm:w-[140px] justify-start text-left font-normal",
                          !downloadDateRange.from && "text-muted-foreground"
                        )}
                      >
@@ -1598,7 +1598,7 @@ function MaintenanceContent() {
                        {downloadDateRange.from ? format(downloadDateRange.from, "MMM dd") : "Pick date"}
                      </Button>
                    </PopoverTrigger>
-                   <PopoverContent className="w-auto p-0">
+                   <PopoverContent className="w-auto p-0" align="start">
                      <Calendar
                        mode="single"
                        selected={downloadDateRange.from}
@@ -1609,14 +1609,14 @@ function MaintenanceContent() {
                  </Popover>
                </div>
                
-               <div className="flex items-center gap-2">
-                 <Label>To:</Label>
+               <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+                 <Label className="text-sm font-medium shrink-0">To:</Label>
                  <Popover>
                    <PopoverTrigger asChild>
                      <Button
                        variant={"outline"}
                        className={cn(
-                         "w-[140px] justify-start text-left font-normal",
+                         "w-full sm:w-[140px] justify-start text-left font-normal",
                          !downloadDateRange.to && "text-muted-foreground"
                        )}
                      >
@@ -1624,7 +1624,7 @@ function MaintenanceContent() {
                        {downloadDateRange.to ? format(downloadDateRange.to, "MMM dd") : "Pick date"}
                      </Button>
                    </PopoverTrigger>
-                   <PopoverContent className="w-auto p-0">
+                   <PopoverContent className="w-auto p-0" align="start">
                      <Calendar
                        mode="single"
                        selected={downloadDateRange.to}
@@ -1636,8 +1636,12 @@ function MaintenanceContent() {
                </div>
              </div>
            </div>
-           <DialogFooter>
-             <Button variant="outline" onClick={() => setDownloadDialogOpen(false)}>
+           <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+             <Button 
+               variant="outline" 
+               onClick={() => setDownloadDialogOpen(false)}
+               className="w-full sm:w-auto"
+             >
                Cancel
              </Button>
              <Button
@@ -1661,6 +1665,7 @@ function MaintenanceContent() {
                    }).length} records...`
                  });
                }}
+               className="w-full sm:w-auto"
              >
                Download Excel
              </Button>
