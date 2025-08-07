@@ -792,7 +792,7 @@ function MaintenanceContent() {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 min-h-0">
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <h1 className="text-xl md:text-2xl font-semibold text-gray-800">{t("title")}</h1>
         
@@ -1156,7 +1156,7 @@ function MaintenanceContent() {
             </Card>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm">
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b">
               <div className="flex flex-col space-y-4">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
@@ -1261,7 +1261,7 @@ function MaintenanceContent() {
             </div>
             
             {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
+            <div className="hidden lg:block overflow-x-auto max-h-none">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -1589,7 +1589,7 @@ function MaintenanceContent() {
                 </Button>
               </div>
             </div>
-                      </div>
+          </div>
         </>
       )}
 
