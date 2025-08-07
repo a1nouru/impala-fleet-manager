@@ -50,7 +50,6 @@ import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { DateRange } from "react-day-picker"
-import { startOfMonth } from "date-fns"
 
 // Type definitions (moved to top for use in utility functions)
 interface Vehicle {
@@ -224,11 +223,8 @@ function MaintenanceContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 20;
   
-  // Date range state
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: new Date(),
-  });
+  // Date range state - start with no filtering to show all records
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   // Download state
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
