@@ -131,30 +131,62 @@ const exportToExcel = (data: MaintenanceRecord[], filename: string) => {
     "Kilometers"
   ];
 
-  // Create Excel-compatible content
-  const excelData = [
-    headers.join('\t'),
-    ...data.map(record => [
-      record.date,
-      record.vehicles?.plate || record.vehiclePlate || '',
-      record.description || '',
-      record.parts ? record.parts.join('; ') : '',
-      record.technicians?.name || record.technician || '',
-      record.status || '',
-      record.cost || 0,
-      record.kilometers || '',
-    ].join('\t'))
-  ].join('\n');
+  // Helper function to clean and escape data for Excel
+  const cleanData = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    // Replace line breaks and tabs with spaces, and escape quotes
+    return str.replace(/[\r\n\t]/g, ' ').replace(/"/g, '""').trim();
+  };
 
-  // Create Excel file (tab-separated values work well with Excel)
-  const blob = new Blob([excelData], { 
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;' 
+  // Calculate totals
+  const totalCost = data.reduce((sum, record) => sum + (record.cost || 0), 0);
+  const totalKilometers = data.reduce((sum, record) => {
+    const km = parseFloat(String(record.kilometers || 0).replace(/,/g, ''));
+    return sum + (isNaN(km) ? 0 : km);
+  }, 0);
+
+  // Create Excel-compatible content with proper CSV formatting
+  const csvRows = [
+    // Headers
+    headers.map(header => `"${header}"`).join(','),
+    // Data rows
+    ...data.map(record => [
+      `"${cleanData(record.date)}"`,
+      `"${cleanData(record.vehicles?.plate || record.vehiclePlate || '')}"`,
+      `"${cleanData(record.description || '')}"`,
+      `"${cleanData(record.parts ? record.parts.join('; ') : '')}"`,
+      `"${cleanData(record.technicians?.name || record.technician || '')}"`,
+      `"${cleanData(record.status || '')}"`,
+      `"${cleanData(record.cost || 0)}"`,
+      `"${cleanData(record.kilometers || '')}"`,
+    ].join(',')),
+    // Empty row
+    '',
+    // Total row
+    [
+      '"TOTAL"',
+      '""',
+      '""', 
+      '""',
+      '""',
+      '""',
+      `"${totalCost.toLocaleString()}"`,
+      `"${totalKilometers.toLocaleString()}"`,
+    ].join(',')
+  ];
+
+  const csvContent = csvRows.join('\n');
+
+  // Create CSV file (more reliable than TSV)
+  const blob = new Blob([csvContent], { 
+    type: 'text/csv;charset=utf-8;' 
   });
   
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.setAttribute("href", url);
-  link.setAttribute("download", filename);
+  link.setAttribute("download", filename.replace('.xlsx', '.csv'));
   link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();
