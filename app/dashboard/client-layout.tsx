@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from 'react'
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -26,8 +26,12 @@ export function DashboardLayoutClient({
   children: React.ReactNode;
 }>) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Check if we're on the maintenance page
+  const isMaintenancePage = pathname?.includes('/maintenance');
   
   // Simulate preloading common resources
   useEffect(() => {
@@ -81,7 +85,7 @@ export function DashboardLayoutClient({
           userName={user?.email?.split('@')[0] || "User"} 
           onLogout={handleLogout} 
         />
-        <div className="flex-1 overflow-auto md:ml-0">
+        <div className="flex-1 overflow-auto overscroll-none md:ml-0">
           {/* Mobile padding to account for hamburger menu */}
           <div className="md:hidden h-14 sm:h-16" />
           
@@ -89,7 +93,7 @@ export function DashboardLayoutClient({
             <ContentLoadingFallback />
           ) : (
             <Suspense fallback={<ContentLoadingFallback />}>
-              <div className="p-3 sm:p-4 md:p-6 lg:p-8 min-h-full">
+              <div className={`p-3 sm:p-4 md:p-6 lg:p-8 ${isMaintenancePage ? 'min-h-0 h-auto' : 'min-h-full'}`}>
                 {children}
               </div>
             </Suspense>

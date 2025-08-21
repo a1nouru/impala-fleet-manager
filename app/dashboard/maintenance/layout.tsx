@@ -11,7 +11,7 @@ export default function MaintenanceLayout({
   children: React.ReactNode
 }>) {
   return (
-    <section className="w-full h-full">
+    <section className="w-full">
       {children}
     </section>
   )
