@@ -441,10 +441,10 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
 
   const getStepTitle = () => {
     switch (currentStep) {
-      case 1: return "Basic Information";
-      case 2: return "Select Vehicles";
-      case 3: return "Financial Details";
-      case 4: return "Review & Confirm";
+      case 1: return t("rental.basicInformation");
+      case 2: return t("rental.selectVehiclesStep");
+      case 3: return t("rental.financialDetails");
+      case 4: return t("rental.reviewConfirm");
       default: return "";
     }
   };
@@ -527,7 +527,7 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                   <div>
                     <Label className="text-xs text-gray-500">{t("rental.clientName")} *</Label>
                     <Input
-                      placeholder="Enter client name"
+                      placeholder={t("rental.enterClientNamePlaceholder")}
                       value={formData.client_name}
                       onChange={(e) => setFormData(prev => ({ ...prev, client_name: e.target.value }))}
                     />
@@ -535,7 +535,7 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                   <div>
                     <Label className="text-xs text-gray-500">{t("rental.clientContact")}</Label>
                     <Input
-                      placeholder="Phone or email (optional)"
+                      placeholder={t("rental.phoneEmailOptional")}
                       value={formData.client_contact}
                       onChange={(e) => setFormData(prev => ({ ...prev, client_contact: e.target.value }))}
                     />
@@ -544,9 +544,9 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
               </div>
 
               <div>
-                <Label className="text-sm font-medium mb-4 block">Description (Optional)</Label>
+                <Label className="text-sm font-medium mb-4 block">{t("rental.descriptionOptional")}</Label>
                 <Textarea
-                  placeholder="Wedding, corporate event, transportation details, etc."
+                  placeholder={t("rental.weddingCorporateEtc")}
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   className="resize-none h-[120px]"
@@ -575,7 +575,7 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                 disabled={isLoadingVehicles || allVehicles.length === selectedVehicles.length}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Add Vehicle
+{t("rental.addVehicle")}
               </Button>
             </div>
 
@@ -586,8 +586,8 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
             ) : selectedVehicles.length === 0 ? (
               <div className="text-center py-8">
                 <Car className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No vehicles selected</h3>
-                <p className="mt-1 text-sm text-gray-500">Click "Add Vehicle" to select vehicles for this rental.</p>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">{t("rental.noVehiclesSelected")}</h3>
+                <p className="mt-1 text-sm text-gray-500">{t("rental.clickAddVehicle")}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -602,7 +602,7 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                     <Card key={selectedVehicle.id}>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <Label className="text-sm font-medium">Vehicle {index + 1}</Label>
+                          <Label className="text-sm font-medium">{t("rental.vehicle")} {index + 1}</Label>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -614,7 +614,7 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                         
                         <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
                           <div>
-                            <Label className="text-xs text-gray-500">Vehicle</Label>
+                            <Label className="text-xs text-gray-500">{t("rental.vehicle")}</Label>
                             <Select 
                               value={selectedVehicle.id} 
                               onValueChange={(newVehicleId) => changeSelectedVehicle(selectedVehicle.id, newVehicleId)}
@@ -641,7 +641,7 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                           </div>
                           
                           <div>
-                            <Label className="text-xs text-gray-500">Price per Day (AOA)</Label>
+                            <Label className="text-xs text-gray-500">{t("rental.pricePerDay")}</Label>
                             <div className="relative">
                               <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                               <Input
@@ -655,7 +655,7 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                           </div>
                           
                           <div>
-                            <Label className="text-xs text-gray-500">Total Price</Label>
+                            <Label className="text-xs text-gray-500">{t("rental.totalPrice")}</Label>
                             <div className="p-2 bg-blue-50 border border-blue-200 rounded-md text-sm font-medium text-blue-700">
                               {selectedVehicle.totalPrice.toLocaleString()} AOA
                               <div className="text-xs text-blue-600">
@@ -676,7 +676,7 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <div className="text-sm font-medium">Total Rental Amount</div>
+                      <div className="text-sm font-medium">{t("rental.totalRentalAmount")}</div>
                       <div className="text-xs text-gray-500">
                         {selectedVehicles.length} {selectedVehicles.length === 1 ? 'vehicle' : 'vehicles'} for {rentalDays} {rentalDays === 1 ? 'day' : 'days'}
                       </div>
@@ -1055,7 +1055,7 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
               ) : (
                 <>
                   <ChevronLeft className="h-4 w-4 mr-1" />
-                  Back
+{t("rental.back")}
                 </>
               )}
             </Button>
@@ -1065,12 +1065,12 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                "Creating..."
+                t("buttons.saving")
               ) : currentStep === 4 ? (
                 t("rental.createRental")
               ) : (
                 <>
-                  Next
+                  {t("rental.next")}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </>
               )}

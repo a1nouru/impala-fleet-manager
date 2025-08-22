@@ -508,7 +508,6 @@ export default function RentalPage() {
                   <TableHead className="text-right">{t("rental.table.revenue")}</TableHead>
                   <TableHead className="text-right">{t("rental.table.expenses")}</TableHead>
                   <TableHead className="text-right">{t("rental.table.profit")}</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-right">{t("rental.table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -535,11 +534,6 @@ export default function RentalPage() {
                       <TableCell className="text-right">{formatCurrency(totalExpenses)}</TableCell>
                       <TableCell className={`text-right font-medium ${getProfitIndicator(netProfit)}`}>
                         {formatCurrency(netProfit)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge className={getStatusBadgeColor(rental.status)}>
-                          {t(`rental.status.${rental.status}` as any)}
-                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -569,7 +563,7 @@ export default function RentalPage() {
                   <TableCell className="text-right font-bold">{formatCurrency(summary.total_revenue)}</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(summary.total_expenses)}</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(summary.net_profit)}</TableCell>
-                  <TableCell colSpan={2}></TableCell>
+                  <TableCell></TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
