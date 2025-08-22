@@ -482,7 +482,6 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                         mode="single"
                         selected={formData.rental_start_date}
                         onSelect={(date) => date && setFormData(prev => ({ ...prev, rental_start_date: date }))}
-                        disabled={(date) => date < new Date()}
                         initialFocus
                       />
                     </PopoverContent>
@@ -512,7 +511,6 @@ export function CreateRentalDialog({ open, onOpenChange, onRentalCreated }: Crea
                         mode="single"
                         selected={formData.rental_end_date}
                         onSelect={(date) => date && setFormData(prev => ({ ...prev, rental_end_date: date }))}
-                        disabled={(date) => date <= formData.rental_start_date}
                         initialFocus
                       />
                     </PopoverContent>
