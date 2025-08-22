@@ -90,6 +90,61 @@ export interface CompanyExpense {
     company_expense_receipts?: CompanyExpenseReceipt[];
 }
 
+// --- Rental-related interfaces ---
+
+export interface VehicleRental {
+    id: string;
+    rental_start_date: string;
+    rental_end_date: string;
+    rental_amount: number; // Revenue from rental
+    client_name?: string;
+    client_contact?: string;
+    description?: string;
+    status: 'active' | 'completed' | 'cancelled';
+    created_by?: string;
+    created_at: string;
+    updated_at: string;
+    // Joined data
+    rental_vehicles?: RentalVehicle[];
+    rental_expenses?: RentalExpense[];
+    rental_receipts?: RentalReceipt[];
+}
+
+export interface RentalVehicle {
+    id: string;
+    rental_id: string;
+    vehicle_id: string;
+    created_at: string;
+    // Joined data from the 'vehicles' table
+    vehicles?: {
+        plate: string;
+    };
+}
+
+export interface RentalExpense {
+    id: string;
+    rental_id: string;
+    category: string;
+    description?: string;
+    amount: number;
+    expense_date: string;
+    receipt_url?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface RentalReceipt {
+    id: string;
+    rental_id: string;
+    receipt_url: string;
+    file_name?: string;
+    file_size?: number;
+    amount?: number; // Payment amount for this receipt
+    payment_method?: 'cash' | 'transfer' | 'cheque' | 'other';
+    upload_date: string;
+    created_by?: string;
+}
+
 // --- Service Functions ---
 
 export const financialService = {
