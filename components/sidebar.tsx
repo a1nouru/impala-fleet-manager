@@ -12,7 +12,8 @@ import {
   LogOut,
   Menu,
   X,
-  DollarSign
+  DollarSign,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -69,6 +70,12 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
       icon: DollarSign,
       label: t("financials:title"),
       active: !!pathname?.startsWith("/dashboard/financials")
+    },
+    {
+      href: "/dashboard/hr",
+      icon: Users,
+      label: "HR",
+      active: !!pathname?.startsWith("/dashboard/hr")
     },
     {
       href: "/dashboard/reports",
