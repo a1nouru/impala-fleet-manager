@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle } from "lucide-react";
+import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle, Upload, X, Eye } from "lucide-react";
 import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
 import { vehicleService } from "@/services/vehicleService";
 import { toast } from "@/components/ui/use-toast";
@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useAuth } from "@/context/AuthContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -193,6 +194,7 @@ const exportReportsToExcel = (data: DailyReport[], filename: string) => {
 
 export default function AllDailyReportsPage() {
   const { t } = useTranslation('financials');
+  const { user } = useAuth();
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -231,6 +233,10 @@ export default function AllDailyReportsPage() {
   });
   const [selectedExpenseType, setSelectedExpenseType] = useState<string>("");
   const [customExpenseType, setCustomExpenseType] = useState<string>("");
+
+  // State for fuel receipt uploads
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
 
   // Filter states
   const [dateFilter, setDateFilter] = useState<{
@@ -477,6 +483,7 @@ export default function AllDailyReportsPage() {
         category: category,
         description: expense.description,
         amount: expense.amount,
+        receipt_url: expense.receipt_url,
     });
     // Set the expense type for editing - FIXED: case-insensitive comparison
     if (category && ["fuel", "subsidy"].includes(category.toLowerCase())) {
@@ -540,17 +547,98 @@ export default function AllDailyReportsPage() {
     }
   };
 
+  // Receipt upload handlers
+  const handleReceiptFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "❌ Invalid File Type",
+          description: "Please upload PDF, JPG, or PNG files only.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (file.size > maxSize) {
+        toast({
+          title: "❌ File Too Large",
+          description: "Maximum file size is 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setReceiptFile(file);
+    }
+  };
+
+  const removeReceiptFile = () => {
+    setReceiptFile(null);
+  };
+
+  // Validation function for fuel expenses
+  const validateFuelExpenseReceipt = (expenseType: string, hasReceiptFile: boolean): { isValid: boolean; message?: string } => {
+    if (expenseType === "Fuel") {
+      if (!hasReceiptFile) {
+        return { 
+          isValid: false, 
+          message: t("expenses.fuelReceiptRequired") 
+        };
+      }
+    }
+    return { isValid: true };
+  };
+
   const handleAddNewExpense = async () => {
     if (!editingReport || !newExpenseData.category || !newExpenseData.amount) {
         toast({ title: "Error", description: "Please provide a category and amount for the new expense.", variant: "destructive" });
         return;
     }
+
+    const receiptValidation = validateFuelExpenseReceipt(selectedExpenseType, !!receiptFile);
+    if (!receiptValidation.isValid) {
+        toast({ 
+            title: "❌ " + t("expenses.cannotSaveWithoutReceipt"), 
+            description: receiptValidation.message || t("expenses.fuelReceiptRequired"), 
+            variant: "destructive" 
+        });
+        return;
+    }
+
     try {
-        await financialService.createDailyExpense({ report_id: editingReport.id, ...newExpenseData } as DailyExpense);
+        let receiptUrl = "";
+        
+        if (selectedExpenseType === "Fuel" && receiptFile && user?.id) {
+          setIsUploadingReceipt(true);
+          try {
+            receiptUrl = await financialService.uploadFuelReceipt(receiptFile, user.id);
+          } catch (uploadError) {
+            console.error("Receipt upload failed:", uploadError);
+            toast({
+              title: "⚠️ Receipt Upload Failed",
+              description: "Expense will be created without receipt. You can add it later.",
+              variant: "destructive",
+            });
+          } finally {
+            setIsUploadingReceipt(false);
+          }
+        }
+
+        const expenseData = {
+          ...newExpenseData,
+          receipt_url: receiptUrl
+        };
+
+        await financialService.createDailyExpense({ report_id: editingReport.id, ...expenseData } as DailyExpense);
         toast({ title: "Success", description: "Expense added successfully." });
         setNewExpenseData({ category: "", description: "", amount: 0 });
         setSelectedExpenseType("");
         setCustomExpenseType("");
+        setReceiptFile(null);
         setIsAddingExpense(false);
         const updatedReport = await financialService.getDailyReportById(editingReport.id);
         if (updatedReport) setEditingReport(updatedReport);
@@ -561,6 +649,21 @@ export default function AllDailyReportsPage() {
 
   const handleUpdateExpense = async () => {
     if (!editingExpense) return;
+
+    // NOTE: This component does not have an edit receipt flow yet.
+    // We will validate if a receipt exists if it's a fuel expense.
+    const hasExistingReceipt = !!editedExpenseData.receipt_url;
+    const receiptValidation = validateFuelExpenseReceipt(selectedExpenseType, hasExistingReceipt);
+
+    if (!receiptValidation.isValid) {
+        toast({ 
+            title: "❌ " + t("expenses.cannotSaveWithoutReceipt"), 
+            description: receiptValidation.message + " Please delete and re-add the expense with a receipt.", 
+            variant: "destructive" 
+        });
+        return;
+    }
+
     try {
         await financialService.updateDailyExpense(editingExpense.id, editedExpenseData);
         toast({ title: "Success", description: "Expense updated." });
@@ -1389,13 +1492,67 @@ export default function AllDailyReportsPage() {
                         rows={2}
                       />
                       
+                      {/* Fuel Receipt Upload Section for New Expense */}
+                      {selectedExpenseType === "Fuel" && (
+                        <div className="space-y-2">
+                          <Label>{t("expenses.fuelReceipt")}</Label>
+                          <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded-md border border-orange-200">
+                            {t("expenses.receiptAmountNote")}
+                          </div>
+                          <div className="space-y-2">
+                            {/* New File Selected */}
+                            {receiptFile && (
+                              <div className="flex items-center justify-between p-2 bg-blue-50 rounded-md border border-blue-200">
+                                <div className="flex items-center gap-2">
+                                  <Upload className="h-4 w-4 text-blue-500" />
+                                  <span className="text-sm text-blue-700">{receiptFile.name}</span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={removeReceiptFile}
+                                  className="h-7 w-7 p-0 text-red-500 hover:text-red-600"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {/* File Upload Input */}
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                              <input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={handleReceiptFileChange}
+                                className="hidden"
+                                id="receipt-upload-main"
+                              />
+                              <label htmlFor="receipt-upload-main" className="cursor-pointer">
+                                <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                                <p className="text-sm text-gray-600">
+                                  {receiptFile ? t("expenses.replaceReceipt") : t("expenses.uploadFuelReceipt")}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">{t("expenses.receiptFileFormats")}</p>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <Button 
                         size="sm" 
                         onClick={handleAddNewExpense}
                         className="w-full bg-black hover:bg-gray-800 text-white"
-                        disabled={!newExpenseData.category || !newExpenseData.amount}
+                        disabled={!newExpenseData.category || !newExpenseData.amount || isUploadingReceipt || (selectedExpenseType === 'Fuel' && !receiptFile)}
                       >
-                        Add Expense
+                        {isUploadingReceipt ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          "Add Expense"
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -1404,7 +1561,12 @@ export default function AllDailyReportsPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleUpdateReport}>Save Changes</Button>
+              <Button 
+                onClick={handleUpdateReport}
+                disabled={isAddingExpense && selectedExpenseType === 'Fuel' && !receiptFile}
+              >
+                Save Changes
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1461,6 +1623,27 @@ export default function AllDailyReportsPage() {
               <Label>Description</Label>
               <Textarea name="description" value={editedExpenseData.description || ""} onChange={handleExpenseInputChange} />
             </div>
+
+            {/* Fuel Receipt Display Section */}
+            {selectedExpenseType === 'Fuel' && editedExpenseData.receipt_url && (
+              <div className="space-y-2">
+                <Label>{t("expenses.fuelReceipt")}</Label>
+                <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md border">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-700">{t("expenses.currentReceipt")}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(editedExpenseData.receipt_url, '_blank')}
+                    className="h-7 w-7 p-0"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsExpenseDialogOpen(false)}>Cancel</Button>

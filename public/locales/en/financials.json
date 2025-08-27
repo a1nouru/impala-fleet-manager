@@ -264,7 +264,7 @@
     "selectExpenseType": "Select expense type",
     "specifyType": "Specify type",
     "noExpensesIndicator": "No expenses recorded",
-    "fuelReceipt": "Fuel Receipt (Optional)",
+    "fuelReceipt": "Fuel Receipt (Required)",
     "fuelReceiptShort": "Fuel Receipt",
     "uploadFuelReceipt": "Upload fuel receipt",
     "viewReceipt": "View Receipt",
@@ -274,6 +274,9 @@
     "replaceReceipt": "Replace with different file",
     "clickToViewReceipt": "Click to view fuel receipt",
     "receiptIndicator": "Receipt",
+    "fuelReceiptRequired": "Fuel receipt is required for fuel expenses",
+    "receiptAmountNote": "⚠️ Important: The amount on the uploaded receipt must match the entered fuel expense amount",
+    "cannotSaveWithoutReceipt": "Cannot save fuel expense without receipt",
     "categories": {
       "fuel": "⛽ Fuel",
       "subsidy": "💰 Subsidy",

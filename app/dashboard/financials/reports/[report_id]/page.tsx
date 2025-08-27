@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PlusCircle, ArrowLeft } from "lucide-react";
+import { Loader2, PlusCircle, ArrowLeft, Upload, X, FileText, Eye } from "lucide-react";
 import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useAuth } from "@/context/AuthContext";
 
 // Helper function to calculate total revenue
 const calculateTotalRevenue = (report: DailyReport) => {
@@ -42,6 +43,7 @@ const calculateTotalExpenses = (expenses: DailyExpense[]) => {
 
 export default function ReportDetailPage({ params }: { params: { report_id: string } }) {
   const { t } = useTranslation('financials');
+  const { user } = useAuth();
   const router = useRouter();
   const reportId = params.report_id;
 
@@ -56,6 +58,10 @@ export default function ReportDetailPage({ params }: { params: { report_id: stri
   });
   const [selectedExpenseType, setSelectedExpenseType] = useState<string>("");
   const [customExpenseType, setCustomExpenseType] = useState<string>("");
+
+  // State for fuel receipt uploads
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
 
   const fetchReport = async () => {
     try {
@@ -95,12 +101,63 @@ export default function ReportDetailPage({ params }: { params: { report_id: stri
     } else {
       setNewExpense(prev => ({ ...prev, category: "" }));
     }
+    
+    // Reset receipt upload state when type changes
+    if (value !== "Fuel") {
+      setReceiptFile(null);
+    }
   };
 
   const handleCustomExpenseTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCustomExpenseType(value);
     setNewExpense(prev => ({ ...prev, category: value }));
+  };
+
+  // Receipt upload handlers
+  const handleReceiptFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "❌ Invalid File Type",
+          description: "Please upload PDF, JPG, or PNG files only.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (file.size > maxSize) {
+        toast({
+          title: "❌ File Too Large",
+          description: "Maximum file size is 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setReceiptFile(file);
+    }
+  };
+
+  const removeReceiptFile = () => {
+    setReceiptFile(null);
+  };
+
+  // Validation function for fuel expenses
+  const validateFuelExpenseReceipt = (expenseType: string, hasReceiptFile: boolean): { isValid: boolean; message?: string } => {
+    if (expenseType === "Fuel") {
+      if (!hasReceiptFile) {
+        return { 
+          isValid: false, 
+          message: t("expenses.fuelReceiptRequired") 
+        };
+      }
+    }
+    return { isValid: true };
   };
 
   const handleAddExpense = async () => {
@@ -112,11 +169,47 @@ export default function ReportDetailPage({ params }: { params: { report_id: stri
           });
           return;
       }
+
+      // Validate fuel receipt requirement
+      const receiptValidation = validateFuelExpenseReceipt(selectedExpenseType, !!receiptFile);
+      if (!receiptValidation.isValid) {
+          toast({ 
+              title: "❌ " + t("expenses.cannotSaveWithoutReceipt"), 
+              description: receiptValidation.message || t("expenses.fuelReceiptRequired"), 
+              variant: "destructive" 
+          });
+          return;
+      }
+
       setIsSubmittingExpense(true);
       try {
+          let receiptUrl = "";
+          
+          // Upload receipt if it's a fuel expense and file is selected
+          if (selectedExpenseType === "Fuel" && receiptFile && user?.id) {
+            setIsUploadingReceipt(true);
+            try {
+              receiptUrl = await financialService.uploadFuelReceipt(receiptFile, user.id);
+            } catch (uploadError) {
+              console.error("Receipt upload failed:", uploadError);
+              toast({
+                title: "⚠️ Receipt Upload Failed",
+                description: "Expense will be created without receipt. You can add it later.",
+                variant: "destructive",
+              });
+            } finally {
+              setIsUploadingReceipt(false);
+            }
+          }
+
+          const expenseData = {
+            ...newExpense,
+            receipt_url: receiptUrl
+          };
+
           const createdExpense = await financialService.createDailyExpense({
               report_id: reportId,
-              ...newExpense,
+              ...expenseData,
           });
           // Update the report state to include the new expense
           setReport((prevReport) => {
@@ -134,6 +227,7 @@ export default function ReportDetailPage({ params }: { params: { report_id: stri
           setNewExpense({ category: "", description: "", amount: 0 }); // Reset form
           setSelectedExpenseType("");
           setCustomExpenseType("");
+          setReceiptFile(null);
       } catch (error) {
           toast({
               title: "Error",
@@ -252,12 +346,69 @@ export default function ReportDetailPage({ params }: { params: { report_id: stri
                         <Label htmlFor="amount">Amount</Label>
                         <Input id="amount" name="amount" type="number" value={newExpense.amount} onChange={handleExpenseInputChange} />
                     </div>
+                    
+                    {/* Fuel Receipt Upload Section */}
+                    {selectedExpenseType === "Fuel" && (
+                      <div className="space-y-2">
+                        <Label>{t("expenses.fuelReceipt")}</Label>
+                        <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded-md border border-orange-200">
+                          {t("expenses.receiptAmountNote")}
+                        </div>
+                        <div className="space-y-2">
+                          {/* New File Selected */}
+                          {receiptFile && (
+                            <div className="flex items-center justify-between p-2 bg-blue-50 rounded-md border border-blue-200">
+                              <div className="flex items-center gap-2">
+                                <Upload className="h-4 w-4 text-blue-500" />
+                                <span className="text-sm text-blue-700">{receiptFile.name}</span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={removeReceiptFile}
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-600"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {/* File Upload Input */}
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={handleReceiptFileChange}
+                              className="hidden"
+                              id="receipt-upload-detail"
+                            />
+                            <label htmlFor="receipt-upload-detail" className="cursor-pointer">
+                              <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                              <p className="text-sm text-gray-600">
+                                {receiptFile ? t("expenses.replaceReceipt") : t("expenses.uploadFuelReceipt")}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">{t("expenses.receiptFileFormats")}</p>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsExpenseDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleAddExpense} disabled={isSubmittingExpense} className="bg-black hover:bg-gray-800 text-white">
-                        {isSubmittingExpense && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Expense
+                    <Button 
+                      onClick={handleAddExpense} 
+                      disabled={isSubmittingExpense || isUploadingReceipt || (selectedExpenseType === "Fuel" && !receiptFile)} 
+                      className="bg-black hover:bg-gray-800 text-white"
+                    >
+                        {(isSubmittingExpense || isUploadingReceipt) ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {isUploadingReceipt ? "Uploading..." : "Saving..."}
+                          </>
+                        ) : (
+                          "Save Expense"
+                        )}
                     </Button>
                 </DialogFooter>
             </DialogContent>

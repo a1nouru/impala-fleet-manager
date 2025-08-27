@@ -299,9 +299,33 @@ export default function AllDailyReportsPage() {
     }
   };
 
+  // Validation function for fuel expenses
+  const validateFuelExpenseReceipt = (expenseType: string, hasReceiptFile: boolean, hasCurrentReceipt: boolean): { isValid: boolean; message?: string } => {
+    if (expenseType === "Fuel") {
+      if (!hasReceiptFile && !hasCurrentReceipt) {
+        return { 
+          isValid: false, 
+          message: t("expenses.fuelReceiptRequired") 
+        };
+      }
+    }
+    return { isValid: true };
+  };
+
   const handleAddNewExpense = async () => {
     if (!editingReport || !newExpenseData.category || !newExpenseData.amount) {
         toast({ title: "Error", description: "Please provide a category and amount for the new expense.", variant: "destructive" });
+        return;
+    }
+
+    // Validate fuel receipt requirement
+    const receiptValidation = validateFuelExpenseReceipt(selectedExpenseType, !!receiptFile, false);
+    if (!receiptValidation.isValid) {
+        toast({ 
+            title: "❌ " + t("expenses.cannotSaveWithoutReceipt"), 
+            description: receiptValidation.message || t("expenses.fuelReceiptRequired"), 
+            variant: "destructive" 
+        });
         return;
     }
     
@@ -350,6 +374,21 @@ export default function AllDailyReportsPage() {
 
   const handleUpdateExpense = async () => {
     if (!editingExpense) return;
+    
+    // Validate fuel receipt requirement for edit
+    const receiptValidation = validateFuelExpenseReceipt(
+      selectedExpenseType, 
+      !!receiptFile, 
+      !!currentReceiptUrl || !!editingExpense.receipt_url
+    );
+    if (!receiptValidation.isValid) {
+        toast({ 
+            title: "❌ " + t("expenses.cannotSaveWithoutReceipt"), 
+            description: receiptValidation.message || t("expenses.fuelReceiptRequired"), 
+            variant: "destructive" 
+        });
+        return;
+    }
     
     try {
         let finalExpenseData = { ...editedExpenseData };
@@ -677,6 +716,9 @@ export default function AllDailyReportsPage() {
                                    {selectedExpenseType === "Fuel" && (
                                      <div className="space-y-2">
                                        <Label>{t("expenses.fuelReceipt")}</Label>
+                                       <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded-md border border-orange-200">
+                                         {t("expenses.receiptAmountNote")}
+                                       </div>
                                        <div className="space-y-2">
                                          {/* New File Selected */}
                                          {receiptFile && (
@@ -717,7 +759,12 @@ export default function AllDailyReportsPage() {
                                      </div>
                                    )}
                                    
-                                   <Button onClick={handleAddNewExpense} size="sm" className="w-full" disabled={isUploadingReceipt}>
+                                   <Button 
+                                     onClick={handleAddNewExpense} 
+                                     size="sm" 
+                                     className="w-full" 
+                                     disabled={isUploadingReceipt || (selectedExpenseType === "Fuel" && !receiptFile)}
+                                   >
                                        {isUploadingReceipt ? (
                                          <>
                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -783,6 +830,9 @@ export default function AllDailyReportsPage() {
                     {selectedExpenseType === "Fuel" && (
                       <div className="space-y-2">
                         <Label>{t("expenses.fuelReceipt")}</Label>
+                        <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded-md border border-orange-200">
+                          {t("expenses.receiptAmountNote")}
+                        </div>
                         <div className="space-y-2">
                           {/* Current Receipt Display */}
                           {currentReceiptUrl && !receiptFile && (
@@ -855,7 +905,10 @@ export default function AllDailyReportsPage() {
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsExpenseDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleUpdateExpense} disabled={isUploadingReceipt}>
+                    <Button 
+                      onClick={handleUpdateExpense} 
+                      disabled={isUploadingReceipt || (selectedExpenseType === "Fuel" && !receiptFile && !currentReceiptUrl && !editingExpense?.receipt_url)}
+                    >
                       {isUploadingReceipt ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />

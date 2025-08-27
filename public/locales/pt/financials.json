@@ -265,7 +265,7 @@
     "selectExpenseType": "Selecionar tipo de despesa",
     "specifyType": "Especificar tipo",
     "noExpensesIndicator": "Nenhuma despesa registada",
-    "fuelReceipt": "Recibo de Gasóleo (Opcional)",
+    "fuelReceipt": "Recibo de Gasóleo (Obrigatório)",
     "fuelReceiptShort": "Recibo de Gasóleo",
     "uploadFuelReceipt": "Carregar recibo de gasóleo",
     "viewReceipt": "Ver Recibo",
@@ -275,6 +275,9 @@
     "replaceReceipt": "Substituir por ficheiro diferente",
     "clickToViewReceipt": "Clique para ver o recibo de gasóleo",
     "receiptIndicator": "Recibo",
+    "fuelReceiptRequired": "Recibo de gasóleo é obrigatório para despesas de gasóleo",
+    "receiptAmountNote": "⚠️ Importante: O valor no recibo carregado deve corresponder ao valor da despesa de gasóleo inserido",
+    "cannotSaveWithoutReceipt": "Não é possível guardar despesa de gasóleo sem recibo",
     "categories": {
       "fuel": "⛽ Gasóleo",
       "subsidy": "💰 Subsídio",
