@@ -53,7 +53,9 @@ import {
   Calculator,
   CalendarIcon,
   Upload,
-  X
+  X,
+  FileText,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
@@ -327,6 +329,23 @@ export default function VehicleDamagesPage() {
       setDeleteConfirmationOpen(false);
       setDamageToDelete(null);
     }
+  };
+
+  const handleViewDocuments = (damage: VehicleDamage) => {
+    if (!damage.document_urls || damage.document_urls.length === 0) {
+      toast({
+        title: "No Documents",
+        description: "No documents have been uploaded for this damage entry.",
+        variant: "default",
+      });
+      return;
+    }
+
+    // Open each document in a new tab
+    damage.document_urls.forEach((url, index) => {
+      const fileName = damage.document_names?.[index] || `Document ${index + 1}`;
+      window.open(url, '_blank');
+    });
   };
 
   return (
@@ -658,6 +677,7 @@ export default function VehicleDamagesPage() {
                   <TableHead className="text-right">Deduction %</TableHead>
                   <TableHead className="text-right">Remaining</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Documents</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -675,6 +695,21 @@ export default function VehicleDamagesPage() {
                       <Badge variant={damage.is_fully_paid ? "default" : "destructive"}>
                         {damage.is_fully_paid ? "Paid" : "Pending"}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {damage.document_urls && damage.document_urls.length > 0 ? (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-blue-600 hover:text-blue-700"
+                          onClick={() => handleViewDocuments(damage)}
+                          title={`View ${damage.document_urls.length} document(s)`}
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">

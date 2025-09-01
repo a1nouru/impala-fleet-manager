@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle, Upload, X, Eye } from "lucide-react";
+import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle, Upload, X, Eye, ChevronDown } from "lucide-react";
 import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
 import { vehicleService } from "@/services/vehicleService";
 import { toast } from "@/components/ui/use-toast";
@@ -39,6 +39,13 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
+import { Checkbox } from "@/components/ui/checkbox";
+
+// Common expense categories for exclude filter
+const EXPENSE_CATEGORIES = [
+  { value: "Fuel", label: "⛽ Fuel", icon: "⛽" },
+  { value: "Subsidy", label: "💰 Subsidy", icon: "💰" },
+] as const;
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -70,9 +77,11 @@ const calculateTotalRevenue = (report: DailyReport) => {
 };
 
 // Helper function to calculate net balance
-const calculateNetBalance = (report: DailyReport) => {
+const calculateNetBalance = (report: DailyReport, excludedCategories: string[] = []) => {
   const totalRevenue = (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
-  const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
+  const totalExpenses = (report.daily_expenses || [])
+    .filter(expense => !excludedCategories.includes(expense.category))
+    .reduce((sum, expense) => sum + expense.amount, 0);
   return totalRevenue - totalExpenses;
 };
 
@@ -120,7 +129,7 @@ const formatCurrency = (value: number) => {
 };
 
 // Group reports by date
-const groupReportsByDate = (reports: DailyReport[]) => {
+const groupReportsByDate = (reports: DailyReport[], excludedCategories: string[] = []) => {
   const grouped = reports.reduce((acc, report) => {
     const date = format(parseISO(report.report_date), "yyyy-MM-dd");
     if (!acc[date]) {
@@ -134,8 +143,10 @@ const groupReportsByDate = (reports: DailyReport[]) => {
     date,
     reports,
     totalRevenue: reports.reduce((sum, r) => sum + calculateTotalRevenue(r), 0),
-    totalExpenses: reports.reduce((sum, r) => sum + (r.daily_expenses || []).reduce((exp, e) => exp + e.amount, 0), 0),
-    netBalance: reports.reduce((sum, r) => sum + calculateNetBalance(r), 0),
+    totalExpenses: reports.reduce((sum, r) => sum + (r.daily_expenses || [])
+      .filter(expense => !excludedCategories.includes(expense.category))
+      .reduce((exp, e) => exp + e.amount, 0), 0),
+    netBalance: reports.reduce((sum, r) => sum + calculateNetBalance(r, excludedCategories), 0),
     vehicleCount: reports.length,
   })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
@@ -249,6 +260,7 @@ export default function AllDailyReportsPage() {
   const [groupByDate, setGroupByDate] = useState(true);
   const [reportTypeFilter, setReportTypeFilter] = useState<"all" | "agaseke" | "regular">("all");
   const [vehiclePlateFilter, setVehiclePlateFilter] = useState<string>("all");
+  const [excludeFilter, setExcludeFilter] = useState<string[]>([]);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -365,7 +377,7 @@ export default function AllDailyReportsPage() {
   const currentPageReports = filteredReports.slice(startIndex, endIndex);
 
   // Group or show individual reports
-  const displayData = groupByDate ? groupReportsByDate(filteredReports) : null;
+  const displayData = groupByDate ? groupReportsByDate(filteredReports, excludeFilter) : null;
 
   // New Report Form Handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -784,6 +796,11 @@ export default function AllDailyReportsPage() {
                 {vehiclePlateFilter}
               </Badge>
             )}
+            {excludeFilter.length > 0 && (
+              <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
+                Excluding {excludeFilter.length} {excludeFilter.length === 1 ? 'category' : 'categories'}
+              </Badge>
+            )}
           </div>
         </div>
         
@@ -916,10 +933,10 @@ export default function AllDailyReportsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
               <Filter className="h-4 w-4" />
-              <Label>{t("filters.filters")}:</Label>
+              <Label className="text-sm">{t("filters.filters")}:</Label>
             </div>
             
             {/* Date Range Picker */}
@@ -1033,6 +1050,71 @@ export default function AllDailyReportsPage() {
               </Select>
             </div>
 
+            {/* Exclude Filter */}
+            <div className="flex items-center gap-2">
+              <Label>Exclude:</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[160px] sm:w-[180px] justify-between text-left font-normal",
+                      excludeFilter.length === 0 && "text-muted-foreground"
+                    )}
+                  >
+                    <span className="truncate">
+                      {excludeFilter.length === 0 
+                        ? "Select expenses..." 
+                        : excludeFilter.length === 1 
+                          ? EXPENSE_CATEGORIES.find(cat => cat.value === excludeFilter[0])?.label || excludeFilter[0]
+                          : `${excludeFilter.length} excluded`
+                      }
+                    </span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[160px] sm:w-[180px] p-0" align="start">
+                  <div className="p-3">
+                    <div className="space-y-2">
+                      {EXPENSE_CATEGORIES.map((category) => (
+                        <div key={category.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={category.value}
+                            checked={excludeFilter.includes(category.value)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setExcludeFilter(prev => [...prev, category.value]);
+                              } else {
+                                setExcludeFilter(prev => prev.filter(item => item !== category.value));
+                              }
+                            }}
+                          />
+                          <Label
+                            htmlFor={category.value}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {category.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    {excludeFilter.length > 0 && (
+                      <div className="pt-3 border-t mt-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setExcludeFilter([])}
+                          className="w-full text-xs"
+                        >
+                          Clear All
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
             {/* Clear Filters */}
             <Button
               variant="ghost"
@@ -1041,6 +1123,7 @@ export default function AllDailyReportsPage() {
                 setDateFilter({ from: undefined, to: undefined });
                 setReportTypeFilter("all");
                 setVehiclePlateFilter("all");
+                setExcludeFilter([]);
               }}
             >
               {t("filters.clearFilters")}
@@ -1197,7 +1280,7 @@ export default function AllDailyReportsPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">{formatCurrency(calculateNetBalance(report))}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(calculateNetBalance(report, excludeFilter))}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="icon" onClick={() => handleEditClick(report)}>
@@ -1255,10 +1338,12 @@ export default function AllDailyReportsPage() {
                         {formatCurrency(filteredReports.reduce((acc, report) => acc + calculateTotalRevenue(report), 0))}
                       </TableCell>
                       <TableCell className="text-right font-bold">
-                        {formatCurrency(filteredReports.reduce((acc, report) => acc + (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0), 0))}
+                        {formatCurrency(filteredReports.reduce((acc, report) => acc + (report.daily_expenses || [])
+                          .filter(expense => !excludeFilter.includes(expense.category))
+                          .reduce((sum, expense) => sum + expense.amount, 0), 0))}
                       </TableCell>
                       <TableCell className="text-right font-bold">
-                        {formatCurrency(filteredReports.reduce((acc, report) => acc + calculateNetBalance(report), 0))}
+                        {formatCurrency(filteredReports.reduce((acc, report) => acc + calculateNetBalance(report, excludeFilter), 0))}
                       </TableCell>
                       <TableCell />
                     </TableRow>

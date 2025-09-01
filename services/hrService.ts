@@ -29,6 +29,8 @@ export interface VehicleDamage {
   remaining_balance: number;
   is_fully_paid: boolean;
   damage_date: string;
+  document_urls?: string[];
+  document_names?: string[];
   created_at: string;
   updated_at: string;
   employees?: Employee;

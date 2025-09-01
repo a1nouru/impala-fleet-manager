@@ -18,6 +18,18 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
+### WhatsApp Notifications Configuration
+```bash
+# WhatsApp Business API Configuration (for notifications)
+WHATSAPP_API_URL=https://graph.facebook.com/v17.0
+WHATSAPP_ACCESS_TOKEN=your_whatsapp_access_token
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+WHATSAPP_WEBHOOK_VERIFY_TOKEN=your_webhook_verify_token
+
+# Cron Job Security (optional)
+CRON_SECRET_TOKEN=your_secure_random_token
+```
+
 ### Application Configuration
 ```bash
 # Next.js Configuration
@@ -48,6 +60,13 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 
 # Gemini AI
 GEMINI_API_KEY=your_gemini_api_key_here
+
+# WhatsApp Business API
+WHATSAPP_API_URL=https://graph.facebook.com/v17.0
+WHATSAPP_ACCESS_TOKEN=your_whatsapp_access_token
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+WHATSAPP_WEBHOOK_VERIFY_TOKEN=your_webhook_verify_token
+CRON_SECRET_TOKEN=your_secure_random_token
 
 # NextAuth
 NEXTAUTH_SECRET=your_random_secret_string

@@ -1,0 +1,156 @@
+{
+  "title": "Notificações",
+  "subtitle": "Gerir alertas e notificações do WhatsApp",
+  "navigation": {
+    "alerts": "Gestão de Alertas",
+    "history": "Histórico de Notificações",
+    "settings": "Configurações"
+  },
+  "alerts": {
+    "title": "Gestão de Alertas",
+    "subtitle": "Criar e gerir alertas automáticos do WhatsApp",
+    "createAlert": "Criar Novo Alerta",
+    "editAlert": "Editar Alerta",
+    "deleteAlert": "Eliminar Alerta",
+    "activateAlert": "Ativar Alerta",
+    "deactivateAlert": "Desativar Alerta",
+    "testAlert": "Enviar Mensagem de Teste",
+    "noAlerts": "Nenhum alerta encontrado",
+    "alertCount": "{{count}} alertas configurados",
+    "activeAlerts": "{{count}} ativos",
+    "inactiveAlerts": "{{count}} inativos"
+  },
+  "createAlert": {
+    "title": "Criar Novo Alerta",
+    "description": "Configurar uma nova notificação para grupo do WhatsApp",
+    "basicInfo": "Informação Básica",
+    "alertConditions": "Condições do Alerta",
+    "whatsappConfig": "Configuração WhatsApp",
+    "messageTemplate": "Modelo de Mensagem",
+    "scheduling": "Opções de Agendamento"
+  },
+  "fields": {
+    "name": "Nome do Alerta",
+    "namePlaceholder": "Insira um nome descritivo para este alerta",
+    "description": "Descrição",
+    "descriptionPlaceholder": "Descrição opcional do que este alerta faz",
+    "alertType": "Tipo de Alerta",
+    "amount": "Limite de Valor",
+    "amountPlaceholder": "Insira o valor em AOA",
+    "eventDate": "Data do Evento",
+    "eventDatePlaceholder": "Selecione a data para este alerta",
+    "notificationTime": "Hora da Notificação",
+    "notificationTimePlaceholder": "Quando enviar a notificação",
+    "whatsappGroupId": "ID do Grupo WhatsApp",
+    "whatsappGroupIdPlaceholder": "Insira o identificador do grupo WhatsApp",
+    "whatsappGroupName": "Nome do Grupo",
+    "whatsappGroupNamePlaceholder": "Nome legível do grupo",
+    "messageTemplate": "Modelo de Mensagem",
+    "messageTemplatePlaceholder": "Use variáveis como {{company_name}}, {{amount}}, {{today_date}}",
+    "isRecurring": "Alerta Recorrente",
+    "recurrenceType": "Repetir a Cada",
+    "recurrenceInterval": "Intervalo",
+    "isActive": "Ativo"
+  },
+  "alertTypes": {
+    "amount_threshold": "Limite de Valor",
+    "date_based": "Evento por Data",
+    "scheduled_reminder": "Lembrete Agendado"
+  },
+  "alertTypeDescriptions": {
+    "amount_threshold": "Disparar quando um valor financeiro atinge um limite",
+    "date_based": "Disparar numa data e hora específicas",
+    "scheduled_reminder": "Lembretes regulares em intervalos agendados"
+  },
+  "recurrenceTypes": {
+    "daily": "Dia(s)",
+    "weekly": "Semana(s)",
+    "monthly": "Mês(es)",
+    "yearly": "Ano(s)"
+  },
+  "history": {
+    "title": "Histórico de Notificações",
+    "subtitle": "Ver mensagens enviadas e estado de entrega",
+    "noHistory": "Ainda não foram enviadas notificações",
+    "historyCount": "{{count}} mensagens enviadas",
+    "filterByStatus": "Filtrar por Estado",
+    "filterByAlert": "Filtrar por Alerta",
+    "exportHistory": "Exportar Histórico"
+  },
+  "status": {
+    "active": "Ativo",
+    "inactive": "Inativo",
+    "pending": "Pendente",
+    "sent": "Enviado",
+    "delivered": "Entregue",
+    "failed": "Falhado"
+  },
+  "triggers": {
+    "manual": "Manual",
+    "scheduled": "Agendado",
+    "threshold_met": "Limite Atingido"
+  },
+  "variables": {
+    "title": "Variáveis Disponíveis",
+    "description": "Pode usar estas variáveis nos seus modelos de mensagem:",
+    "company_name": "Nome da empresa",
+    "today_date": "Data atual",
+    "current_time": "Hora atual",
+    "alert_name": "Nome deste alerta",
+    "amount": "Valor",
+    "event_date": "Data do evento",
+    "total_revenue_today": "Receita total de hoje",
+    "total_expenses_today": "Despesas totais de hoje",
+    "net_profit_today": "Lucro líquido de hoje",
+    "pending_deposits": "Número de depósitos pendentes",
+    "overdue_maintenance": "Itens de manutenção em atraso",
+    "employee_count": "Número de funcionários ativos",
+    "vehicle_count": "Número de veículos"
+  },
+  "templates": {
+    "payroll_reminder": "🏢 {{company_name}} Lembrete de Folha de Pagamento\n\n📅 Data: {{today_date}}\n💰 O processamento mensal da folha de pagamento está devido.\n\n👥 Funcionários: {{employee_count}}\n📊 Por favor, revise e processe a folha de pagamento.",
+    "maintenance_due": "🔧 {{company_name}} Alerta de Manutenção\n\n📅 Data: {{today_date}}\n⚠️ Itens de manutenção em atraso: {{overdue_maintenance}}\n\n🚗 Por favor, agende manutenção para os veículos afetados.",
+    "revenue_target": "💰 {{company_name}} Alerta de Receita\n\n📅 Data: {{today_date}}\n📈 Receita de hoje: {{total_revenue_today}} AOA\n💸 Despesas de hoje: {{total_expenses_today}} AOA\n📊 Lucro líquido: {{net_profit_today}} AOA",
+    "deposit_reminder": "🏦 {{company_name}} Lembrete de Depósito\n\n📅 Data: {{today_date}}\n💳 Depósitos pendentes: {{pending_deposits}}\n\n📝 Por favor, revise e processe os depósitos pendentes.",
+    "custom": "Modelo de mensagem personalizado"
+  },
+  "messages": {
+    "alertCreated": "Alerta criado com sucesso",
+    "alertUpdated": "Alerta atualizado com sucesso", 
+    "alertDeleted": "Alerta eliminado com sucesso",
+    "alertActivated": "Alerta ativado",
+    "alertDeactivated": "Alerta desativado",
+    "testMessageSent": "Mensagem de teste enviada com sucesso",
+    "invalidWhatsAppConfig": "Configuração do WhatsApp inválida",
+    "missingRequiredFields": "Por favor, preencha todos os campos obrigatórios",
+    "invalidAmount": "Por favor, insira um valor válido",
+    "invalidDate": "Por favor, selecione uma data válida",
+    "invalidTime": "Por favor, selecione uma hora válida",
+    "deleteConfirmation": "Tem certeza de que deseja eliminar este alerta? Esta ação não pode ser desfeita.",
+    "deactivateConfirmation": "Tem certeza de que deseja desativar este alerta? Parará de enviar notificações.",
+    "testMessageConfirmation": "Isto enviará uma mensagem de teste para o grupo do WhatsApp configurado. Continuar?",
+    "whatsappGroupHelp": "Para obter o ID de um grupo do WhatsApp:\n1. Adicione o bot ao seu grupo\n2. Envie qualquer mensagem no grupo\n3. Use a API para obter o ID do grupo\n4. Copie o ID aqui"
+  },
+  "table": {
+    "name": "Nome do Alerta",
+    "type": "Tipo",
+    "group": "Grupo WhatsApp",
+    "nextTrigger": "Próximo Disparo",
+    "status": "Estado",
+    "actions": "Ações",
+    "sentAt": "Enviado Em",
+    "deliveredAt": "Entregue Em",
+    "message": "Mensagem",
+    "trigger": "Tipo de Disparo"
+  },
+  "actions": {
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "activate": "Ativar",
+    "deactivate": "Desativar",
+    "test": "Testar",
+    "view": "Ver",
+    "resend": "Reenviar"
+  }
+}
+

@@ -1,0 +1,156 @@
+{
+  "title": "Notifications",
+  "subtitle": "Manage WhatsApp group alerts and notifications",
+  "navigation": {
+    "alerts": "Alert Management",
+    "history": "Notification History",
+    "settings": "Settings"
+  },
+  "alerts": {
+    "title": "Alert Management",
+    "subtitle": "Create and manage automated WhatsApp alerts",
+    "createAlert": "Create New Alert",
+    "editAlert": "Edit Alert",
+    "deleteAlert": "Delete Alert",
+    "activateAlert": "Activate Alert",
+    "deactivateAlert": "Deactivate Alert",
+    "testAlert": "Send Test Message",
+    "noAlerts": "No alerts found",
+    "alertCount": "{{count}} alerts configured",
+    "activeAlerts": "{{count}} active",
+    "inactiveAlerts": "{{count}} inactive"
+  },
+  "createAlert": {
+    "title": "Create New Alert",
+    "description": "Configure a new WhatsApp group notification",
+    "basicInfo": "Basic Information",
+    "alertConditions": "Alert Conditions",
+    "whatsappConfig": "WhatsApp Configuration",
+    "messageTemplate": "Message Template",
+    "scheduling": "Scheduling Options"
+  },
+  "fields": {
+    "name": "Alert Name",
+    "namePlaceholder": "Enter a descriptive name for this alert",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional description of what this alert does",
+    "alertType": "Alert Type",
+    "amount": "Amount Threshold",
+    "amountPlaceholder": "Enter amount in AOA",
+    "eventDate": "Event Date",
+    "eventDatePlaceholder": "Select the date for this alert",
+    "notificationTime": "Notification Time",
+    "notificationTimePlaceholder": "When to send the notification",
+    "whatsappGroupId": "WhatsApp Group ID",
+    "whatsappGroupIdPlaceholder": "Enter the WhatsApp group identifier",
+    "whatsappGroupName": "Group Name",
+    "whatsappGroupNamePlaceholder": "Human-readable group name",
+    "messageTemplate": "Message Template",
+    "messageTemplatePlaceholder": "Use variables like {{company_name}}, {{amount}}, {{today_date}}",
+    "isRecurring": "Recurring Alert",
+    "recurrenceType": "Repeat Every",
+    "recurrenceInterval": "Interval",
+    "isActive": "Active"
+  },
+  "alertTypes": {
+    "amount_threshold": "Amount Threshold",
+    "date_based": "Date-based Event",
+    "scheduled_reminder": "Scheduled Reminder"
+  },
+  "alertTypeDescriptions": {
+    "amount_threshold": "Trigger when a financial amount reaches a threshold",
+    "date_based": "Trigger on a specific date and time",
+    "scheduled_reminder": "Regular reminders at scheduled intervals"
+  },
+  "recurrenceTypes": {
+    "daily": "Day(s)",
+    "weekly": "Week(s)",
+    "monthly": "Month(s)",
+    "yearly": "Year(s)"
+  },
+  "history": {
+    "title": "Notification History",
+    "subtitle": "View sent messages and delivery status",
+    "noHistory": "No notifications sent yet",
+    "historyCount": "{{count}} messages sent",
+    "filterByStatus": "Filter by Status",
+    "filterByAlert": "Filter by Alert",
+    "exportHistory": "Export History"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "sent": "Sent",
+    "delivered": "Delivered",
+    "failed": "Failed"
+  },
+  "triggers": {
+    "manual": "Manual",
+    "scheduled": "Scheduled",
+    "threshold_met": "Threshold Met"
+  },
+  "variables": {
+    "title": "Available Variables",
+    "description": "You can use these variables in your message templates:",
+    "company_name": "Company name",
+    "today_date": "Current date",
+    "current_time": "Current time",
+    "alert_name": "Name of this alert",
+    "amount": "Amount value",
+    "event_date": "Event date",
+    "total_revenue_today": "Today's total revenue",
+    "total_expenses_today": "Today's total expenses",
+    "net_profit_today": "Today's net profit",
+    "pending_deposits": "Number of pending deposits",
+    "overdue_maintenance": "Overdue maintenance items",
+    "employee_count": "Number of active employees",
+    "vehicle_count": "Number of vehicles"
+  },
+  "templates": {
+    "payroll_reminder": "🏢 {{company_name}} Payroll Reminder\n\n📅 Date: {{today_date}}\n💰 Monthly payroll processing is due.\n\n👥 Employees: {{employee_count}}\n📊 Please review and process payroll.",
+    "maintenance_due": "🔧 {{company_name}} Maintenance Alert\n\n📅 Date: {{today_date}}\n⚠️ Overdue maintenance items: {{overdue_maintenance}}\n\n🚗 Please schedule maintenance for affected vehicles.",
+    "revenue_target": "💰 {{company_name}} Revenue Alert\n\n📅 Date: {{today_date}}\n📈 Today's revenue: {{total_revenue_today}} AOA\n💸 Today's expenses: {{total_expenses_today}} AOA\n📊 Net profit: {{net_profit_today}} AOA",
+    "deposit_reminder": "🏦 {{company_name}} Deposit Reminder\n\n📅 Date: {{today_date}}\n💳 Pending deposits: {{pending_deposits}}\n\n📝 Please review and process pending deposits.",
+    "custom": "Custom message template"
+  },
+  "messages": {
+    "alertCreated": "Alert created successfully",
+    "alertUpdated": "Alert updated successfully", 
+    "alertDeleted": "Alert deleted successfully",
+    "alertActivated": "Alert activated",
+    "alertDeactivated": "Alert deactivated",
+    "testMessageSent": "Test message sent successfully",
+    "invalidWhatsAppConfig": "Invalid WhatsApp configuration",
+    "missingRequiredFields": "Please fill in all required fields",
+    "invalidAmount": "Please enter a valid amount",
+    "invalidDate": "Please select a valid date",
+    "invalidTime": "Please select a valid time",
+    "deleteConfirmation": "Are you sure you want to delete this alert? This action cannot be undone.",
+    "deactivateConfirmation": "Are you sure you want to deactivate this alert? It will stop sending notifications.",
+    "testMessageConfirmation": "This will send a test message to the configured WhatsApp group. Continue?",
+    "whatsappGroupHelp": "To get a WhatsApp group ID:\n1. Add the bot to your group\n2. Send any message in the group\n3. Use the API to get the group ID\n4. Copy the ID here"
+  },
+  "table": {
+    "name": "Alert Name",
+    "type": "Type",
+    "group": "WhatsApp Group",
+    "nextTrigger": "Next Trigger",
+    "status": "Status",
+    "actions": "Actions",
+    "sentAt": "Sent At",
+    "deliveredAt": "Delivered At",
+    "message": "Message",
+    "trigger": "Trigger Type"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "test": "Test",
+    "view": "View",
+    "resend": "Resend"
+  }
+}
+

@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   DollarSign,
-  Users
+  Users,
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -76,6 +77,12 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
       icon: Users,
       label: "HR",
       active: !!pathname?.startsWith("/dashboard/hr")
+    },
+    {
+      href: "/dashboard/notifications",
+      icon: Bell,
+      label: t("navigation.notifications"),
+      active: !!pathname?.startsWith("/dashboard/notifications")
     },
     {
       href: "/dashboard/reports",

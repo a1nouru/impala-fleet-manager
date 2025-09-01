@@ -57,10 +57,22 @@ import {
 } from "@/components/ui/tooltip"
 import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 
+// Common expense categories for exclude filter
+const EXPENSE_CATEGORIES = [
+  { value: "Fuel", label: "⛽ Fuel", icon: "⛽" },
+  { value: "Subsidy", label: "💰 Subsidy", icon: "💰" },
+  { value: "Maintenance", label: "🔧 Maintenance", icon: "🔧" },
+  { value: "Tolls", label: "🛣️ Tolls", icon: "🛣️" },
+  { value: "Parking", label: "🅿️ Parking", icon: "🅿️" },
+  { value: "Driver Payment", label: "👤 Driver Payment", icon: "👤" },
+] as const;
+
 // Helper function to calculate total revenue
-const calculateNetBalance = (report: DailyReport) => {
+const calculateNetBalance = (report: DailyReport, excludedCategories: string[] = []) => {
   const totalRevenue = (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
-  const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
+  const totalExpenses = (report.daily_expenses || [])
+    .filter(expense => !excludedCategories.includes(expense.category))
+    .reduce((sum, expense) => sum + expense.amount, 0);
   return totalRevenue - totalExpenses;
 };
 
@@ -94,7 +106,7 @@ const groupDepositsByDate = (deposits: BankDeposit[]) => {
 };
 
 // Group undeposited reports by date for dialog display
-const groupReportsByDate = (reports: DailyReport[]) => {
+const groupReportsByDate = (reports: DailyReport[], excludedCategories: string[] = []) => {
   const grouped = reports.reduce((acc, report) => {
     const date = format(parseISO(report.report_date), "yyyy-MM-dd");
     if (!acc[date]) {
@@ -107,9 +119,9 @@ const groupReportsByDate = (reports: DailyReport[]) => {
   return Object.entries(grouped).map(([date, reports]) => ({
     date,
     reports,
-    totalAmount: reports.reduce((sum, report) => sum + calculateNetBalance(report), 0),
+    totalAmount: reports.reduce((sum, report) => sum + calculateNetBalance(report, excludedCategories), 0),
     depositableReports: reports.filter(report => {
-      const netBalance = calculateNetBalance(report);
+      const netBalance = calculateNetBalance(report, excludedCategories);
       const isDepositable = netBalance > 0;
       // Since reports come from getUndepositedReports(), they're already filtered to exclude deposited ones
       return isDepositable;
@@ -156,6 +168,7 @@ export default function BankDepositsPage() {
     to: new Date(),
   });
   const [bankFilter, setBankFilter] = useState<string>("all");
+  const [excludeFilter, setExcludeFilter] = useState<string[]>([]);
   const [groupByDate, setGroupByDate] = useState(true);
 
   // State for creating new deposits
@@ -211,10 +224,10 @@ export default function BankDepositsPage() {
   useEffect(() => {
     const total = selectedReports.reduce((sum, reportId) => {
       const report = undepositedReports.find((r) => r.id === reportId);
-      return sum + (report ? calculateNetBalance(report) : 0);
+      return sum + (report ? calculateNetBalance(report, excludeFilter) : 0);
     }, 0);
     setNewDeposit((prev) => ({ ...prev, amount: total }));
-  }, [selectedReports, undepositedReports]);
+  }, [selectedReports, undepositedReports, excludeFilter]);
 
   // Auto-set deposit date to latest report date when reports are selected
   useEffect(() => {
@@ -281,7 +294,7 @@ export default function BankDepositsPage() {
   };
 
   const handleDateSelection = (date: string) => {
-    const groupedReports = groupReportsByDate(undepositedReports);
+    const groupedReports = groupReportsByDate(undepositedReports, excludeFilter);
     const dateGroup = groupedReports.find(group => group.date === date);
     
     if (!dateGroup) return;
@@ -310,7 +323,7 @@ export default function BankDepositsPage() {
 
   // Update selected dates when individual reports are selected/deselected
   useEffect(() => {
-    const groupedReports = groupReportsByDate(undepositedReports);
+    const groupedReports = groupReportsByDate(undepositedReports, excludeFilter);
     const newSelectedDates: string[] = [];
     
     groupedReports.forEach(group => {
@@ -323,7 +336,7 @@ export default function BankDepositsPage() {
     });
     
     setSelectedDates(newSelectedDates);
-  }, [selectedReports, undepositedReports]);
+  }, [selectedReports, undepositedReports, excludeFilter]);
   
   // --- Handlers for the Edit functionality (Refactored) ---
 
@@ -663,7 +676,7 @@ export default function BankDepositsPage() {
       // Calculate new amount based on selected reports
       const newAmount = editSelectedReports.reduce((sum, reportId) => {
         const report = editAvailableReports.find((r) => r.id === reportId);
-        return sum + (report ? calculateNetBalance(report) : 0);
+        return sum + (report ? calculateNetBalance(report, excludeFilter) : 0);
       }, 0);
 
       const updateData = {
@@ -771,29 +784,58 @@ export default function BankDepositsPage() {
     const slips = deposit.bank_deposit_slips || [];
     const slipUrls = slips.map(slip => slip.slip_url).filter(Boolean);
 
+    console.log('🔍 Deposit click debug:', {
+      depositId: deposit.id,
+      totalSlips: slips.length,
+      validSlipUrls: slipUrls.length,
+      slips: slips,
+      slipUrls: slipUrls
+    });
+
     if (slipUrls.length > 0) {
       try {
-        // Open each slip in a new tab with a small delay between them
-        slipUrls.forEach((url, index) => {
-          setTimeout(() => {
-            try {
-              const newWindow = window.open(url, `_blank_${index}`, 'noopener,noreferrer');
-              
-              // Fallback if popup was blocked
-              if (!newWindow || newWindow.closed) {
-                const link = document.createElement('a');
-                link.href = url;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+        console.log(`📄 Attempting to open ${slipUrls.length} slip(s) in separate tabs`);
+        
+        // For better browser compatibility, open the first tab immediately
+        if (slipUrls.length > 0) {
+          const firstWindow = window.open(slipUrls[0], '_blank', 'noopener,noreferrer');
+          if (!firstWindow || firstWindow.closed) {
+            console.warn('⚠️ First popup was blocked, using fallback method');
+            const link = document.createElement('a');
+            link.href = slipUrls[0];
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+        }
+        
+        // Open remaining slips with delay if there are more than one
+        if (slipUrls.length > 1) {
+          slipUrls.slice(1).forEach((url, index) => {
+            setTimeout(() => {
+              try {
+                console.log(`📄 Opening slip ${index + 2} of ${slipUrls.length}: ${url}`);
+                const newWindow = window.open(url, `_blank_${index + 1}`, 'noopener,noreferrer');
+                
+                // Fallback if popup was blocked
+                if (!newWindow || newWindow.closed) {
+                  console.warn(`⚠️ Popup ${index + 2} was blocked, using fallback method`);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.target = '_blank';
+                  link.rel = 'noopener noreferrer';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }
+              } catch (error) {
+                console.error(`❌ Error opening URL ${index + 2}:`, url, error);
               }
-            } catch (error) {
-              console.error('❌ Error opening URL:', url, error);
-            }
-          }, index * 100); // Small delay to prevent browser blocking
-        });
+            }, (index + 1) * 150); // Increased delay for better browser compatibility
+          });
+        }
         
         // Show success message
         toast({
@@ -809,6 +851,7 @@ export default function BankDepositsPage() {
         });
       }
     } else {
+      console.log('📄 No slips found, opening deposit details modal');
       setSelectedDeposit(deposit);
       setShowDepositDetails(true);
       fetchDepositReports(deposit);
@@ -843,7 +886,7 @@ export default function BankDepositsPage() {
     if (!deposit.deposit_reports) return 0;
     return deposit.deposit_reports.reduce((sum, dr) => {
       const report = allReports.find(r => r.id === dr.report_id);
-      return sum + (report ? calculateNetBalance(report) : 0);
+      return sum + (report ? calculateNetBalance(report, excludeFilter) : 0);
     }, 0);
   };
 
@@ -866,6 +909,11 @@ export default function BankDepositsPage() {
             <Badge variant="outline">{filteredDeposits.length} {t("bankDeposits.deposits")}</Badge>
             {bankFilter !== "all" && (
               <Badge variant="secondary">{bankFilter}</Badge>
+            )}
+            {excludeFilter.length > 0 && (
+              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                Excluding {excludeFilter.length} {excludeFilter.length === 1 ? 'category' : 'categories'}
+              </Badge>
             )}
           </div>
         </div>
@@ -968,12 +1016,12 @@ export default function BankDepositsPage() {
                     </div>
                     <ScrollArea className="flex-1 w-full rounded-md border">
                         <div className="p-2 sm:p-4">
-                            {groupReportsByDate(getFilteredReports()).length > 0 ? (
-                                groupReportsByDate(getFilteredReports()).map((dateGroup) => {
+                            {groupReportsByDate(getFilteredReports(), excludeFilter).length > 0 ? (
+                                groupReportsByDate(getFilteredReports(), excludeFilter).map((dateGroup) => {
                                     const hasDepositableReports = dateGroup.depositableReports.length > 0;
                                     const isDateSelected = selectedDates.includes(dateGroup.date);
                                     const isDateExpanded = expandedDates.includes(dateGroup.date);
-                                    const totalNetBalance = dateGroup.depositableReports.reduce((sum, report) => sum + calculateNetBalance(report), 0);
+                                    const totalNetBalance = dateGroup.depositableReports.reduce((sum, report) => sum + calculateNetBalance(report, excludeFilter), 0);
 
                                     return (
                                         <div key={dateGroup.date} className={cn(
@@ -1037,7 +1085,7 @@ export default function BankDepositsPage() {
                                             {isDateExpanded && (
                                                 <div className="divide-y divide-gray-100">
                                                     {dateGroup.reports.map((report) => {
-                                        const netBalance = calculateNetBalance(report);
+                                        const netBalance = calculateNetBalance(report, excludeFilter);
                                         const isDepositable = netBalance > 0;
                                                         const isAlreadyDeposited = report.deposit_reports && report.deposit_reports.length > 0;
                                                         const isReportSelected = selectedReports.includes(report.id);
@@ -1264,6 +1312,69 @@ export default function BankDepositsPage() {
               </Select>
             </div>
 
+            {/* Exclude Filter */}
+            <div className="flex items-center gap-2">
+              <Label>Exclude:</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[200px] justify-between text-left font-normal",
+                      excludeFilter.length === 0 && "text-muted-foreground"
+                    )}
+                  >
+                    {excludeFilter.length === 0 
+                      ? "Select expenses to exclude..." 
+                      : excludeFilter.length === 1 
+                        ? EXPENSE_CATEGORIES.find(cat => cat.value === excludeFilter[0])?.label || excludeFilter[0]
+                        : `${excludeFilter.length} categories excluded`
+                    }
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="start">
+                  <div className="p-3">
+                    <div className="space-y-2">
+                      {EXPENSE_CATEGORIES.map((category) => (
+                        <div key={category.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={category.value}
+                            checked={excludeFilter.includes(category.value)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setExcludeFilter(prev => [...prev, category.value]);
+                              } else {
+                                setExcludeFilter(prev => prev.filter(item => item !== category.value));
+                              }
+                            }}
+                          />
+                          <Label
+                            htmlFor={category.value}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {category.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    {excludeFilter.length > 0 && (
+                      <div className="pt-3 border-t mt-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setExcludeFilter([])}
+                          className="w-full text-xs"
+                        >
+                          Clear All
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
             {/* Clear Filters */}
             <Button
               variant="ghost"
@@ -1271,6 +1382,7 @@ export default function BankDepositsPage() {
               onClick={() => {
                 setDateFilter({ from: new Date(), to: new Date() });
                 setBankFilter("all");
+                setExcludeFilter([]);
               }}
             >
               {t("filters.today")}
@@ -1281,6 +1393,7 @@ export default function BankDepositsPage() {
               onClick={() => {
                 setDateFilter({ from: undefined, to: undefined });
                 setBankFilter("all");
+                setExcludeFilter([]);
               }}
             >
               {t("filters.clearFilters")}
@@ -1402,6 +1515,38 @@ export default function BankDepositsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {/* View Slips Button - only show if deposit has slips */}
+                          {(() => {
+                            const slips = deposit.bank_deposit_slips || [];
+                            const slipCount = slips.length;
+                            
+                            if (slipCount > 0) {
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDepositRowClick(deposit);
+                                        }}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>View {slipCount} bank slip{slipCount > 1 ? 's' : ''}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            }
+                            return null;
+                          })()}
+                          
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1605,7 +1750,7 @@ export default function BankDepositsPage() {
                    type="number" 
                    value={editSelectedReports.reduce((sum, reportId) => {
                      const report = editAvailableReports.find((r) => r.id === reportId);
-                     return sum + (report ? calculateNetBalance(report) : 0);
+                     return sum + (report ? calculateNetBalance(report, excludeFilter) : 0);
                    }, 0)} 
                    readOnly 
                    className="font-bold bg-gray-100" 
@@ -1656,7 +1801,7 @@ export default function BankDepositsPage() {
                     <p className="text-center text-muted-foreground py-8">No reports available</p>
                   ) : (
                     editAvailableReports.map((report) => {
-                      const netBalance = calculateNetBalance(report);
+                      const netBalance = calculateNetBalance(report, excludeFilter);
                       const isSelected = editSelectedReports.includes(report.id);
                       
                       return (
@@ -1754,7 +1899,7 @@ export default function BankDepositsPage() {
                         <TableRow key={report.id}>
                           <TableCell>{format(parseISO(report.report_date), "MMM dd, yyyy")}</TableCell>
                           <TableCell>{report.vehicles?.plate}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(calculateNetBalance(report))}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(calculateNetBalance(report, excludeFilter))}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
