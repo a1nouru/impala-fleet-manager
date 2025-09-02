@@ -9,3 +9,4 @@ COMMENT ON COLUMN vehicle_damages.document_names IS 'Array of original file name
 
 
 
+
