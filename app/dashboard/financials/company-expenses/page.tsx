@@ -88,6 +88,9 @@ export default function CompanyExpensesPage() {
 
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
+  // Search state
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 20;
@@ -158,6 +161,11 @@ export default function CompanyExpensesPage() {
     fetchExpenses();
   }, []);
 
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, categoryFilter, dateFilter.from, dateFilter.to]);
+
   // Search for existing categories
   const searchCategories = async (term: string) => {
     if (term.length >= 2) {
@@ -187,7 +195,7 @@ export default function CompanyExpensesPage() {
     return () => clearTimeout(timeoutId);
   }, [categorySearchTerm]);
 
-  // Filter expenses based on date range and category
+  // Filter expenses based on date range, category, and search term
   const filteredExpenses = expenses.filter(expense => {
     const expenseDate = parseISO(expense.expense_date);
     
@@ -209,7 +217,12 @@ export default function CompanyExpensesPage() {
     // Category filter
     const categoryMatch = categoryFilter === "all" || expense.category.toLowerCase().includes(categoryFilter.toLowerCase());
     
-    return dateMatch && categoryMatch;
+    // Search filter (searches in both category and description)
+    const searchMatch = !searchTerm || 
+      expense.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (expense.description && expense.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    return dateMatch && categoryMatch && searchMatch;
   });
 
   // Pagination logic
@@ -704,6 +717,31 @@ export default function CompanyExpensesPage() {
               <Label>{t("filters.filters")}:</Label>
             </div>
             
+            {/* Search Filter */}
+            <div className="flex items-center gap-2">
+              <Label>{t("filters.search") || "Search"}:</Label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search description or category..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-64 pr-8"
+                />
+                <Search className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-8 top-1 h-6 w-6 p-0 hover:bg-gray-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            
             {/* Date Range Picker */}
             <div className="flex items-center gap-2">
               <Label>{t("filters.from")}:</Label>
@@ -766,6 +804,7 @@ export default function CompanyExpensesPage() {
               onClick={() => {
                 setDateFilter({ from: new Date(), to: new Date() });
                 setCategoryFilter("all");
+                setSearchTerm("");
               }}
             >
               {t("filters.today")}
@@ -776,6 +815,7 @@ export default function CompanyExpensesPage() {
               onClick={() => {
                 setDateFilter({ from: undefined, to: undefined });
                 setCategoryFilter("all");
+                setSearchTerm("");
               }}
             >
               {t("filters.clearFilters")}
