@@ -25,7 +25,7 @@ export interface VehicleDamage {
   vehicle_id: string;
   damage_description: string;
   total_damage_cost: number;
-  monthly_deduction_percentage: number;
+  monthly_deduction_amount: number; // Changed from percentage to fixed amount
   remaining_balance: number;
   is_fully_paid: boolean;
   damage_date: string;
@@ -218,7 +218,26 @@ class HRService {
     return data || [];
   }
 
+  // Validate monthly deduction amount
+  private validateDeductionAmount(monthlyAmount: number, totalCost: number, remainingBalance?: number): void {
+    if (monthlyAmount <= 0) {
+      throw new Error('Monthly deduction amount must be greater than 0');
+    }
+    
+    if (monthlyAmount > totalCost) {
+      throw new Error('Monthly deduction amount cannot exceed total damage cost');
+    }
+
+    // If we have a remaining balance, ensure we don't exceed it
+    if (remainingBalance !== undefined && monthlyAmount > remainingBalance) {
+      throw new Error('Monthly deduction amount cannot exceed remaining balance');
+    }
+  }
+
   async createVehicleDamage(damageData: Omit<VehicleDamage, 'id' | 'remaining_balance' | 'is_fully_paid' | 'created_at' | 'updated_at'>): Promise<VehicleDamage> {
+    // Validate deduction amount
+    this.validateDeductionAmount(damageData.monthly_deduction_amount, damageData.total_damage_cost);
+
     // Set remaining balance to total damage cost initially
     const damageWithBalance = {
       ...damageData,
@@ -245,6 +264,27 @@ class HRService {
   }
 
   async updateVehicleDamage(id: string, updates: Partial<VehicleDamage>): Promise<VehicleDamage> {
+    // If updating deduction amount, validate it
+    if (updates.monthly_deduction_amount !== undefined || updates.total_damage_cost !== undefined) {
+      // Get current damage data to validate against
+      const { data: currentDamage, error: fetchError } = await supabase
+        .from('vehicle_damages')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching current damage for validation:', fetchError);
+        throw new Error(`Failed to fetch damage for validation: ${fetchError.message}`);
+      }
+
+      const totalCost = updates.total_damage_cost ?? currentDamage.total_damage_cost;
+      const monthlyAmount = updates.monthly_deduction_amount ?? currentDamage.monthly_deduction_amount;
+      const remainingBalance = updates.remaining_balance ?? currentDamage.remaining_balance;
+
+      this.validateDeductionAmount(monthlyAmount, totalCost, remainingBalance);
+    }
+
     const { data, error } = await supabase
       .from('vehicle_damages')
       .update(updates)
@@ -330,9 +370,34 @@ class HRService {
     return data;
   }
 
+  // Process payroll deductions with balance checking
   async processPayrollDeductions(payrollRunId: string): Promise<void> {
     try {
-      const { error } = await supabase.rpc('process_payroll_deductions', {
+      // Get all unpaid damages
+      const unpaidDamages = await this.getUnpaidDamages();
+      
+      // Process each damage and calculate actual deduction amount
+      for (const damage of unpaidDamages) {
+        const remainingBalance = damage.remaining_balance;
+        const monthlyDeduction = damage.monthly_deduction_amount;
+        
+        // Calculate actual deduction (never exceed remaining balance)
+        const actualDeduction = Math.min(monthlyDeduction, remainingBalance);
+        
+        if (actualDeduction > 0) {
+          // Update the remaining balance
+          const newBalance = remainingBalance - actualDeduction;
+          const isFullyPaid = newBalance <= 0;
+          
+          await this.updateVehicleDamage(damage.id, {
+            remaining_balance: newBalance,
+            is_fully_paid: isFullyPaid
+          });
+        }
+      }
+
+      // Call the database function to process payroll
+      const { error } = await supabase.rpc('process_payroll_deductions_with_balance_check', {
         p_payroll_run_id: payrollRunId
       });
 
@@ -340,9 +405,17 @@ class HRService {
         console.error('Error processing payroll deductions:', error);
         // Provide a more helpful error message if the function doesn't exist
         if (error.message.includes('function') && error.message.includes('does not exist')) {
-          throw new Error('Database function process_payroll_deductions does not exist. Please run the HR migrations first.');
+          // Fallback to old function if new one doesn't exist
+          const { error: fallbackError } = await supabase.rpc('process_payroll_deductions', {
+            p_payroll_run_id: payrollRunId
+          });
+          
+          if (fallbackError) {
+            throw new Error('Database function process_payroll_deductions does not exist. Please run the HR migrations first.');
+          }
+        } else {
+          throw new Error(`Failed to process payroll deductions: ${error.message}`);
         }
-        throw new Error(`Failed to process payroll deductions: ${error.message}`);
       }
     } catch (err) {
       console.error('Unexpected error in processPayrollDeductions:', err);

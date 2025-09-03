@@ -62,6 +62,7 @@ import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 import { hrService, VehicleDamage, Employee, DamageSummary } from "@/services/hrService";
 import { vehicleService } from "@/services/vehicleService";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Helper to format currency
 const formatCurrency = (value: number) => {
@@ -77,6 +78,7 @@ interface Vehicle {
 }
 
 export default function VehicleDamagesPage() {
+  const { t } = useTranslation('hr');
   const [damages, setDamages] = useState<VehicleDamage[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -111,7 +113,7 @@ export default function VehicleDamagesPage() {
     vehicle_id: "",
     damage_description: "",
     total_damage_cost: 0,
-    monthly_deduction_percentage: 10, // Default to 10%
+    monthly_deduction_amount: 0, // Changed from percentage to fixed amount
     damage_date: format(new Date(), "yyyy-MM-dd"),
   });
 
@@ -120,7 +122,7 @@ export default function VehicleDamagesPage() {
     vehicle_id: "",
     damage_description: "",
     total_damage_cost: 0,
-    monthly_deduction_percentage: 10,
+    monthly_deduction_amount: 0, // Changed from percentage to fixed amount
     damage_date: "",
   });
 
@@ -176,14 +178,14 @@ export default function VehicleDamagesPage() {
   const handleInputChange = (field: string, value: string | number) => {
     setNewDamage(prev => ({ 
       ...prev, 
-      [field]: field.includes('cost') || field.includes('percentage') ? Number(value) || 0 : value 
+      [field]: field.includes('cost') || field.includes('amount') ? Number(value) || 0 : value 
     }));
   };
 
   const handleEditInputChange = (field: string, value: string | number) => {
     setEditedDamage(prev => ({ 
       ...prev, 
-      [field]: field.includes('cost') || field.includes('percentage') ? Number(value) || 0 : value 
+      [field]: field.includes('cost') || field.includes('amount') ? Number(value) || 0 : value 
     }));
   };
 
@@ -193,7 +195,7 @@ export default function VehicleDamagesPage() {
       vehicle_id: "",
       damage_description: "",
       total_damage_cost: 0,
-      monthly_deduction_percentage: 10,
+      monthly_deduction_amount: 0,
       damage_date: format(new Date(), "yyyy-MM-dd"),
     });
     setUploadedFiles([]);
@@ -221,17 +223,17 @@ export default function VehicleDamagesPage() {
   const handleSubmit = async () => {
     if (!newDamage.employee_id || !newDamage.vehicle_id || !newDamage.damage_description || newDamage.total_damage_cost <= 0) {
       toast({
-        title: "❌ Validation Error",
-        description: "Please fill out all required fields with valid values.",
+        title: "❌ " + t("messages.validationError"),
+        description: t("messages.fillAllFields"),
         variant: "destructive",
       });
       return;
     }
 
-    if (newDamage.monthly_deduction_percentage < 1 || newDamage.monthly_deduction_percentage > 30) {
+    if (newDamage.monthly_deduction_amount <= 0 || newDamage.monthly_deduction_amount > newDamage.total_damage_cost) {
       toast({
-        title: "❌ Validation Error",
-        description: "Monthly deduction percentage must be between 1% and 30%.",
+        title: "❌ " + t("messages.validationError"),
+        description: t("messages.deductionAmountRange"),
         variant: "destructive",
       });
       return;
@@ -241,16 +243,16 @@ export default function VehicleDamagesPage() {
     try {
       await hrService.createVehicleDamage(newDamage);
       toast({
-        title: "✅ Success",
-        description: "Vehicle damage entry created successfully.",
+        title: "✅ " + t("messages.success"),
+        description: t("messages.damageCreated"),
       });
       setNewDamageDialogOpen(false);
       resetForm();
       fetchData(); // Refresh data
     } catch (error) {
       toast({
-        title: "❌ Error",
-        description: "Failed to create damage entry.",
+        title: "❌ " + t("messages.error"),
+        description: t("messages.createFailed"),
         variant: "destructive",
       });
     } finally {
@@ -265,7 +267,7 @@ export default function VehicleDamagesPage() {
       vehicle_id: damage.vehicle_id,
       damage_description: damage.damage_description,
       total_damage_cost: damage.total_damage_cost,
-      monthly_deduction_percentage: damage.monthly_deduction_percentage,
+      monthly_deduction_amount: damage.monthly_deduction_amount,
       damage_date: damage.damage_date,
     });
     setEditDamageDialogOpen(true);
@@ -274,10 +276,10 @@ export default function VehicleDamagesPage() {
   const handleUpdateDamage = async () => {
     if (!editingDamage) return;
 
-    if (editedDamage.monthly_deduction_percentage < 1 || editedDamage.monthly_deduction_percentage > 30) {
+    if (editedDamage.monthly_deduction_amount <= 0 || editedDamage.monthly_deduction_amount > editedDamage.total_damage_cost) {
       toast({
-        title: "❌ Validation Error",
-        description: "Monthly deduction percentage must be between 1% and 30%.",
+        title: "❌ " + t("messages.validationError"),
+        description: t("messages.deductionAmountRange"),
         variant: "destructive",
       });
       return;
@@ -287,15 +289,15 @@ export default function VehicleDamagesPage() {
     try {
       await hrService.updateVehicleDamage(editingDamage.id, editedDamage);
       toast({
-        title: "✅ Success",
-        description: "Damage entry updated successfully.",
+        title: "✅ " + t("messages.success"),
+        description: t("messages.damageUpdated"),
       });
       setEditDamageDialogOpen(false);
       fetchData(); // Refresh data
     } catch (error) {
       toast({
-        title: "❌ Error",
-        description: "Failed to update damage entry.",
+        title: "❌ " + t("messages.error"),
+        description: t("messages.updateFailed"),
         variant: "destructive",
       });
     } finally {
@@ -355,32 +357,32 @@ export default function VehicleDamagesPage() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
             <AlertTriangle className="h-6 w-6" />
-            Vehicle Damages
+            {t("vehicleDamages.title")}
           </h1>
-          <Badge variant="outline">{damages.length} total entries</Badge>
+          <Badge variant="outline">{damages.length} {t("vehicleDamages.totalEntries")}</Badge>
         </div>
         
         <Dialog open={newDamageDialogOpen} onOpenChange={setNewDamageDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-black hover:bg-gray-800 text-white">
               <PlusCircle className="h-4 w-4 mr-2" />
-              Log Damage
+              {t("vehicleDamages.logDamage")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
-              <DialogTitle>Log Vehicle Damage</DialogTitle>
+              <DialogTitle>{t("vehicleDamages.logVehicleDamage")}</DialogTitle>
               <DialogDescription>
-                Record a new vehicle damage entry with payment plan details.
+                {t("vehicleDamages.recordNewDamage")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Employee/Driver</Label>
+                  <Label>{t("vehicleDamages.employeeDriver")}</Label>
                   <Select value={newDamage.employee_id} onValueChange={(value) => handleInputChange("employee_id", value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select employee" />
+                      <SelectValue placeholder={t("vehicleDamages.selectEmployee")} />
                     </SelectTrigger>
                     <SelectContent>
                       {employees.map((employee) => (
@@ -392,10 +394,10 @@ export default function VehicleDamagesPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Vehicle</Label>
+                  <Label>{t("vehicleDamages.vehicle")}</Label>
                   <Select value={newDamage.vehicle_id} onValueChange={(value) => handleInputChange("vehicle_id", value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select vehicle" />
+                      <SelectValue placeholder={t("vehicleDamages.selectVehicle")} />
                     </SelectTrigger>
                     <SelectContent>
                       {vehicles.map((vehicle) => (
@@ -408,17 +410,17 @@ export default function VehicleDamagesPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Damage Description</Label>
+                <Label>{t("vehicleDamages.damageDescription")}</Label>
                 <Textarea
                   value={newDamage.damage_description}
                   onChange={(e) => handleInputChange("damage_description", e.target.value)}
-                  placeholder="Describe the damage..."
+                  placeholder={t("vehicleDamages.describeDamage")}
                   rows={3}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Total Damage Cost (AOA)</Label>
+                  <Label>{t("vehicleDamages.totalDamageCost")}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -429,19 +431,19 @@ export default function VehicleDamagesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Monthly Deduction % (Max 30%)</Label>
+                  <Label>{t("vehicleDamages.monthlyDeductionAmount")}</Label>
                   <Input
                     type="number"
-                    min="1"
-                    max="30"
-                    value={newDamage.monthly_deduction_percentage}
-                    onChange={(e) => handleInputChange("monthly_deduction_percentage", e.target.value)}
-                    placeholder="10"
+                    min="0"
+                    step="0.01"
+                    value={newDamage.monthly_deduction_amount}
+                    onChange={(e) => handleInputChange("monthly_deduction_amount", e.target.value)}
+                    placeholder="0.00"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Damage Date</Label>
+                <Label>{t("vehicleDamages.damageDate")}</Label>
                 <Input
                   type="date"
                   value={newDamage.damage_date}
@@ -451,16 +453,16 @@ export default function VehicleDamagesPage() {
               
               {/* Document Upload Section */}
               <div className="space-y-2">
-                <Label>Upload Documents (Optional)</Label>
+                <Label>{t("vehicleDamages.uploadDocuments")}</Label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                   <div className="flex flex-col items-center justify-center space-y-2">
                     <Upload className="h-8 w-8 text-gray-400" />
                     <div className="text-center">
                       <Label htmlFor="damage-files" className="cursor-pointer text-sm text-blue-600 hover:text-blue-500">
-                        Click to upload files
+                        {t("vehicleDamages.clickToUpload")}
                       </Label>
                       <p className="text-xs text-gray-500 mt-1">
-                        Upload photos, receipts, or documents related to the damage
+                        {t("vehicleDamages.uploadPhotosReceipts")}
                       </p>
                     </div>
                     <Input
@@ -477,7 +479,7 @@ export default function VehicleDamagesPage() {
                 {/* Display uploaded files */}
                 {uploadedFiles.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="text-sm">Uploaded Files:</Label>
+                    <Label className="text-sm">{t("vehicleDamages.uploadedFiles")}</Label>
                     <div className="space-y-1">
                       {uploadedFiles.map((file, index) => (
                         <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
@@ -669,16 +671,16 @@ export default function VehicleDamagesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Total Cost</TableHead>
-                  <TableHead className="text-right">Deduction %</TableHead>
-                  <TableHead className="text-right">Remaining</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Documents</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("table.date")}</TableHead>
+                  <TableHead>{t("table.employee")}</TableHead>
+                  <TableHead>{t("table.vehicle")}</TableHead>
+                  <TableHead>{t("table.description")}</TableHead>
+                  <TableHead className="text-right">{t("table.totalCost")}</TableHead>
+                  <TableHead className="text-right">{t("table.deductionAmount")}</TableHead>
+                  <TableHead className="text-right">{t("table.remaining")}</TableHead>
+                  <TableHead>{t("table.status")}</TableHead>
+                  <TableHead className="text-center">{t("table.documents")}</TableHead>
+                  <TableHead className="text-right">{t("table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -689,11 +691,11 @@ export default function VehicleDamagesPage() {
                     <TableCell>{damage.vehicles?.plate}</TableCell>
                     <TableCell className="max-w-xs truncate">{damage.damage_description}</TableCell>
                     <TableCell className="text-right">{formatCurrency(damage.total_damage_cost)}</TableCell>
-                    <TableCell className="text-right">{damage.monthly_deduction_percentage}%</TableCell>
+                    <TableCell className="text-right">{formatCurrency(damage.monthly_deduction_amount)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(damage.remaining_balance)}</TableCell>
                     <TableCell>
                       <Badge variant={damage.is_fully_paid ? "default" : "destructive"}>
-                        {damage.is_fully_paid ? "Paid" : "Pending"}
+                        {damage.is_fully_paid ? t("table.paid") : t("table.pending")}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
@@ -803,13 +805,14 @@ export default function VehicleDamagesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Monthly Deduction % (Max 30%)</Label>
+                  <Label>{t("vehicleDamages.monthlyDeductionAmount")}</Label>
                   <Input
                     type="number"
-                    min="1"
-                    max="30"
-                    value={editedDamage.monthly_deduction_percentage}
-                    onChange={(e) => handleEditInputChange("monthly_deduction_percentage", e.target.value)}
+                    min="0"
+                    step="0.01"
+                    value={editedDamage.monthly_deduction_amount}
+                    onChange={(e) => handleEditInputChange("monthly_deduction_amount", e.target.value)}
+                    placeholder="0.00"
                   />
                 </div>
               </div>
