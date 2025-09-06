@@ -30,6 +30,16 @@ export interface DailyReport {
   deposit_reports?: { deposit_id: string }[];
 }
 
+export interface DateAudit {
+  id: string;
+  audit_date: string;
+  is_audited: boolean;
+  audited_at: string;
+  audited_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DailyExpense {
   id: string;
   report_id: string;
@@ -1397,6 +1407,136 @@ export const financialService = {
       // Return empty array as fallback to prevent crashes
       console.warn('🆘 Returning empty search results as fallback');
       return [];
+    }
+  },
+
+  /**
+   * Gets all date audits
+   */
+  async getDateAudits(): Promise<DateAudit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('date_audits')
+        .select('*')
+        .order('audit_date', { ascending: false });
+
+      if (error) {
+        // If the table doesn't exist yet, return empty array
+        if (error.message?.includes('relation "date_audits" does not exist') || 
+            error.message?.includes('does not exist')) {
+          console.warn('Date audits table does not exist yet. Please run the database migration.');
+          return [];
+        }
+        console.error('Error fetching date audits:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error: any) {
+      // Handle any other errors gracefully
+      if (error.message?.includes('relation "date_audits" does not exist') || 
+          error.message?.includes('does not exist')) {
+        console.warn('Date audits table does not exist yet. Please run the database migration.');
+        return [];
+      }
+      console.error('Error fetching date audits:', error);
+      // Return empty array as fallback to prevent crashes
+      console.warn('🆘 Returning empty date audits as fallback');
+      return [];
+    }
+  },
+
+  /**
+   * Marks a date as audited or removes audit status
+   * @param auditDate - The date to audit (YYYY-MM-DD format)
+   * @param auditorId - The identifier of the auditor (user email or ID)
+   * @param isAudited - Whether to mark as audited (true) or remove audit status (false)
+   */
+  async auditDate(auditDate: string, auditorId: string, isAudited: boolean = true): Promise<DateAudit | null> {
+    // Authorization check - only giselemu007 can audit
+    if (auditorId !== 'giselemu007') {
+      throw new Error('You are not authorized to perform audit actions. Only giselemu007 can audit reports.');
+    }
+    
+    try {
+      if (isAudited) {
+        // Insert or update the audit record
+        const { data, error } = await supabase
+          .from('date_audits')
+          .upsert({
+            audit_date: auditDate,
+            audited_by: auditorId,
+            is_audited: true
+          })
+          .select()
+          .single();
+
+        if (error) {
+          if (error.message?.includes('relation "date_audits" does not exist')) {
+            throw new Error('Date audits feature is not available. Please run the database migration first.');
+          }
+          console.error('Error marking date as audited:', error);
+          throw new Error(`Failed to audit date: ${error.message}`);
+        }
+
+        return data;
+      } else {
+        // Remove the audit record
+        const { error } = await supabase
+          .from('date_audits')
+          .delete()
+          .eq('audit_date', auditDate);
+
+        if (error) {
+          if (error.message?.includes('relation "date_audits" does not exist')) {
+            throw new Error('Date audits feature is not available. Please run the database migration first.');
+          }
+          console.error('Error removing audit status:', error);
+          throw new Error(`Failed to remove audit from date: ${error.message}`);
+        }
+
+        return null;
+      }
+    } catch (error: any) {
+      if (error.message?.includes('Date audits feature is not available')) {
+        throw error;
+      }
+      if (error.message?.includes('relation "date_audits" does not exist')) {
+        throw new Error('Date audits feature is not available. Please run the database migration first.');
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Check if a specific date is audited
+   * @param auditDate - The date to check (YYYY-MM-DD format)
+   */
+  async isDateAudited(auditDate: string): Promise<DateAudit | null> {
+    try {
+      const { data, error } = await supabase
+        .from('date_audits')
+        .select('*')
+        .eq('audit_date', auditDate)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+        if (error.message?.includes('relation "date_audits" does not exist')) {
+          console.warn('Date audits table does not exist yet. Please run the database migration.');
+          return null;
+        }
+        console.error('Error checking date audit status:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error: any) {
+      if (error.message?.includes('relation "date_audits" does not exist')) {
+        console.warn('Date audits table does not exist yet. Please run the database migration.');
+        return null;
+      }
+      console.error('Error checking date audit status:', error);
+      return null; // Return null as fallback to prevent crashes
     }
   }
 };

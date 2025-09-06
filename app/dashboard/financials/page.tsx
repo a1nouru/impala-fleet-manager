@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle, Upload, X, Eye, ChevronDown } from "lucide-react";
-import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
+import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle, Upload, X, Eye, ChevronDown, Shield, ShieldCheck } from "lucide-react";
+import { financialService, DailyReport, DailyExpense, DateAudit } from "@/services/financialService";
 import { vehicleService } from "@/services/vehicleService";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 
 // Common expense categories for exclude filter
 const EXPENSE_CATEGORIES = [
@@ -208,6 +209,7 @@ export default function AllDailyReportsPage() {
   const { user } = useAuth();
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [dateAudits, setDateAudits] = useState<DateAudit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -309,6 +311,12 @@ export default function AllDailyReportsPage() {
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<DailyReport | null>(null);
 
+  // State for date-level audit functionality
+  const [auditConfirmationOpen, setAuditConfirmationOpen] = useState(false);
+  const [dateToAudit, setDateToAudit] = useState<string | null>(null);
+  const [auditAction, setAuditAction] = useState<'audit' | 'remove'>('audit');
+  const [isAuditing, setIsAuditing] = useState(false);
+
   const fetchReports = async () => {
     try {
       setIsLoading(true);
@@ -318,6 +326,15 @@ export default function AllDailyReportsPage() {
       ]);
       setReports(reportsData);
       setVehicles(vehiclesData || []);
+      
+      // Fetch date audits separately with error handling
+      try {
+        const dateAuditsData = await financialService.getDateAudits();
+        setDateAudits(dateAuditsData || []);
+      } catch (auditError) {
+        console.warn('Could not load date audits:', auditError);
+        setDateAudits([]); // Set empty array if date audits aren't available
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -775,6 +792,90 @@ export default function AllDailyReportsPage() {
     }
   };
 
+  // Helper function to check if a date is audited
+  const isDateAudited = (date: string): boolean => {
+    return dateAudits.some(audit => audit.audit_date === date);
+  };
+
+  // Helper function to get audit info for a date
+  const getDateAuditInfo = (date: string): DateAudit | null => {
+    return dateAudits.find(audit => audit.audit_date === date) || null;
+  };
+
+  // Helper function to check if current user can audit
+  const canUserAudit = (): boolean => {
+    return user?.email === 'giselemu007' || user?.user_metadata?.username === 'giselemu007';
+  };
+
+  // Date-level audit handlers
+  const handleDateAuditClick = (date: string, action: 'audit' | 'remove') => {
+    if (!canUserAudit()) {
+      toast({
+        title: t("messages.error"),
+        description: t("messages.unauthorizedAudit"),
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setDateToAudit(date);
+    setAuditAction(action);
+    setAuditConfirmationOpen(true);
+  };
+
+  const handleAuditConfirm = async () => {
+    if (!dateToAudit || !user?.email) return;
+    
+    if (!canUserAudit()) {
+      toast({
+        title: t("messages.error"),
+        description: t("messages.unauthorizedAudit"),
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsAuditing(true);
+    try {
+      const isAudited = auditAction === 'audit';
+      const result = await financialService.auditDate(
+        dateToAudit,
+        user.email,
+        isAudited
+      );
+      
+      // Update the date audits state
+      if (isAudited && result) {
+        setDateAudits(prev => {
+          const existing = prev.find(a => a.audit_date === dateToAudit);
+          if (existing) {
+            return prev.map(a => a.audit_date === dateToAudit ? result : a);
+          } else {
+            return [...prev, result];
+          }
+        });
+      } else {
+        setDateAudits(prev => prev.filter(a => a.audit_date !== dateToAudit));
+      }
+      
+      toast({
+        title: t("messages.success"),
+        description: isAudited ? t("messages.reportAudited") : t("messages.auditRemoved"),
+      });
+      
+      setAuditConfirmationOpen(false);
+      setDateToAudit(null);
+    } catch (error: any) {
+      toast({
+        title: t("messages.error"),
+        description: error.message || t("messages.errorAuditing"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsAuditing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with New Report Button and Filters */}
@@ -1156,6 +1257,7 @@ export default function AllDailyReportsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12"></TableHead>
                   <TableHead>{t("table.date")}</TableHead>
                   <TableHead>{t("table.vehicles")}</TableHead>
                   <TableHead className="text-right">{t("table.totalRevenue")}</TableHead>
@@ -1165,10 +1267,31 @@ export default function AllDailyReportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayData.map((group) => (
-                  <TableRow key={group.date}>
-                    <TableCell>{format(parseISO(group.date), "MMMM do, yyyy")}</TableCell>
-                    <TableCell>
+                {displayData.map((group) => {
+                  const dateAudited = isDateAudited(group.date);
+                  const auditInfo = getDateAuditInfo(group.date);
+                  
+                  return (
+                    <TableRow key={group.date}>
+                      <TableCell className="text-center">
+                        {dateAudited && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div>
+                                  <p>Audited by {auditInfo?.audited_by}</p>
+                                  <p className="text-xs">{auditInfo?.audited_at && format(parseISO(auditInfo.audited_at), "PPp")}</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </TableCell>
+                      <TableCell>{format(parseISO(group.date), "MMMM do, yyyy")}</TableCell>
+                      <TableCell>
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span>{t("allDailyReports.vehicleCount", { count: group.vehicleCount })}</span>
@@ -1199,22 +1322,49 @@ export default function AllDailyReportsPage() {
                     <TableCell className="text-right">{formatCurrency(group.totalRevenue)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(group.totalExpenses)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(group.netBalance)}</TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        const from = startOfDay(parseISO(group.date));
-                        const to = endOfDay(parseISO(group.date));
-                        setDateFilter({ from, to });
-                        setGroupByDate(false);
-                      }}>
-                        {t("table.viewDetails")}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" onClick={() => {
+                            const from = startOfDay(parseISO(group.date));
+                            const to = endOfDay(parseISO(group.date));
+                            setDateFilter({ from, to });
+                            setGroupByDate(false);
+                          }}>
+                            {t("table.viewDetails")}
+                          </Button>
+                          
+                          {canUserAudit() && (
+                            dateAudited ? (
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                onClick={() => handleDateAuditClick(group.date, 'remove')}
+                                className="text-orange-600 hover:text-orange-700 h-8 w-8"
+                                title={t("table.removeAudit")}
+                              >
+                                <Shield className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                onClick={() => handleDateAuditClick(group.date, 'audit')}
+                                className="text-green-600 hover:text-green-700 h-8 w-8"
+                                title={t("table.markAsAudited")}
+                              >
+                                <ShieldCheck className="h-4 w-4" />
+                              </Button>
+                            )
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={2} className="font-bold">{t("table.total")}</TableCell>
+                  <TableCell colSpan={3} className="font-bold">{t("table.total")}</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.totalRevenue, 0))}</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.totalExpenses, 0))}</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(displayData.reduce((acc, group) => acc + group.netBalance, 0))}</TableCell>
@@ -1897,6 +2047,46 @@ export default function AllDailyReportsPage() {
            </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Audit Confirmation Dialog */}
+      <AlertDialog open={auditConfirmationOpen} onOpenChange={setAuditConfirmationOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {auditAction === 'audit' ? t("audit.confirmAudit") : t("audit.confirmRemoveAudit")}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p>
+                  {auditAction === 'audit' 
+                    ? t("audit.confirmAuditDescription")
+                    : t("audit.confirmRemoveAuditDescription")
+                  }
+                </p>
+                {dateToAudit && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                    <strong>{format(parseISO(dateToAudit), "PPP")}</strong>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isAuditing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleAuditConfirm} 
+              disabled={isAuditing}
+              className={auditAction === 'audit' ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}
+            >
+              {isAuditing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isAuditing 
+                ? (auditAction === 'audit' ? t("audit.auditingInProgress") : t("audit.removingAudit"))
+                : (auditAction === 'audit' ? t("audit.confirmAudit") : t("audit.confirmRemoveAudit"))
+              }
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

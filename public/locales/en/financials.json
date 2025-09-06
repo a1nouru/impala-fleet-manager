@@ -172,6 +172,9 @@
     "netBalance": "Net Balance",
     "actions": "Actions",
     "viewDetails": "View Details",
+    "auditReport": "Audit Report",
+    "markAsAudited": "Mark as Audited",
+    "removeAudit": "Remove Audit",
     "total": "Total",
     "bank": "Bank",
     "reports": "Reports",
@@ -248,7 +251,11 @@
     "fileTooLarge": "File is too large. Maximum size is 5MB",
     "errorOpeningBankSlip": "Failed to open bank slip. Please try again",
     "reportDeleted": "Daily report deleted successfully",
-    "cannotDeleteReportInDeposit": "Cannot delete report that is included in bank deposits"
+    "cannotDeleteReportInDeposit": "Cannot delete report that is included in bank deposits",
+    "reportAudited": "Report marked as audited successfully",
+    "auditRemoved": "Audit status removed successfully",
+    "errorAuditing": "Failed to update audit status",
+    "unauthorizedAudit": "You are not authorized to perform audit actions."
   },
   "expenses": {
     "title": "Expenses",
@@ -350,6 +357,22 @@
       "lowNetRevenue": "Net revenue is {{percentage}}% of total revenue (less than 50%)",
       "highExpenses": "Expenses exceed 210,000 AOA ({{amount}})"
     }
+  },
+  "audit": {
+    "auditStatus": "Audit Status",
+    "audited": "✅ Audited",
+    "notAudited": "⏳ Not Audited",
+    "auditedBy": "Audited by {{auditor}}",
+    "auditedOn": "on {{date}}",
+    "auditTooltip": "This report has been audited",
+    "notAuditedTooltip": "This report has not been audited",
+    "auditActions": "Audit Actions",
+    "confirmAudit": "Confirm Audit",
+    "confirmAuditDescription": "Are you sure you want to mark this report as audited? This action confirms that you have reviewed and verified the report's accuracy.",
+    "confirmRemoveAudit": "Remove Audit Status",
+    "confirmRemoveAuditDescription": "Are you sure you want to remove the audit status from this report? This will mark it as not audited.",
+    "auditingInProgress": "Auditing...",
+    "removingAudit": "Removing audit..."
   },
   "rental": {
     "title": "Vehicle Rentals",

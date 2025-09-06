@@ -172,6 +172,9 @@
     "netBalance": "Saldo Líquido",
     "actions": "Ações",
     "viewDetails": "Ver Detalhes",
+    "auditReport": "Auditar Relatório",
+    "markAsAudited": "Marcar como Auditado",
+    "removeAudit": "Remover Auditoria",
     "total": "Total",
     "bank": "Banco",
     "reports": "Relatórios",
@@ -249,7 +252,11 @@
     "fileTooLarge": "Ficheiro demasiado grande. Tamanho máximo é 5MB",
     "errorOpeningBankSlip": "Falha ao abrir comprovativo bancário. Por favor tente novamente",
     "reportDeleted": "Relatório diário eliminado com sucesso",
-    "cannotDeleteReportInDeposit": "Não é possível eliminar relatório que está incluído em depósitos bancários"
+    "cannotDeleteReportInDeposit": "Não é possível eliminar relatório que está incluído em depósitos bancários",
+    "reportAudited": "Relatório marcado como auditado com sucesso",
+    "auditRemoved": "Estado de auditoria removido com sucesso",
+    "errorAuditing": "Falha ao atualizar estado de auditoria",
+    "unauthorizedAudit": "Não está autorizado a realizar ações de auditoria."
   },
   "expenses": {
     "title": "Despesas",
@@ -351,6 +358,22 @@
       "lowNetRevenue": "Receita líquida é {{percentage}}% da receita total (inferior a 50%)",
       "highExpenses": "Despesas excedem 210.000 AOA ({{amount}})"
     }
+  },
+  "audit": {
+    "auditStatus": "Estado de Auditoria",
+    "audited": "✅ Auditado",
+    "notAudited": "⏳ Não Auditado",
+    "auditedBy": "Auditado por {{auditor}}",
+    "auditedOn": "em {{date}}",
+    "auditTooltip": "Este relatório foi auditado",
+    "notAuditedTooltip": "Este relatório não foi auditado",
+    "auditActions": "Ações de Auditoria",
+    "confirmAudit": "Confirmar Auditoria",
+    "confirmAuditDescription": "Tem certeza que quer marcar este relatório como auditado? Esta ação confirma que reviu e verificou a precisão do relatório.",
+    "confirmRemoveAudit": "Remover Estado de Auditoria",
+    "confirmRemoveAuditDescription": "Tem certeza que quer remover o estado de auditoria deste relatório? Isto irá marcá-lo como não auditado.",
+    "auditingInProgress": "A auditar...",
+    "removingAudit": "A remover auditoria..."
   },
   "rental": {
     "title": "Aluguer de Veículos",
