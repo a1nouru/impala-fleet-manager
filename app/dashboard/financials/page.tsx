@@ -804,7 +804,30 @@ export default function AllDailyReportsPage() {
 
   // Helper function to check if current user can audit
   const canUserAudit = (): boolean => {
-    return user?.email === 'giselemu007' || user?.user_metadata?.username === 'giselemu007';
+    // Debug: Log user object to console to see what we have
+    console.log('🔍 User object for audit check:', {
+      email: user?.email,
+      username: user?.user_metadata?.username,
+      user_metadata: user?.user_metadata,
+      full_user: user
+    });
+    
+    // Check multiple possible fields where the username might be stored
+    const userEmail = user?.email;
+    const metadataUsername = user?.user_metadata?.username;
+    const metadataEmail = user?.user_metadata?.email;
+    const metadataName = user?.user_metadata?.name;
+    
+    const isAuthorized = userEmail === 'giselemu007' || 
+                        metadataUsername === 'giselemu007' ||
+                        metadataEmail === 'giselemu007' ||
+                        metadataName === 'giselemu007' ||
+                        userEmail?.includes('giselemu007') ||
+                        metadataUsername?.includes('giselemu007');
+    
+    console.log('🔐 Audit authorization result:', isAuthorized);
+    
+    return isAuthorized;
   };
 
   // Date-level audit handlers
