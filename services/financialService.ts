@@ -1453,9 +1453,9 @@ export const financialService = {
    * @param isAudited - Whether to mark as audited (true) or remove audit status (false)
    */
   async auditDate(auditDate: string, auditorId: string, isAudited: boolean = true): Promise<DateAudit | null> {
-    // Authorization check - only giselemu007 can audit
-    if (auditorId !== 'giselemu007') {
-      throw new Error('You are not authorized to perform audit actions. Only giselemu007 can audit reports.');
+    // Authorization check - only giselemu007@gmail.com can audit
+    if (auditorId !== 'giselemu007@gmail.com') {
+      throw new Error('You are not authorized to perform audit actions. Only giselemu007@gmail.com can audit reports.');
     }
     
     try {
