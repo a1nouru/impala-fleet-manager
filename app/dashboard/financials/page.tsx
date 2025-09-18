@@ -951,9 +951,11 @@ export default function AllDailyReportsPage() {
                     <SelectItem value="LUANDA - HUAMBO">LUANDA - HUAMBO</SelectItem>
                     <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
                     <SelectItem value="LUANDA - LUVU">LUANDA - LUVU</SelectItem>
+                    <SelectItem value="LUANDA - SAURIMBO">LUANDA - SAURIMBO</SelectItem>
                     <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
                     <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
                     <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
+                    <SelectItem value="SAURIMBO - LUANDA">SAURIMBO - LUANDA</SelectItem>
                     <SelectItem value="MBANZA - HUAMBO">MBANZA - HUAMBO</SelectItem>
                     <SelectItem value="HUAMBO - MBANZA">HUAMBO - MBANZA</SelectItem>
                     <SelectItem value="CAXITO - LUANDA">CAXITO - LUANDA</SelectItem>
@@ -1589,9 +1591,11 @@ export default function AllDailyReportsPage() {
                       <SelectItem value="LUANDA - HUAMBO">LUANDA - HUAMBO</SelectItem>
                       <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
                       <SelectItem value="LUANDA - LUVU">LUANDA - LUVU</SelectItem>
+                      <SelectItem value="LUANDA - SAURIMBO">LUANDA - SAURIMBO</SelectItem>
                       <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
                       <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
                       <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
+                      <SelectItem value="SAURIMBO - LUANDA">SAURIMBO - LUANDA</SelectItem>
                       <SelectItem value="MBANZA - HUAMBO">MBANZA - HUAMBO</SelectItem>
                       <SelectItem value="HUAMBO - MBANZA">HUAMBO - MBANZA</SelectItem>
                       <SelectItem value="CAXITO - LUANDA">CAXITO - LUANDA</SelectItem>
