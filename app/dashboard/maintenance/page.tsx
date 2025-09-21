@@ -12,6 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Calendar } from "@/components/ui/calendar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Popover,
   PopoverContent,
@@ -50,6 +51,7 @@ import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { DateRange } from "react-day-picker"
+import InventoryManagement from "@/components/inventory-management"
 
 // Type definitions (moved to top for use in utility functions)
 interface Vehicle {
@@ -794,7 +796,22 @@ function MaintenanceContent() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">{t("title")}</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">Fleet Management</h1>
+      </div>
+
+      <Tabs defaultValue="maintenance" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="maintenance" className="data-[state=active]:bg-black data-[state=active]:text-white">
+            Maintenance
+          </TabsTrigger>
+          <TabsTrigger value="inventory" className="data-[state=active]:bg-black data-[state=active]:text-white">
+            Inventory
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="maintenance" className="space-y-6">
+          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-800">{t("title")}</h2>
         
         <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
@@ -1733,6 +1750,12 @@ function MaintenanceContent() {
            </DialogFooter>
          </DialogContent>
        </Dialog>
+        </TabsContent>
+
+        <TabsContent value="inventory" className="space-y-6">
+          <InventoryManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 } 
