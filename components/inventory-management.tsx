@@ -36,16 +36,17 @@ import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/AuthContext"
 import { format, parseISO } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
-import DatePicker from "react-datepicker"
-import "react-datepicker/dist/react-datepicker.css"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { DateRange } from "react-day-picker"
+import { busParts } from "@/data/partsData"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Type definitions
 interface InventoryItem {
   id: string;
   code: string;
   date: string;
+  item_name: string;
   description: string;
   quantity: number;
   amount_unit: number;
@@ -72,8 +73,8 @@ function LoadingState() {
 // Utility function to export data to Excel
 const exportToExcel = (data: InventoryItem[], filename: string) => {
   const headers = [
-    "Code",
     "Date", 
+    "Item Name",
     "Description",
     "Quantity (UN)",
     "Amount Unit (Kz)",
@@ -91,8 +92,8 @@ const exportToExcel = (data: InventoryItem[], filename: string) => {
   const csvRows = [
     headers.map(header => `"${header}"`).join(','),
     ...data.map(item => [
-      `"${cleanData(item.code)}"`,
       `"${cleanData(item.date)}"`,
+      `"${cleanData(item.item_name || 'N/A')}"`,
       `"${cleanData(item.description)}"`,
       `"${cleanData(item.quantity)}"`,
       `"${cleanData(item.amount_unit)}"`,
@@ -165,6 +166,7 @@ export default function InventoryManagement() {
 
   const [newItem, setNewItem] = useState({
     date: "",
+    item_name: "",
     description: "",
     quantity: "",
     amount_unit: "",
@@ -172,6 +174,23 @@ export default function InventoryManagement() {
 
   const { user } = useAuth();
   const { t } = useTranslation('maintenance'); // Reusing maintenance translations for now
+
+  // Get all parts in a flat list for the dropdown
+  const getAllParts = () => {
+    const allParts: { id: string; name: string; category: string }[] = [];
+    busParts.forEach(category => {
+      category.items.forEach(item => {
+        allParts.push({
+          id: item.id,
+          name: item.name,
+          category: category.category
+        });
+      });
+    });
+    return allParts;
+  };
+
+  const allParts = getAllParts();
 
   // Fetch inventory items on component mount
   useEffect(() => {
@@ -193,8 +212,8 @@ export default function InventoryManagement() {
         console.error('Error fetching inventory data:', error);
         if (isMounted) {
           toast({
-            title: "Error",
-            description: "Failed to load inventory data. Please try refreshing the page.",
+            title: "⚠️ Database Setup Required",
+            description: "Inventory table not found. Please run the database migrations first.",
             variant: "destructive"
           });
           
@@ -267,7 +286,7 @@ export default function InventoryManagement() {
     // Filter by search term
     if (searchTerm && 
         !item.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !item.code.toLowerCase().includes(searchTerm.toLowerCase())
+        !(item.item_name && item.item_name.toLowerCase().includes(searchTerm.toLowerCase()))
       ) {
       return false;
     }
@@ -284,7 +303,7 @@ export default function InventoryManagement() {
 
   // Form validation
   const isFormValid = () => {
-    const requiredFields = ['date', 'description', 'quantity', 'amount_unit'];
+    const requiredFields = ['date', 'item_name', 'description', 'quantity', 'amount_unit'];
     const isFieldsValid = requiredFields.every(field => !!newItem[field as keyof typeof newItem]);
     const isReceiptValid = isEditMode ? true : !!receiptFile; // Receipt required for new items
     return isFieldsValid && isReceiptValid;
@@ -304,11 +323,14 @@ export default function InventoryManagement() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
+      // Validate file type (allow images and PDFs)
+      const allowedTypes = ['image/', 'application/pdf'];
+      const isValidType = allowedTypes.some(type => file.type.startsWith(type));
+      
+      if (!isValidType) {
         toast({
           title: "Invalid File Type",
-          description: "Please select an image file for the receipt.",
+          description: "Please select an image file (JPG, PNG, etc.) or PDF for the receipt.",
           variant: "destructive"
         });
         return;
@@ -326,12 +348,17 @@ export default function InventoryManagement() {
       
       setReceiptFile(file);
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setReceiptPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Create preview (only for images, show file name for PDFs)
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setReceiptPreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type === 'application/pdf') {
+        // For PDFs, store the file name as preview
+        setReceiptPreview(`PDF: ${file.name}`);
+      }
     }
   };
 
@@ -352,6 +379,7 @@ export default function InventoryManagement() {
     
     setNewItem({
       date: formattedDate,
+      item_name: item.item_name || "",
       description: item.description,
       quantity: item.quantity.toString(),
       amount_unit: item.amount_unit.toString(),
@@ -386,6 +414,7 @@ export default function InventoryManagement() {
       
       const itemToSave = {
         date: newItem.date,
+        item_name: newItem.item_name,
         description: newItem.description,
         quantity: parseFloat(parseFormattedNumber(newItem.quantity)),
         amount_unit: parseFloat(parseFormattedNumber(newItem.amount_unit)),
@@ -432,6 +461,7 @@ export default function InventoryManagement() {
   const resetForm = () => {
     setNewItem({
       date: "",
+      item_name: "",
       description: "",
       quantity: "",
       amount_unit: "",
@@ -514,17 +544,36 @@ export default function InventoryManagement() {
                   <Label htmlFor="date" className="flex items-center text-sm">
                     Date <span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <DatePicker
-                    selected={newItem.date ? parseISO(newItem.date) : null}
-                    onChange={(date: Date | null) => {
-                      if (date) {
-                        setNewItem(prev => ({ ...prev, date: format(date, "yyyy-MM-dd") }))
-                      }
-                    }}
-                    className="w-full h-10 px-3 py-2 text-sm bg-transparent border rounded-md shadow-sm border-input placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholderText="Select a date"
-                    dateFormat="MMMM d, yyyy"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !newItem.date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newItem.date ? (
+                          format(parseISO(newItem.date), "PPP")
+                        ) : (
+                          <span>Select a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={newItem.date ? parseISO(newItem.date) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            setNewItem(prev => ({ ...prev, date: format(date, "yyyy-MM-dd") }))
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="quantity" className="flex items-center text-sm">
@@ -572,6 +621,43 @@ export default function InventoryManagement() {
                 </div>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="item_name" className="flex items-center text-sm">
+                  Item Name <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <Select
+                  value={newItem.item_name}
+                  onValueChange={(value) => {
+                    setNewItem(prev => ({ ...prev, item_name: value }));
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select an item or enter custom name" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allParts.map((part) => (
+                      <SelectItem key={part.id} value={part.name}>
+                        <div className="flex flex-col">
+                          <span>{part.name}</span>
+                          <span className="text-xs text-muted-foreground">{part.category}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">
+                      <span className="text-blue-600 font-medium">Enter custom item name...</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {newItem.item_name === "custom" && (
+                  <Input
+                    placeholder="Enter custom item name"
+                    value=""
+                    onChange={(e) => setNewItem(prev => ({ ...prev, item_name: e.target.value }))}
+                    className="mt-2"
+                    autoFocus
+                  />
+                )}
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="description" className="flex items-center text-sm">
                   Description <span className="text-red-500 ml-1">*</span>
                 </Label>
@@ -593,17 +679,24 @@ export default function InventoryManagement() {
                 <div className="space-y-2">
                   <Input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.pdf,application/pdf"
                     onChange={handleFileChange}
                     className="cursor-pointer"
                   />
                   {receiptPreview && (
                     <div className="relative">
-                      <img 
-                        src={receiptPreview} 
-                        alt="Receipt preview" 
-                        className="max-w-full h-32 object-cover rounded border"
-                      />
+                      {receiptPreview.startsWith('PDF:') ? (
+                        <div className="flex items-center gap-2 p-3 border rounded bg-gray-50">
+                          <Receipt className="h-5 w-5 text-red-500" />
+                          <span className="text-sm font-medium">{receiptPreview}</span>
+                        </div>
+                      ) : (
+                        <img 
+                          src={receiptPreview} 
+                          alt="Receipt preview" 
+                          className="max-w-full h-32 object-cover rounded border"
+                        />
+                      )}
                       <Button
                         type="button"
                         variant="destructive"
@@ -765,8 +858,8 @@ export default function InventoryManagement() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="px-4 py-3 text-left text-sm font-medium">Code</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Item Name</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">Description</th>
                     <th className="px-4 py-3 text-right text-sm font-medium">Quantity (UN)</th>
                     <th className="px-4 py-3 text-right text-sm font-medium">Amount Unit</th>
@@ -784,7 +877,6 @@ export default function InventoryManagement() {
                   ) : (
                     currentPageItems.map((item) => (
                       <tr key={item.id} className="border-b hover:bg-muted/50">
-                        <td className="px-4 py-3 text-sm font-medium">{item.code}</td>
                         <td className="px-4 py-3 text-sm">
                           {(() => {
                             try {
@@ -800,12 +892,13 @@ export default function InventoryManagement() {
                             }
                           })()}
                         </td>
+                        <td className="px-4 py-3 text-sm max-w-xs truncate font-medium">{item.item_name || "N/A"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">{item.description}</td>
                         <td className="px-4 py-3 text-sm text-right">{item.quantity.toLocaleString()}</td>
                         <td className="px-4 py-3 text-sm text-right">{item.amount_unit.toLocaleString()} Kz</td>
                         <td className="px-4 py-3 text-sm text-right font-semibold">{item.total_cost.toLocaleString()} Kz</td>
-                        <td className="px-4 py-3 text-sm">
-                          <div className="flex items-center gap-2">
+                        <td className="px-4 py-3 text-sm text-right">
+                          <div className="flex items-center justify-end gap-2">
                             {item.receipt_url && (
                               <Button
                                 variant="outline"
@@ -813,7 +906,7 @@ export default function InventoryManagement() {
                                 onClick={() => window.open(item.receipt_url, '_blank')}
                                 className="h-8 w-8 p-0"
                               >
-                                <Receipt className="h-4 w-4" />
+                                <Receipt className="h-4 w-4 text-blue-600" />
                                 <span className="sr-only">View Receipt</span>
                               </Button>
                             )}
@@ -875,7 +968,7 @@ export default function InventoryManagement() {
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h3 className="font-semibold text-lg">#{item.code}</h3>
+                            <h3 className="font-semibold text-lg">{item.item_name || "N/A"}</h3>
                             <p className="text-sm text-muted-foreground">
                               {(() => {
                                 try {
@@ -900,7 +993,7 @@ export default function InventoryManagement() {
                                 onClick={() => window.open(item.receipt_url, '_blank')}
                                 className="h-8 w-8 p-0"
                               >
-                                <Receipt className="h-4 w-4" />
+                                <Receipt className="h-4 w-4 text-blue-600" />
                                 <span className="sr-only">View Receipt</span>
                               </Button>
                             )}
@@ -929,6 +1022,11 @@ export default function InventoryManagement() {
                         </div>
                         
                         <div className="space-y-2">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Item Name</p>
+                            <p className="text-sm text-gray-600 font-medium">{item.item_name || "N/A"}</p>
+                          </div>
+                          
                           <div>
                             <p className="text-sm font-medium text-gray-700">Description</p>
                             <p className="text-sm text-gray-600">{item.description}</p>
@@ -969,20 +1067,36 @@ export default function InventoryManagement() {
               )}
             </div>
             
-            <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t space-y-2 sm:space-y-0">
-              <div className="text-sm text-muted-foreground text-center sm:text-left">
-                Showing <span className="font-medium">{currentPageItems.length}</span> of{" "}
-                <span className="font-medium">{totalItems}</span> items
+            {/* Pagination Controls */}
+            {filteredItems.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t space-y-2 sm:space-y-0">
+                <div className="text-sm text-muted-foreground text-center sm:text-left">
+                  Showing <span className="font-medium">{currentPageItems.length}</span> of{" "}
+                  <span className="font-medium">{totalItems}</span> items
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         </>
       )}

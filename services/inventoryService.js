@@ -14,6 +14,13 @@ export const inventoryService = {
       
       if (error) {
         console.error('Error in getInventoryItems:', error);
+        
+        // Check if it's a table doesn't exist error
+        if (error.code === 'PGRST106' || error.message?.includes('relation "public.inventory_items" does not exist')) {
+          console.warn('inventory_items table does not exist. Please run the inventory migrations.');
+          return [];
+        }
+        
         throw error;
       }
       
@@ -21,6 +28,8 @@ export const inventoryService = {
       return data || [];
     } catch (error) {
       console.error('Error getting inventory items:', error);
+      
+      // Return empty array on any error to prevent app crash
       return [];
     }
   },
