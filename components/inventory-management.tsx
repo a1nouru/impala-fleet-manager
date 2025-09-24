@@ -38,7 +38,7 @@ import { format, parseISO } from "date-fns"
 import { useTranslation } from "@/hooks/useTranslation"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { DateRange } from "react-day-picker"
-import { busParts } from "@/data/partsData"
+import { getPartsData } from "@/data/partsData"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Type definitions
@@ -173,13 +173,19 @@ export default function InventoryManagement() {
   });
 
   const { user } = useAuth();
-  const { t } = useTranslation('maintenance'); // Reusing maintenance translations for now
+  const { t, locale } = useTranslation('inventory');
 
-  // Get all parts in a flat list for the dropdown
-  const getAllParts = () => {
+  // State for parts list that updates with language changes
+  const [allParts, setAllParts] = useState<{ id: string; name: string; category: string }[]>([]);
+  const [partsSearchTerm, setPartsSearchTerm] = useState('');
+
+  // Get all parts in a flat list for the dropdown based on current language
+  const getAllParts = (language = 'en') => {
     const allParts: { id: string; name: string; category: string }[] = [];
-    busParts.forEach(category => {
-      category.items.forEach(item => {
+    const partsData = getPartsData(language);
+    
+    partsData.forEach((category: any) => {
+      category.items.forEach((item: any) => {
         allParts.push({
           id: item.id,
           name: item.name,
@@ -190,7 +196,17 @@ export default function InventoryManagement() {
     return allParts;
   };
 
-  const allParts = getAllParts();
+  // Filter parts based on search term
+  const filteredParts = allParts.filter(part =>
+    part.name.toLowerCase().includes(partsSearchTerm.toLowerCase()) ||
+    part.category.toLowerCase().includes(partsSearchTerm.toLowerCase())
+  );
+
+  // Update parts list when component mounts or language changes
+  useEffect(() => {
+    const currentLanguage = locale || 'en';
+    setAllParts(getAllParts(currentLanguage));
+  }, [locale]);
 
   // Fetch inventory items on component mount
   useEffect(() => {
@@ -509,7 +525,7 @@ export default function InventoryManagement() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">Inventory Management</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">{t("title")}</h1>
         
         <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
@@ -522,19 +538,19 @@ export default function InventoryManagement() {
               }}
             >
               <PlusCircle className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Add Purchase</span>
-              <span className="sm:hidden">Add Item</span>
+              <span className="hidden sm:inline">{t("addPurchase")}</span>
+              <span className="sm:hidden">{t("buttons.addItem")}</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 w-[calc(100vw-2rem)]">
             <DialogHeader>
               <DialogTitle className="text-lg">
-                {isEditMode ? "Edit Inventory Item" : "Add Purchase"}
+                {isEditMode ? t("editItemTitle") : t("addPurchaseTitle")}
               </DialogTitle>
               <DialogDescription className="text-sm">
                 {isEditMode 
-                  ? "Update the inventory item details below."
-                  : "Add a new purchased item with receipt."
+                  ? t("editItemDescription")
+                  : t("addPurchaseDescription")
                 }
               </DialogDescription>
             </DialogHeader>
@@ -542,7 +558,7 @@ export default function InventoryManagement() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="date" className="flex items-center text-sm">
-                    Date <span className="text-red-500 ml-1">*</span>
+                    {t("fields.date")} <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -557,7 +573,7 @@ export default function InventoryManagement() {
                         {newItem.date ? (
                           format(parseISO(newItem.date), "PPP")
                         ) : (
-                          <span>Select a date</span>
+                          <span>{t("placeholders.selectDate")}</span>
                         )}
                       </Button>
                     </PopoverTrigger>
@@ -577,13 +593,13 @@ export default function InventoryManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="quantity" className="flex items-center text-sm">
-                    Quantity (UN) <span className="text-red-500 ml-1">*</span>
+                    {t("fields.quantity")} <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
                     id="quantity"
                     name="quantity"
                     type="text"
-                    placeholder="Enter quantity"
+                    placeholder={t("placeholders.enterQuantity")}
                     value={newItem.quantity}
                     onChange={handleInputChange}
                     required
@@ -591,13 +607,13 @@ export default function InventoryManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="amount_unit" className="flex items-center text-sm">
-                    Amount Unit (Kz) <span className="text-red-500 ml-1">*</span>
+                    {t("fields.amountUnit")} <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Input
                     id="amount_unit"
                     name="amount_unit"
                     type="text"
-                    placeholder="Price per unit"
+                    placeholder={t("placeholders.pricePerUnit")}
                     value={newItem.amount_unit}
                     onChange={handleInputChange}
                     required
@@ -605,7 +621,7 @@ export default function InventoryManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center text-sm">
-                    Total Cost (Kz)
+                    {t("fields.totalCost")}
                   </Label>
                   <Input
                     type="text"
@@ -622,19 +638,32 @@ export default function InventoryManagement() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="item_name" className="flex items-center text-sm">
-                  Item Name <span className="text-red-500 ml-1">*</span>
+                  {t("fields.itemName")} <span className="text-red-500 ml-1">*</span>
                 </Label>
                 <Select
                   value={newItem.item_name}
                   onValueChange={(value) => {
                     setNewItem(prev => ({ ...prev, item_name: value }));
                   }}
+                  onOpenChange={(open) => {
+                    if (!open) {
+                      setPartsSearchTerm(''); // Clear search when dropdown closes
+                    }
+                  }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select an item or enter custom name" />
+                    <SelectValue placeholder={t("placeholders.selectItem")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {allParts.map((part) => (
+                    <div className="p-2 border-b">
+                      <Input
+                        placeholder={t("parts.searchPlaceholder")}
+                        value={partsSearchTerm}
+                        onChange={(e) => setPartsSearchTerm(e.target.value)}
+                        className="h-8"
+                      />
+                    </div>
+                    {filteredParts.map((part) => (
                       <SelectItem key={part.id} value={part.name}>
                         <div className="flex flex-col">
                           <span>{part.name}</span>
@@ -642,14 +671,19 @@ export default function InventoryManagement() {
                         </div>
                       </SelectItem>
                     ))}
+                    {filteredParts.length === 0 && partsSearchTerm && (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        {t("parts.noPartsFound")} "{partsSearchTerm}"
+                      </div>
+                    )}
                     <SelectItem value="custom">
-                      <span className="text-blue-600 font-medium">Enter custom item name...</span>
+                      <span className="text-blue-600 font-medium">{t("placeholders.enterCustomName")}</span>
                     </SelectItem>
                   </SelectContent>
                 </Select>
                 {newItem.item_name === "custom" && (
                   <Input
-                    placeholder="Enter custom item name"
+                    placeholder={t("placeholders.enterCustomName")}
                     value=""
                     onChange={(e) => setNewItem(prev => ({ ...prev, item_name: e.target.value }))}
                     className="mt-2"
@@ -659,12 +693,12 @@ export default function InventoryManagement() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description" className="flex items-center text-sm">
-                  Description <span className="text-red-500 ml-1">*</span>
+                  {t("fields.description")} <span className="text-red-500 ml-1">*</span>
                 </Label>
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Enter item description"
+                  placeholder={t("placeholders.enterDescription")}
                   rows={3}
                   value={newItem.description}
                   onChange={handleInputChange}
@@ -673,8 +707,8 @@ export default function InventoryManagement() {
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center text-sm">
-                  Receipt <span className="text-red-500 ml-1">*</span>
-                  {isEditMode && " (Upload new to replace)"}
+                  {t("fields.receipt")} <span className="text-red-500 ml-1">*</span>
+                  {isEditMode && ` (${t("receipt.uploadNew")})`}
                 </Label>
                 <div className="space-y-2">
                   <Input
@@ -714,7 +748,7 @@ export default function InventoryManagement() {
                 </div>
               </div>
               <div className="text-xs text-muted-foreground mt-2">
-                <span className="text-black">*</span> Required fields
+                <span className="text-black">*</span> {t("validation.requiredFields")}
               </div>
             </div>
             <DialogFooter>
@@ -725,7 +759,7 @@ export default function InventoryManagement() {
                   onClick={() => setDialogOpen(false)}
                   disabled={isLoading.submit}
                 >
-                  Cancel
+                  {t("buttons.cancel")}
                 </Button>
                 <Button
                   type="button"
@@ -733,7 +767,7 @@ export default function InventoryManagement() {
                   disabled={isLoading.submit}
                   onClick={() => setResetDialogOpen(true)}
                 >
-                  Reset
+                  {t("buttons.reset")}
                 </Button>
                 <Button
                   onClick={handleSubmit} 
@@ -741,7 +775,7 @@ export default function InventoryManagement() {
                   className="bg-black hover:bg-gray-800 text-white"
                 >
                   {isLoading.submit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isEditMode ? "Update" : "Add Item"}
+                  {isEditMode ? t("buttons.update") : t("buttons.addItem")}
                 </Button>
               </div>
             </DialogFooter>
@@ -752,7 +786,7 @@ export default function InventoryManagement() {
       {isLoading.items ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-xl ml-4">Loading Inventory...</span>
+          <span className="text-xl ml-4">{t("loading.loadingInventory")}</span>
         </div>
       ) : (
         <>
@@ -761,56 +795,56 @@ export default function InventoryManagement() {
             <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-emerald-900">
-                  Current Month Cost
+                  {t("summary.currentMonthCost")}
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-emerald-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold text-emerald-900">{currentMonthCost.toLocaleString()} Kz</div>
                 <p className="text-xs text-emerald-700">
-                  Total expenses for {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
+                  {t("summary.totalExpenses")} {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total Items
+                  {t("summary.totalItems")}
                 </CardTitle>
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold">{items.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  Lifetime inventory records
+                  {t("summary.lifetimeRecords")}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  This Month Items
+                  {t("summary.thisMonthItems")}
                 </CardTitle>
                 <Package className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold">{currentMonthItems.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  Items purchased this month
+                  {t("summary.itemsPurchased")}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total Value
+                  {t("summary.totalValue")}
                 </CardTitle>
                 <Receipt className="h-4 w-4 text-purple-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl md:text-2xl font-bold">{totalLifetimeCost.toLocaleString()} Kz</div>
                 <p className="text-xs text-muted-foreground">
-                  Total inventory value
+                  {t("summary.totalInventoryValue")}
                 </p>
               </CardContent>
             </Card>
@@ -832,7 +866,7 @@ export default function InventoryManagement() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder="Search items..."
+                      placeholder={t("search.searchItems")}
                       className="pl-8 h-9 w-full sm:w-[200px] lg:w-[300px]"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -846,7 +880,7 @@ export default function InventoryManagement() {
                     className="h-9"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Download</span>
+                    <span className="hidden sm:inline">{t("buttons.download")}</span>
                     <span className="sm:hidden">Excel</span>
                   </Button>
                 </div>
@@ -858,20 +892,20 @@ export default function InventoryManagement() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Item Name</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Description</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">Quantity (UN)</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">Amount Unit</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">Total Cost</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.date")}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.itemName")}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">{t("table.description")}</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">{t("table.quantity")}</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">{t("table.amountUnit")}</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">{t("table.totalCost")}</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">{t("table.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentPageItems.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No inventory items found
+                        {t("table.noItemsFound")}
                       </td>
                     </tr>
                   ) : (
@@ -940,7 +974,7 @@ export default function InventoryManagement() {
                 {filteredItems.length > 0 && (
                   <tfoot className="bg-black text-white">
                     <tr>
-                      <td className="px-4 py-3 text-sm font-bold">Total</td>
+                      <td className="px-4 py-3 text-sm font-bold">{t("table.total")}</td>
                       <td className="px-4 py-3 text-sm"></td>
                       <td className="px-4 py-3 text-sm"></td>
                       <td className="px-4 py-3 text-sm"></td>
@@ -959,7 +993,7 @@ export default function InventoryManagement() {
             <div className="lg:hidden">
               {currentPageItems.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No inventory items found
+                  {t("table.noItemsFound")}
                 </div>
               ) : (
                 <div className="space-y-4 p-4">
@@ -1071,8 +1105,8 @@ export default function InventoryManagement() {
             {filteredItems.length > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t space-y-2 sm:space-y-0">
                 <div className="text-sm text-muted-foreground text-center sm:text-left">
-                  Showing <span className="font-medium">{currentPageItems.length}</span> of{" "}
-                  <span className="font-medium">{totalItems}</span> items
+                  {t("pagination.showing")} <span className="font-medium">{currentPageItems.length}</span> {t("pagination.of")}{" "}
+                  <span className="font-medium">{totalItems}</span> {t("pagination.items")}
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button 
@@ -1084,7 +1118,7 @@ export default function InventoryManagement() {
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
+                    {t("pagination.page")} {currentPage} {t("pagination.of")} {totalPages}
                   </span>
                   <Button 
                     variant="outline" 
@@ -1105,17 +1139,17 @@ export default function InventoryManagement() {
       <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reset Form</DialogTitle>
+            <DialogTitle>{t("dialogs.resetForm")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to reset the form? All unsaved changes will be lost.
+              {t("dialogs.resetFormDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResetDialogOpen(false)}>
-              Cancel
+              {t("buttons.cancel")}
             </Button>
             <Button variant="destructive" onClick={handleResetConfirm}>
-              Reset
+              {t("buttons.reset")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1125,17 +1159,17 @@ export default function InventoryManagement() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Inventory Item</DialogTitle>
+            <DialogTitle>{t("dialogs.deleteItem")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this inventory item? This action cannot be undone.
+              {t("dialogs.deleteItemDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t("buttons.cancel")}
             </Button>
             <Button variant="destructive" onClick={handleDeleteConfirm} className="bg-black hover:bg-gray-800 text-white">
-              Delete
+              {t("dialogs.delete")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1145,15 +1179,15 @@ export default function InventoryManagement() {
       <Dialog open={downloadDialogOpen} onOpenChange={setDownloadDialogOpen}>
         <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
           <DialogHeader>
-            <DialogTitle>Download Inventory Records</DialogTitle>
+            <DialogTitle>{t("dialogs.downloadRecords")}</DialogTitle>
             <DialogDescription>
-              Select a date range to download inventory records as Excel file.
+              {t("dialogs.downloadDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
-                <Label className="text-sm font-medium shrink-0">From:</Label>
+                <Label className="text-sm font-medium shrink-0">{t("dialogs.from")}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1179,7 +1213,7 @@ export default function InventoryManagement() {
               </div>
               
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
-                <Label className="text-sm font-medium shrink-0">To:</Label>
+                <Label className="text-sm font-medium shrink-0">{t("dialogs.to")}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1211,7 +1245,7 @@ export default function InventoryManagement() {
               onClick={() => setDownloadDialogOpen(false)}
               className="w-full sm:w-auto"
             >
-              Cancel
+              {t("buttons.cancel")}
             </Button>
             <Button
               onClick={() => {
@@ -1225,18 +1259,18 @@ export default function InventoryManagement() {
                 }), `inventory_records_${from || 'all'}_to_${to || 'all'}.xlsx`);
                 setDownloadDialogOpen(false);
                 toast({
-                  title: "✅ Download Started",
-                  description: `Downloading ${items.filter(r => {
+                  title: `✅ ${t("messages.downloadStarted")}`,
+                  description: t("messages.downloadingRecords", { count: items.filter(r => {
                     const itemDate = new Date(r.date);
                     const isFromDate = from ? itemDate >= new Date(from) : true;
                     const isToDate = to ? itemDate <= new Date(to) : true;
                     return isFromDate && isToDate;
-                  }).length} records...`
+                  }).length })
                 });
               }}
               className="w-full sm:w-auto"
             >
-              Download Excel
+              {t("dialogs.downloadExcel")}
             </Button>
           </DialogFooter>
         </DialogContent>

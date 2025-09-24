@@ -1,0 +1,124 @@
+{
+  "title": "Gestão de Inventário",
+  "subtitle": "Gestão de Compras e Inventário",
+  "loading": {
+    "title": "Carregando Inventário...",
+    "subtitle": "Por favor, aguarde enquanto buscamos os seus dados",
+    "loadingInventory": "Carregando inventário..."
+  },
+  "addPurchase": "Adicionar Compra",
+  "editPurchase": "Editar Item de Inventário", 
+  "addPurchaseTitle": "Adicionar Compra",
+  "editItemTitle": "Editar Item de Inventário",
+  "addPurchaseDescription": "Adicionar um novo item comprado com recibo.",
+  "editItemDescription": "Actualizar os detalhes do item de inventário abaixo.",
+  "buttons": {
+    "cancel": "Cancelar",
+    "reset": "Repor",
+    "addItem": "Adicionar Item",
+    "update": "Actualizar",
+    "download": "Descarregar"
+  },
+  "fields": {
+    "date": "Data",
+    "itemName": "Nome do Item",
+    "description": "Descrição",
+    "quantity": "Quantidade (UN)",
+    "amountUnit": "Preço Unitário (Kz)",
+    "totalCost": "Custo Total (Kz)",
+    "receipt": "Recibo",
+    "actions": "Acções"
+  },
+  "placeholders": {
+    "selectDate": "Seleccionar uma data",
+    "selectItem": "Seleccionar um item ou introduzir nome personalizado",
+    "enterCustomName": "Introduzir nome personalizado...",
+    "enterQuantity": "Introduzir quantidade",
+    "pricePerUnit": "Preço por unidade",
+    "enterDescription": "Introduzir descrição do item",
+    "chooseFile": "Escolher ficheiro",
+    "searchParts": "Pesquisar peças..."
+  },
+  "summary": {
+    "currentMonthCost": "Custo do Mês Actual",
+    "totalItems": "Total de Itens",
+    "thisMonthItems": "Itens deste Mês",
+    "totalValue": "Valor Total",
+    "totalExpenses": "Despesas totais para",
+    "lifetimeRecords": "Registos de inventário vitalícios",
+    "itemsPurchased": "itens comprados este mês",
+    "totalInventoryValue": "Valor total do inventário"
+  },
+  "table": {
+    "date": "Data",
+    "itemName": "Nome do Item",
+    "description": "Descrição", 
+    "quantity": "Quantidade (UN)",
+    "amountUnit": "Preço Unitário",
+    "totalCost": "Custo Total",
+    "actions": "Acções",
+    "total": "Total",
+    "noItemsFound": "Nenhum item de inventário encontrado"
+  },
+  "parts": {
+    "noPartsFound": "Nenhuma peça encontrada correspondente a",
+    "searchPlaceholder": "Pesquisar peças..."
+  },
+  "search": {
+    "searchItems": "Pesquisar itens...",
+    "pickDate": "Escolher data",
+    "download": "Descarregar"
+  },
+  "validation": {
+    "requiredFields": "Campos obrigatórios",
+    "allFieldsRequired": "Por favor, preencha todos os campos obrigatórios e carregue um recibo.",
+    "invalidFileType": "Tipo de ficheiro inválido",
+    "selectImageOrPdf": "Por favor, seleccione uma imagem (JPG, PNG, etc.) ou PDF para o recibo.",
+    "fileTooLarge": "Ficheiro demasiado grande",
+    "selectSmallerFile": "Por favor, seleccione uma imagem menor que 10MB."
+  },
+  "messages": {
+    "success": "Sucesso",
+    "error": "Erro",
+    "itemCreated": "Item de inventário criado com sucesso",
+    "itemUpdated": "Item de inventário actualizado com sucesso",
+    "itemDeleted": "Item de inventário eliminado com sucesso",
+    "errorCreating": "Falha ao criar item de inventário. Tente novamente.",
+    "errorUpdating": "Falha ao actualizar item de inventário. Tente novamente.",
+    "errorDeleting": "Falha ao eliminar item de inventário. Tente novamente.",
+    "errorLoading": "Falha ao carregar dados do inventário. Tente actualizar a página.",
+    "databaseSetupRequired": "Configuração da base de dados necessária",
+    "inventoryTableNotFound": "Tabela de inventário não encontrada. Execute as migrações da base de dados primeiro.",
+    "downloadStarted": "Descarga iniciada",
+    "downloadingRecords": "A descarregar {{count}} registos..."
+  },
+  "dialogs": {
+    "resetForm": "Repor Formulário",
+    "resetFormDescription": "Tem a certeza de que deseja repor o formulário? Todas as alterações não guardadas serão perdidas.",
+    "deleteItem": "Eliminar Item de Inventário",
+    "deleteItemDescription": "Tem a certeza de que deseja eliminar este item de inventário? Esta acção não pode ser desfeita.",
+    "delete": "Eliminar",
+    "downloadRecords": "Descarregar Registos de Inventário",
+    "downloadDescription": "Seleccione um intervalo de datas para descarregar os registos de inventário como ficheiro Excel.",
+    "from": "De:",
+    "to": "Para:",
+    "downloadExcel": "Descarregar Excel"
+  },
+  "pagination": {
+    "showing": "Mostrando",
+    "of": "de",
+    "items": "itens",
+    "page": "Página",
+    "prev": "Anterior",
+    "next": "Próximo"
+  },
+  "receipt": {
+    "viewReceipt": "Ver Recibo",
+    "uploadNew": "Carregar novo para substituir",
+    "pdf": "PDF"
+  },
+  "fileUpload": {
+    "chooseFile": "Escolher Ficheiro",
+    "noFileChosen": "Nenhum ficheiro escolhido"
+  }
+}

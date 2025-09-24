@@ -1,0 +1,124 @@
+{
+  "title": "Inventory Management",
+  "subtitle": "Purchase and Inventory Management",
+  "loading": {
+    "title": "Loading Inventory...",
+    "subtitle": "Please wait while we fetch your data",
+    "loadingInventory": "Loading inventory..."
+  },
+  "addPurchase": "Add Purchase",
+  "editPurchase": "Edit Inventory Item",
+  "addPurchaseTitle": "Add Purchase",
+  "editItemTitle": "Edit Inventory Item",
+  "addPurchaseDescription": "Add a new purchased item with receipt.",
+  "editItemDescription": "Update the inventory item details below.",
+  "buttons": {
+    "cancel": "Cancel",
+    "reset": "Reset",
+    "addItem": "Add Item",
+    "update": "Update",
+    "download": "Download"
+  },
+  "fields": {
+    "date": "Date",
+    "itemName": "Item Name",
+    "description": "Description",
+    "quantity": "Quantity (UN)",
+    "amountUnit": "Amount Unit (Kz)",
+    "totalCost": "Total Cost (Kz)",
+    "receipt": "Receipt",
+    "actions": "Actions"
+  },
+  "placeholders": {
+    "selectDate": "Select a date",
+    "selectItem": "Select an item or enter custom name",
+    "enterCustomName": "Enter custom item name...",
+    "enterQuantity": "Enter quantity",
+    "pricePerUnit": "Price per unit",
+    "enterDescription": "Enter item description",
+    "chooseFile": "Choose file",
+    "searchParts": "Search parts..."
+  },
+  "summary": {
+    "currentMonthCost": "Current Month Cost",
+    "totalItems": "Total Items",
+    "thisMonthItems": "This Month Items",
+    "totalValue": "Total Value",
+    "totalExpenses": "Total expenses for",
+    "lifetimeRecords": "Lifetime inventory records",
+    "itemsPurchased": "items purchased this month",
+    "totalInventoryValue": "Total inventory value"
+  },
+  "table": {
+    "date": "Date",
+    "itemName": "Item Name", 
+    "description": "Description",
+    "quantity": "Quantity (UN)",
+    "amountUnit": "Amount Unit",
+    "totalCost": "Total Cost",
+    "actions": "Actions",
+    "total": "Total",
+    "noItemsFound": "No inventory items found"
+  },
+  "parts": {
+    "noPartsFound": "No parts found matching",
+    "searchPlaceholder": "Search parts..."
+  },
+  "search": {
+    "searchItems": "Search items...",
+    "pickDate": "Pick a date",
+    "download": "Download"
+  },
+  "validation": {
+    "requiredFields": "Required fields",
+    "allFieldsRequired": "Please fill all required fields and upload a receipt.",
+    "invalidFileType": "Invalid File Type",
+    "selectImageOrPdf": "Please select an image file (JPG, PNG, etc.) or PDF for the receipt.",
+    "fileTooLarge": "File Too Large",
+    "selectSmallerFile": "Please select an image smaller than 10MB."
+  },
+  "messages": {
+    "success": "Success",
+    "error": "Error",
+    "itemCreated": "Inventory item created successfully",
+    "itemUpdated": "Inventory item updated successfully",
+    "itemDeleted": "Inventory item deleted successfully",
+    "errorCreating": "Failed to save inventory item. Please try again.",
+    "errorUpdating": "Failed to update inventory item. Please try again.",
+    "errorDeleting": "Failed to delete inventory item. Please try again.",
+    "errorLoading": "Failed to load inventory data. Please try refreshing the page.",
+    "databaseSetupRequired": "Database Setup Required",
+    "inventoryTableNotFound": "Inventory table not found. Please run the database migrations first.",
+    "downloadStarted": "Download Started",
+    "downloadingRecords": "Downloading {{count}} records..."
+  },
+  "dialogs": {
+    "resetForm": "Reset Form",
+    "resetFormDescription": "Are you sure you want to reset the form? All unsaved changes will be lost.",
+    "deleteItem": "Delete Inventory Item",
+    "deleteItemDescription": "Are you sure you want to delete this inventory item? This action cannot be undone.",
+    "delete": "Delete",
+    "downloadRecords": "Download Inventory Records",
+    "downloadDescription": "Select a date range to download inventory records as Excel file.",
+    "from": "From:",
+    "to": "To:",
+    "downloadExcel": "Download Excel"
+  },
+  "pagination": {
+    "showing": "Showing",
+    "of": "of",
+    "items": "items",
+    "page": "Page",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "receipt": {
+    "viewReceipt": "View Receipt",
+    "uploadNew": "Upload new to replace",
+    "pdf": "PDF"
+  },
+  "fileUpload": {
+    "chooseFile": "Choose File",
+    "noFileChosen": "No file chosen"
+  }
+}
