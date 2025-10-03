@@ -655,12 +655,32 @@ export default function InventoryManagement() {
                     <SelectValue placeholder={t("placeholders.selectItem")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <div className="p-2 border-b">
+                    <div className="p-2 border-b" onClick={(e) => e.stopPropagation()}>
                       <Input
                         placeholder={t("parts.searchPlaceholder")}
                         value={partsSearchTerm}
-                        onChange={(e) => setPartsSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          setPartsSearchTerm(e.target.value);
+                        }}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                          // Prevent Enter from closing the dropdown
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        onFocus={(e) => {
+                          e.stopPropagation();
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                        }}
                         className="h-8"
+                        autoFocus={false}
                       />
                     </div>
                     {filteredParts.map((part) => (
