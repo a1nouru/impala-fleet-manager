@@ -42,6 +42,7 @@ import { maintenanceService } from "@/services/maintenanceService"
 import { vehicleService } from "@/services/vehicleService"
 import { technicianService } from "@/services/technicianService"
 import { partService } from "@/services/partService"
+import { inventoryService } from "@/services/inventoryService"
 import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/context/AuthContext"
@@ -237,6 +238,24 @@ function MaintenanceContent() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [busParts, setBusParts] = useState<PartCategory[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [partsSearchTerm, setPartsSearchTerm] = useState('');
+  
+  // Filter inventory items based on search term
+  const filteredInventoryItems = inventoryItems.filter(item =>
+    item.item_name?.toLowerCase().includes(partsSearchTerm.toLowerCase()) ||
+    item.description?.toLowerCase().includes(partsSearchTerm.toLowerCase())
+  );
+
+  // Group inventory items by item name for better organization
+  const groupedInventoryItems: Record<string, any[]> = filteredInventoryItems.reduce((acc: Record<string, any[]>, item: any) => {
+    const key = item.item_name || 'Unknown Item';
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(item);
+    return acc;
+  }, {});
   
   // UI state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -318,12 +337,14 @@ function MaintenanceContent() {
           maintenanceData, 
           vehicleData, 
           technicianData, 
-          partData
+          partData,
+          inventoryData
         ] = await Promise.all([
           maintenanceService.getMaintenanceRecords(),
           vehicleService.getVehicles(),
           technicianService.getTechnicians(),
-          partService.getPartsByCategory()
+          partService.getPartsByCategory(),
+          inventoryService.getInventoryItems()
         ]);
         
         if (!isMounted) return;
@@ -332,6 +353,7 @@ function MaintenanceContent() {
         setRecords(maintenanceData || []);
         setVehicles(vehicleData || []);
         setTechnicians(technicianData || []);
+        setInventoryItems(inventoryData || []);
         
         // Transform the parts data
         const formattedParts = partData.map(category => ({
@@ -983,90 +1005,87 @@ function MaintenanceContent() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm">{t("form.parts")}</Label>
+                  <Label className="text-sm">Inventory Items Available</Label>
                   <span className="text-sm text-muted-foreground">{selectedParts.length} {t("form.selected")}</span>
                 </div>
+                {/* Search input for inventory items */}
+                <div className="relative mb-2">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search inventory items..."
+                    value={partsSearchTerm}
+                    onChange={(e) => setPartsSearchTerm(e.target.value)}
+                    className="pl-8 h-9"
+                  />
+                </div>
+
                 <ScrollArea className="h-48 sm:h-64 border rounded-md p-4">
                   {isLoading.parts ? (
                     <div className="flex justify-center items-center h-full">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      <span className="ml-2 text-sm">{t("form.loadingParts")}</span>
+                      <span className="ml-2 text-sm">Loading inventory items...</span>
+                    </div>
+                  ) : Object.keys(groupedInventoryItems).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                      <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {partsSearchTerm ? 'No inventory items found matching your search' : 'No inventory items available'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Please add items to inventory first
+                      </p>
                     </div>
                   ) : (
-                    <Accordion type="multiple" className="w-full">
-                      {busParts.map((category) => (
-                        <AccordionItem key={category.category} value={category.category}>
-                          <AccordionTrigger className="px-2 text-sm">{category.category}</AccordionTrigger>
-                          <AccordionContent>
-                            <div className="grid grid-cols-1 gap-2">
-                              {category.items.map((part) => (
-                                <div key={part.id} className="flex items-center space-x-2">
-                                  <Checkbox 
-                                    id={part.id}
-                                    checked={selectedParts.includes(part.name)}
-                                    onCheckedChange={() => handlePartToggle(part.id, part.name)}
-                                  />
-                                  <label 
-                                    htmlFor={part.id}
-                                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                  >
-                                    {part.name}
-                                  </label>
-                                </div>
-                              ))}
-                              
-                              {/* Add "Other" option */}
-                              <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id={`${category.category.toLowerCase()}-other`} 
-                                  checked={customParts.find(item => 
-                                    item.category === category.category && item.showInput
-                                  )?.showInput || false}
-                                  onCheckedChange={() => handlePartToggle(
-                                    `${category.category.toLowerCase()}-other`, 
-                                    t("form.other")
-                                  )}
-                                />
+                    <div className="space-y-3">
+                      {Object.entries(groupedInventoryItems).map(([itemName, items]) => {
+                        const totalQuantity = items.reduce((sum: number, item: any) => sum + parseFloat(item.quantity || 0), 0);
+                        const isSelected = selectedParts.includes(itemName);
+                        
+                        return (
+                          <div key={itemName} className="border rounded-lg p-3 space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={itemName}
+                                checked={isSelected}
+                                onCheckedChange={() => handlePartToggle(itemName, itemName)}
+                              />
+                              <div className="flex-1">
                                 <label 
-                                  htmlFor={`${category.category.toLowerCase()}-other`}
-                                  className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                  htmlFor={itemName}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                 >
-                                  {t("form.other")}
+                                  {itemName}
                                 </label>
-                              </div>
-                              
-                              {/* Custom part input */}
-                              {customParts.find(item => 
-                                item.category === category.category && item.showInput
-                              ) && (
-                                <div className="mt-2 pl-6">
-                                  <div className="flex items-center space-x-2">
-                                    <Input 
-                                      placeholder={t("form.customPart")}
-                                      className="h-8 text-sm"
-                                      value={customParts.find(item => item.category === category.category)?.value || ''}
-                                      onChange={(e) => handleCustomPartChange(category.category, e.target.value)}
-                                    />
-                                    <Button 
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-8 px-2"
-                                      onClick={() => handleAddCustomPart(category.category)}
-                                      disabled={!customParts.find(item => 
-                                        item.category === category.category
-                                      )?.value.trim()}
-                                    >
-                                      <PlusIcon className="h-4 w-4" />
-                                    </Button>
-                                  </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs text-green-600 font-medium">
+                                    ✓ {totalQuantity} available
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    • {items.length} batch{items.length !== 1 ? 'es' : ''}
+                                  </span>
                                 </div>
-                              )}
+                              </div>
                             </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
+                            
+                            {/* Show item details when selected */}
+                            {isSelected && (
+                              <div className="ml-6 pl-2 border-l-2 border-blue-200 space-y-1">
+                                {items.slice(0, 3).map((item: any, index: number) => (
+                                  <div key={item.id} className="text-xs text-muted-foreground">
+                                    • Qty: {item.quantity} | {item.description?.substring(0, 50)}{item.description?.length > 50 ? '...' : ''}
+                                  </div>
+                                ))}
+                                {items.length > 3 && (
+                                  <div className="text-xs text-muted-foreground">
+                                    ... and {items.length - 3} more batch{items.length - 3 !== 1 ? 'es' : ''}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </ScrollArea>
               </div>
