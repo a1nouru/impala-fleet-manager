@@ -260,6 +260,7 @@ function MaintenanceContent() {
   // UI state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedParts, setSelectedParts] = useState<string[]>([]);
+  const [selectedPartsQuantities, setSelectedPartsQuantities] = useState<Record<string, number>>({});
   const [customParts, setCustomParts] = useState<CustomPartInput[]>([]);
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -571,11 +572,48 @@ function MaintenanceContent() {
     // Regular toggle for normal parts
     setSelectedParts(prev => {
       if (prev.includes(partName)) {
+        // Remove from selected parts and clear quantity
+        setSelectedPartsQuantities(prevQty => {
+          const newQty = { ...prevQty };
+          delete newQty[partName];
+          return newQty;
+        });
         return prev.filter(name => name !== partName);
       } else {
+        // Add to selected parts with default quantity of 1
+        setSelectedPartsQuantities(prevQty => ({
+          ...prevQty,
+          [partName]: 1
+        }));
         return [...prev, partName];
       }
     });
+  };
+
+  const handleQuantityChange = (itemName: string, quantity: number, maxQuantity: number) => {
+    // Ensure quantity is within valid range
+    const validQuantity = Math.max(0, Math.min(quantity, maxQuantity));
+    
+    if (validQuantity === 0) {
+      // Remove item if quantity is 0
+      setSelectedParts(prev => prev.filter(name => name !== itemName));
+      setSelectedPartsQuantities(prev => {
+        const newQty = { ...prev };
+        delete newQty[itemName];
+        return newQty;
+      });
+    } else {
+      // Update quantity
+      setSelectedPartsQuantities(prev => ({
+        ...prev,
+        [itemName]: validQuantity
+      }));
+      
+      // Add to selected parts if not already selected
+      if (!selectedParts.includes(itemName)) {
+        setSelectedParts(prev => [...prev, itemName]);
+      }
+    }
   };
 
   // Handle custom part input change
@@ -702,8 +740,16 @@ function MaintenanceContent() {
       return;
     }
 
-    // Combine standard and custom parts
-    const allParts = [...selectedParts];
+    // Combine standard and custom parts with quantities
+    const allParts: string[] = [];
+    
+    // Add selected inventory items with quantities
+    selectedParts.forEach(partName => {
+      const quantity = selectedPartsQuantities[partName] || 1;
+      allParts.push(`${partName} (Qty: ${quantity})`);
+    });
+    
+    // Add custom parts
     customParts.forEach(part => {
       if (part.value.trim() !== "") {
         allParts.push(`${part.category}: ${part.value.trim()}`);
@@ -772,6 +818,7 @@ function MaintenanceContent() {
       kilometers: "",
     });
     setSelectedParts([]);
+    setSelectedPartsQuantities({});
     setCustomParts(customParts.map(item => ({ ...item, value: '', showInput: false })));
     setFormErrors({});
     setIsEditMode(false);
@@ -1006,7 +1053,14 @@ function MaintenanceContent() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm">Inventory Items Available</Label>
-                  <span className="text-sm text-muted-foreground">{selectedParts.length} {t("form.selected")}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedParts.length} item{selectedParts.length !== 1 ? 's' : ''} selected
+                    {selectedParts.length > 0 && (
+                      <span className="ml-1">
+                        ({Object.values(selectedPartsQuantities).reduce((sum, qty) => sum + qty, 0)} total units)
+                      </span>
+                    )}
+                  </span>
                 </div>
                 {/* Search input for inventory items */}
                 <div className="relative mb-2">
@@ -1039,40 +1093,79 @@ function MaintenanceContent() {
                     <div className="space-y-3">
                       {Object.entries(groupedInventoryItems).map(([itemName, items]) => {
                         const totalQuantity = items.reduce((sum: number, item: any) => sum + parseFloat(item.quantity || 0), 0);
+                        const selectedQuantity = selectedPartsQuantities[itemName] || 0;
                         const isSelected = selectedParts.includes(itemName);
+                        const remainingQuantity = totalQuantity - selectedQuantity;
                         
                         return (
-                          <div key={itemName} className="border rounded-lg p-3 space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={itemName}
-                                checked={isSelected}
-                                onCheckedChange={() => handlePartToggle(itemName, itemName)}
-                              />
+                          <div key={itemName} className="border rounded-lg p-3 space-y-3">
+                            <div className="flex items-start space-x-3">
                               <div className="flex-1">
-                                <label 
-                                  htmlFor={itemName}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                >
-                                  {itemName}
-                                </label>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs text-green-600 font-medium">
-                                    ✓ {totalQuantity} available
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    • {items.length} batch{items.length !== 1 ? 'es' : ''}
-                                  </span>
+                                <div className="flex items-center justify-between">
+                                  <label className="text-sm font-medium leading-none cursor-pointer">
+                                    {itemName}
+                                  </label>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-green-600 font-medium">
+                                      ✓ {totalQuantity} available
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      • {items.length} batch{items.length !== 1 ? 'es' : ''}
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                {/* Quantity Selection */}
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Label className="text-xs text-muted-foreground">Quantity needed:</Label>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => handleQuantityChange(itemName, selectedQuantity - 1, totalQuantity)}
+                                      disabled={selectedQuantity <= 0}
+                                    >
+                                      -
+                                    </Button>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max={totalQuantity}
+                                      value={selectedQuantity}
+                                      onChange={(e) => handleQuantityChange(itemName, parseInt(e.target.value) || 0, totalQuantity)}
+                                      className="h-6 w-16 text-center text-xs"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => handleQuantityChange(itemName, selectedQuantity + 1, totalQuantity)}
+                                      disabled={selectedQuantity >= totalQuantity}
+                                    >
+                                      +
+                                    </Button>
+                                  </div>
+                                  {selectedQuantity > 0 && (
+                                    <span className="text-xs text-blue-600 font-medium">
+                                      ({remainingQuantity} remaining)
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
                             
-                            {/* Show item details when selected */}
-                            {isSelected && (
-                              <div className="ml-6 pl-2 border-l-2 border-blue-200 space-y-1">
+                            {/* Show item details when quantity is selected */}
+                            {selectedQuantity > 0 && (
+                              <div className="pl-2 border-l-2 border-blue-200 space-y-1">
+                                <div className="text-xs font-medium text-blue-700 mb-1">
+                                  Selected: {selectedQuantity} unit{selectedQuantity !== 1 ? 's' : ''}
+                                </div>
                                 {items.slice(0, 3).map((item: any, index: number) => (
                                   <div key={item.id} className="text-xs text-muted-foreground">
-                                    • Qty: {item.quantity} | {item.description?.substring(0, 50)}{item.description?.length > 50 ? '...' : ''}
+                                    • Batch {index + 1}: Qty {item.quantity} | {item.description?.substring(0, 50)}{item.description?.length > 50 ? '...' : ''}
                                   </div>
                                 ))}
                                 {items.length > 3 && (
