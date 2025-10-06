@@ -157,5 +157,34 @@
     "lifetimeRecords": "Registos de manutenção vitalícios",
     "recordsThisMonth": "registos este mês",
     "pendingActivities": "Atividades de manutenção pendentes"
+  },
+  "inventory": {
+    "itemsAvailable": "Itens de Inventário Disponíveis",
+    "itemSelected": "item selecionado",
+    "itemsSelected": "itens selecionados",
+    "totalUnits": "unidades totais",
+    "searchPlaceholder": "Pesquisar itens de inventário...",
+    "noItemsAvailable": "Nenhum item de inventário disponível",
+    "noItemsFound": "Nenhum item de inventário encontrado correspondente à sua pesquisa",
+    "addItemsFirst": "Por favor, adicione itens ao inventário primeiro",
+    "quantityNeeded": "Quantidade necessária:",
+    "available": "disponível",
+    "batch": "lote",
+    "batches": "lotes",
+    "remaining": "restante",
+    "selected": "Selecionado:",
+    "unit": "unidade",
+    "units": "unidades",
+    "qty": "Qtd"
+  },
+  "cost": {
+    "totalCost": "Custo Total (Calculado do Inventário)",
+    "autoCalculated": "Calculado automaticamente dos itens selecionados",
+    "costBreakdown": "Discriminação de Custos:",
+    "selectItemsToCalculate": "Selecione itens de inventário para calcular o custo de manutenção"
+  },
+  "validation": {
+    "selectInventoryItems": "Por favor, selecione pelo menos um item de inventário para a manutenção.",
+    "validationError": "Erro de Validação"
   }
 } 

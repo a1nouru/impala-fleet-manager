@@ -737,8 +737,8 @@ function MaintenanceContent() {
     // Additional validation: ensure at least one inventory item is selected
     if (selectedParts.length === 0) {
       toast({
-        title: "Validation Error",
-        description: "Please select at least one inventory item for maintenance.",
+        title: t("validation.validationError"),
+        description: t("validation.selectInventoryItems"),
         variant: "destructive",
       });
       return false;
@@ -1051,7 +1051,7 @@ function MaintenanceContent() {
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center text-sm">
-                    Total Cost (Calculated from Inventory)
+                    {t("cost.totalCost")}
                   </Label>
                   <div className="flex items-center gap-2">
                     <Input
@@ -1061,14 +1061,14 @@ function MaintenanceContent() {
                       className="bg-gray-50 cursor-not-allowed"
                     />
                     <div className="text-xs text-muted-foreground">
-                      Auto-calculated from selected items
+                      {t("cost.autoCalculated")}
                     </div>
                   </div>
                   
                   {/* Cost breakdown */}
                   {selectedParts.length > 0 && (
                     <div className="mt-2 p-2 bg-blue-50 rounded border">
-                      <div className="text-xs font-medium text-blue-800 mb-1">Cost Breakdown:</div>
+                      <div className="text-xs font-medium text-blue-800 mb-1">{t("cost.costBreakdown")}</div>
                       {selectedParts.map(partName => {
                         const quantity = selectedPartsQuantities[partName] || 0;
                         const itemsForPart = groupedInventoryItems[partName] || [];
@@ -1088,7 +1088,7 @@ function MaintenanceContent() {
                         
                         return (
                           <div key={partName} className="text-xs text-blue-700 flex justify-between">
-                            <span>{partName} (Qty: {quantity})</span>
+                            <span>{partName} ({t("inventory.qty")}: {quantity})</span>
                             <span>{itemTotalCost.toLocaleString()} Kz</span>
                           </div>
                         );
@@ -1098,7 +1098,7 @@ function MaintenanceContent() {
                   
                   {selectedParts.length === 0 && (
                     <p className="text-xs text-amber-600">
-                      Select inventory items to calculate maintenance cost
+                      {t("cost.selectItemsToCalculate")}
                     </p>
                   )}
                 </div>
@@ -1123,12 +1123,12 @@ function MaintenanceContent() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm">Inventory Items Available</Label>
+                  <Label className="text-sm">{t("inventory.itemsAvailable")}</Label>
                   <span className="text-sm text-muted-foreground">
-                    {selectedParts.length} item{selectedParts.length !== 1 ? 's' : ''} selected
+                    {selectedParts.length} {selectedParts.length === 1 ? t("inventory.itemSelected") : t("inventory.itemsSelected")}
                     {selectedParts.length > 0 && (
                       <span className="ml-1">
-                        ({Object.values(selectedPartsQuantities).reduce((sum, qty) => sum + qty, 0)} total units)
+                        ({Object.values(selectedPartsQuantities).reduce((sum, qty) => sum + qty, 0)} {t("inventory.totalUnits")})
                       </span>
                     )}
                   </span>
@@ -1137,7 +1137,7 @@ function MaintenanceContent() {
                 <div className="relative mb-2">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search inventory items..."
+                    placeholder={t("inventory.searchPlaceholder")}
                     value={partsSearchTerm}
                     onChange={(e) => setPartsSearchTerm(e.target.value)}
                     className="pl-8 h-9"
@@ -1148,16 +1148,16 @@ function MaintenanceContent() {
                   {isLoading.parts ? (
                     <div className="flex justify-center items-center h-full">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      <span className="ml-2 text-sm">Loading inventory items...</span>
+                      <span className="ml-2 text-sm">{t("form.loadingParts")}</span>
                     </div>
                   ) : Object.keys(groupedInventoryItems).length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center">
                       <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">
-                        {partsSearchTerm ? 'No inventory items found matching your search' : 'No inventory items available'}
+                        {partsSearchTerm ? t("inventory.noItemsFound") : t("inventory.noItemsAvailable")}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Please add items to inventory first
+                        {t("inventory.addItemsFirst")}
                       </p>
                     </div>
                   ) : (
@@ -1178,17 +1178,17 @@ function MaintenanceContent() {
                                   </label>
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs text-green-600 font-medium">
-                                      ✓ {totalQuantity} available
+                                      ✓ {totalQuantity} {t("inventory.available")}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
-                                      • {items.length} batch{items.length !== 1 ? 'es' : ''}
+                                      • {items.length} {items.length === 1 ? t("inventory.batch") : t("inventory.batches")}
                                     </span>
                                   </div>
                                 </div>
                                 
                                 {/* Quantity Selection */}
                                 <div className="flex items-center gap-2 mt-2">
-                                  <Label className="text-xs text-muted-foreground">Quantity needed:</Label>
+                                  <Label className="text-xs text-muted-foreground">{t("inventory.quantityNeeded")}</Label>
                                   <div className="flex items-center gap-1">
                                     <Button
                                       type="button"
@@ -1221,7 +1221,7 @@ function MaintenanceContent() {
                                   </div>
                                   {selectedQuantity > 0 && (
                                     <span className="text-xs text-blue-600 font-medium">
-                                      ({remainingQuantity} remaining)
+                                      ({remainingQuantity} {t("inventory.remaining")})
                                     </span>
                                   )}
                                 </div>
@@ -1232,16 +1232,16 @@ function MaintenanceContent() {
                             {selectedQuantity > 0 && (
                               <div className="pl-2 border-l-2 border-blue-200 space-y-1">
                                 <div className="text-xs font-medium text-blue-700 mb-1">
-                                  Selected: {selectedQuantity} unit{selectedQuantity !== 1 ? 's' : ''}
+                                  {t("inventory.selected")} {selectedQuantity} {selectedQuantity === 1 ? t("inventory.unit") : t("inventory.units")}
                                 </div>
                                 {items.slice(0, 3).map((item: any, index: number) => (
                                   <div key={item.id} className="text-xs text-muted-foreground">
-                                    • Batch {index + 1}: Qty {item.quantity} | {item.description?.substring(0, 50)}{item.description?.length > 50 ? '...' : ''}
+                                    • {t("inventory.batch")} {index + 1}: {t("inventory.qty")} {item.quantity} | {item.description?.substring(0, 50)}{item.description?.length > 50 ? '...' : ''}
                                   </div>
                                 ))}
                                 {items.length > 3 && (
                                   <div className="text-xs text-muted-foreground">
-                                    ... and {items.length - 3} more batch{items.length - 3 !== 1 ? 'es' : ''}
+                                    ... e mais {items.length - 3} {items.length - 3 === 1 ? t("inventory.batch") : t("inventory.batches")}
                                   </div>
                                 )}
                               </div>
