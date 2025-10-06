@@ -616,6 +616,32 @@ function MaintenanceContent() {
     }
   };
 
+  // Calculate total cost from selected inventory items
+  const calculateMaintenanceCost = () => {
+    let totalCost = 0;
+    
+    selectedParts.forEach(partName => {
+      const quantity = selectedPartsQuantities[partName] || 0;
+      const itemsForPart = groupedInventoryItems[partName] || [];
+      
+      // Calculate weighted average cost per unit for this part
+      let totalQuantityAvailable = 0;
+      let totalValue = 0;
+      
+      itemsForPart.forEach((item: any) => {
+        const itemQty = parseFloat(item.quantity || 0);
+        const itemUnitCost = parseFloat(item.amount_unit || 0);
+        totalQuantityAvailable += itemQty;
+        totalValue += itemQty * itemUnitCost;
+      });
+      
+      const averageCostPerUnit = totalQuantityAvailable > 0 ? totalValue / totalQuantityAvailable : 0;
+      totalCost += quantity * averageCostPerUnit;
+    });
+    
+    return totalCost;
+  };
+
   // Handle custom part input change
   const handleCustomPartChange = (categoryName: string, value: string) => {
     setCustomParts(prev => prev.map(item => 
@@ -698,7 +724,6 @@ function MaintenanceContent() {
       'date', 
       'status', 
       'technician', 
-      'cost', 
       'description',
       'kilometers'
     ];
@@ -708,6 +733,16 @@ function MaintenanceContent() {
         errors[field] = true;
       }
     });
+    
+    // Additional validation: ensure at least one inventory item is selected
+    if (selectedParts.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one inventory item for maintenance.",
+        variant: "destructive",
+      });
+      return false;
+    }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -761,7 +796,7 @@ function MaintenanceContent() {
       date: newRecord.date,
       status: newRecord.status,
       technician_id: technician.id,
-      cost: parseFormattedNumber(newRecord.cost),
+      cost: calculateMaintenanceCost(), // Use calculated cost from inventory
       description: newRecord.description,
       kilometers: parseFormattedNumber(newRecord.kilometers),
     };
@@ -813,7 +848,7 @@ function MaintenanceContent() {
       date: "",
       status: "Scheduled",
       technician: "",
-      cost: "",
+      cost: "", // Keep for compatibility but not used
       description: "",
       kilometers: "",
     });
@@ -1015,20 +1050,56 @@ function MaintenanceContent() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cost" className="flex items-center text-sm">
-                    {t("form.cost")} <span className="text-red-500 ml-1">*</span>
+                  <Label className="flex items-center text-sm">
+                    Total Cost (Calculated from Inventory)
                   </Label>
-                  <Input
-                    id="cost"
-                    name="cost"
-                    type="text"
-                    placeholder={t("form.costPlaceholder")}
-                    value={newRecord.cost}
-                    onChange={handleInputChange}
-                    className={formErrors.cost ? "border-red-500" : ""}
-                  />
-                  {formErrors.cost && (
-                    <p className="text-xs text-red-500">{t("form.costRequired")}</p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      value={`${calculateMaintenanceCost().toLocaleString()} Kz`}
+                      readOnly
+                      className="bg-gray-50 cursor-not-allowed"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      Auto-calculated from selected items
+                    </div>
+                  </div>
+                  
+                  {/* Cost breakdown */}
+                  {selectedParts.length > 0 && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded border">
+                      <div className="text-xs font-medium text-blue-800 mb-1">Cost Breakdown:</div>
+                      {selectedParts.map(partName => {
+                        const quantity = selectedPartsQuantities[partName] || 0;
+                        const itemsForPart = groupedInventoryItems[partName] || [];
+                        
+                        let totalQuantityAvailable = 0;
+                        let totalValue = 0;
+                        
+                        itemsForPart.forEach((item: any) => {
+                          const itemQty = parseFloat(item.quantity || 0);
+                          const itemUnitCost = parseFloat(item.amount_unit || 0);
+                          totalQuantityAvailable += itemQty;
+                          totalValue += itemQty * itemUnitCost;
+                        });
+                        
+                        const averageCostPerUnit = totalQuantityAvailable > 0 ? totalValue / totalQuantityAvailable : 0;
+                        const itemTotalCost = quantity * averageCostPerUnit;
+                        
+                        return (
+                          <div key={partName} className="text-xs text-blue-700 flex justify-between">
+                            <span>{partName} (Qty: {quantity})</span>
+                            <span>{itemTotalCost.toLocaleString()} Kz</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {selectedParts.length === 0 && (
+                    <p className="text-xs text-amber-600">
+                      Select inventory items to calculate maintenance cost
+                    </p>
                   )}
                 </div>
               </div>
