@@ -84,15 +84,33 @@ const nextConfig = {
         varName => !process.env[varName] || process.env[varName].trim() === ''
       );
       
+      // Check if we're in a deployment platform (Railway, Vercel, etc.)
+      const isRailwayDeployment = process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_PROJECT_ID;
+      const isVercelDeployment = process.env.VERCEL === '1';
+      const isDeployment = isRailwayDeployment || isVercelDeployment;
+      
       if (missingVars.length > 0) {
-        console.error('\n❌ BUILD ERROR: Missing required environment variables:');
-        missingVars.forEach(varName => {
-          console.error(`  - ${varName}`);
-        });
-        console.error('\nPlease set these variables in your .env file or in your deployment environment.\n');
-        
-        // Exit the build process with an error
-        process.exit(1);
+        if (isDeployment) {
+          // In deployment platforms, warn but allow build to continue
+          // The platform will inject variables at runtime
+          const platform = isRailwayDeployment ? 'Railway' : isVercelDeployment ? 'Vercel' : 'deployment platform';
+          console.warn('\n⚠️ WARNING: Missing environment variables during build:');
+          missingVars.forEach(varName => {
+            console.warn(`  - ${varName}`);
+          });
+          console.warn(`\nℹ️ If you're deploying to ${platform}, make sure to set these in your project settings.`);
+          console.warn('Build will continue, but the app may not work correctly without these variables.\n');
+        } else {
+          // In local builds, fail with error
+          console.error('\n❌ BUILD ERROR: Missing required environment variables:');
+          missingVars.forEach(varName => {
+            console.error(`  - ${varName}`);
+          });
+          console.error('\nPlease set these variables in your .env file or in your deployment environment.\n');
+          
+          // Exit the build process with an error
+          process.exit(1);
+        }
       } else {
         console.log('✅ All required environment variables are set!\n');
       }
