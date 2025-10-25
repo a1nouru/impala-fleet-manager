@@ -1,15 +1,15 @@
-# Royal Express Fleet Manager
+# Impala Express Fleet Manager
 ## Product Requirements Document (PRD)
 
 **Version:** 1.0  
 **Date:** September 16, 2025  
-**Product:** Royal Express Fleet Manager - Comprehensive Fleet Operations & Financial Management System  
+**Product:** Impala Express Fleet Manager - Comprehensive Fleet Operations & Financial Management System  
 
 ---
 
 ## 1. Executive Summary
 
-Royal Express Fleet Manager is a comprehensive web-based management system designed for fleet transportation companies operating in Angola. The system provides end-to-end management of daily operations, financial tracking, human resources, maintenance scheduling, vehicle rentals, and automated notifications through WhatsApp integration.
+Impala Express Fleet Manager is a comprehensive web-based management system designed for fleet transportation companies operating in Angola. The system provides end-to-end management of daily operations, financial tracking, human resources, maintenance scheduling, vehicle rentals, and automated notifications through WhatsApp integration.
 
 ### Key Value Propositions
 - **Operational Efficiency**: Streamlined daily report generation and financial tracking
@@ -226,7 +226,7 @@ Small to medium-sized transportation companies in Angola operating passenger tra
 
 ## 6. Conclusion
 
-Royal Express Fleet Manager represents a comprehensive solution for modern fleet operations in Angola, combining operational efficiency with financial transparency. The system's modular architecture and robust feature set position it as a scalable solution for growing transportation businesses.
+Impala Express Fleet Manager represents a comprehensive solution for modern fleet operations in Angola, combining operational efficiency with financial transparency. The system's modular architecture and robust feature set position it as a scalable solution for growing transportation businesses.
 
 The integration of modern web technologies with local banking systems and communication channels makes it uniquely suited for the Angolan market while maintaining international standards for data security and financial compliance.
 

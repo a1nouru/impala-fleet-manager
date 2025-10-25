@@ -16,13 +16,13 @@ export function Header() {
         <Link href="/" className="flex items-center space-x-2">
           <Image 
             src="/logo.svg" 
-            alt="Royal Express" 
+            alt="Impala Express" 
             width={40} 
             height={40} 
             className="filter" 
             priority
           />
-          <span className="font-bold text-2xl text-white">Royal Express</span>
+          <span className="font-bold text-2xl text-white">Impala Express</span>
         </Link>
         
         <div className="hidden md:flex items-center">

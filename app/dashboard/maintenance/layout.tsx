@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Maintenance | Royal Express Fleet Manager",
+  title: "Maintenance | Impala Express Fleet Manager",
   description: "Manage vehicle maintenance records and schedules",
 }
 

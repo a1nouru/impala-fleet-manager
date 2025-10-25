@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Notifications | Royal Express Fleet Management",
+  title: "Notifications | Impala Express Fleet Management",
   description: "Manage WhatsApp group alerts and automated notifications for your fleet operations.",
 };
 

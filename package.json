@@ -13,7 +13,12 @@
     "clean": "node scripts/clean.js",
     "fresh": "node scripts/clean.js && npm run dev",
     "kill-dev": "node scripts/kill-dev.js",
-    "reset": "node scripts/kill-dev.js && node scripts/clean.js && npm run dev"
+    "reset": "node scripts/kill-dev.js && node scripts/clean.js && npm run dev",
+    "migrate:db": "./scripts/migrate-db-cli.sh",
+    "migrate:auto": "./scripts/migrate-auto.sh",
+    "migrate:import": "./scripts/import-backup.sh",
+    "migrate:storage": "npx dotenv -e .env.migration -- node scripts/migrate-supabase.js",
+    "migrate:help": "cat SUPABASE_MIGRATION_GUIDE.md"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

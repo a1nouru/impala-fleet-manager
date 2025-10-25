@@ -2,7 +2,7 @@
 
 ## 📋 **System Overview**
 
-The Royal Express Fleet Manager now includes a comprehensive notification system that allows you to create automated WhatsApp group alerts based on various triggers including amounts, dates, and scheduled reminders.
+The Impala Express Fleet Manager now includes a comprehensive notification system that allows you to create automated WhatsApp group alerts based on various triggers including amounts, dates, and scheduled reminders.
 
 ## 🎯 **Features Implemented**
 
@@ -98,7 +98,7 @@ Navigate to: `http://localhost:3000/dashboard/notifications`
 
 ### **Dynamic Variables**
 All templates support these variables:
-- `{{company_name}}` - Royal Express
+- `{{company_name}}` - Impala Express
 - `{{today_date}}` - Current date
 - `{{current_time}}` - Current time
 - `{{alert_name}}` - Name of the alert
@@ -155,7 +155,7 @@ GET /api/notifications/trigger
 ### **Message Format**
 Messages are sent as plain text with emoji support. Example:
 ```
-🏢 Royal Express Payroll Reminder
+🏢 Impala Express Payroll Reminder
 
 📅 Date: 2024-01-15
 💰 Monthly payroll processing is due.
@@ -263,5 +263,5 @@ For issues or questions about the notification system:
 
 ## 🎉 **Ready to Use!**
 
-The notification system is now fully integrated into your Royal Express Fleet Manager. Start by creating your first alert from the Notifications tab in the dashboard!
+The notification system is now fully integrated into your Impala Express Fleet Manager. Start by creating your first alert from the Notifications tab in the dashboard!
 

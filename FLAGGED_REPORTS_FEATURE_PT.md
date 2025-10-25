@@ -1,7 +1,7 @@
 # Funcionalidade de Relatórios Sinalizados
 
 ## Visão Geral
-O Royal Express Fleet Manager agora sinaliza automaticamente relatórios diários que requerem atenção da gestão e obriga os utilizadores a fornecer explicações para essas situações.
+O Impala Express Fleet Manager agora sinaliza automaticamente relatórios diários que requerem atenção da gestão e obriga os utilizadores a fornecer explicações para essas situações.
 
 ## Critérios de Sinalização
 Um relatório diário é automaticamente sinalizado se cumprir **qualquer** uma das seguintes condições:

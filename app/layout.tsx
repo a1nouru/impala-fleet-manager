@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Royal Express - Fleet Management System (Internal)",
+  title: "Impala Express - Fleet Management System (Internal)",
   description: "Internal tool for managing bus fleet, tracking maintenance, and monitoring spare parts inventory.",
   icons: {
     icon: [

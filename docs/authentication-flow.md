@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Royal Express Fleet Manager application uses a modern authentication system built on **Supabase Auth** with Next.js 14. The authentication flow is designed to handle user login, session management, and route protection for the fleet management dashboard.
+The Impala Express Fleet Manager application uses a modern authentication system built on **Supabase Auth** with Next.js 14. The authentication flow is designed to handle user login, session management, and route protection for the fleet management dashboard.
 
 ## Tech Stack
 
@@ -266,6 +266,6 @@ Handles OAuth redirects and magic link authentication:
 
 ## Conclusion
 
-The Royal Express Fleet Manager authentication system provides a robust, secure, and user-friendly authentication experience built on modern web technologies. The combination of Supabase Auth, Next.js middleware, and React Context API creates a comprehensive solution that handles both client-side and server-side authentication requirements effectively.
+The Impala Express Fleet Manager authentication system provides a robust, secure, and user-friendly authentication experience built on modern web technologies. The combination of Supabase Auth, Next.js middleware, and React Context API creates a comprehensive solution that handles both client-side and server-side authentication requirements effectively.
 
 The system is designed for internal use with admin-controlled user creation, providing secure access to the fleet management dashboard while maintaining good user experience and security practices.

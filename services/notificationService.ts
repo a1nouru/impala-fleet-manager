@@ -452,7 +452,7 @@ export const notificationService = {
       ]);
 
       return {
-        company_name: 'Royal Express',
+        company_name: 'Impala Express',
         today_date: today,
         current_time: now.toTimeString().split(' ')[0],
         total_revenue_today: financialData?.total_revenue || 0,
@@ -466,7 +466,7 @@ export const notificationService = {
     } catch (error) {
       console.error('Error fetching dynamic variable values:', error);
       return {
-        company_name: 'Royal Express',
+        company_name: 'Impala Express',
         today_date: new Date().toISOString().split('T')[0],
         current_time: new Date().toTimeString().split(' ')[0],
         total_revenue_today: 0,

@@ -1,6 +1,6 @@
 # Environment Setup
 
-This document outlines the environment variables required for the Royal Express Fleet Manager application.
+This document outlines the environment variables required for the Impala Express Fleet Manager application.
 
 ## Required Environment Variables
 

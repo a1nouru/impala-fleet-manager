@@ -14,7 +14,7 @@ export function AboutSection() {
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            About Royal Express
+            About Impala Express
           </motion.h2>
           
           <motion.p 
@@ -34,7 +34,7 @@ export function AboutSection() {
             transition={{ duration: 0.6, delay: 0.3 }}
             viewport={{ once: true }}
           >
-            At Royal Express, we are committed to providing reliable, safe, and comfortable transportation services while maintaining our fleet at peak performance. 
+            At Impala Express, we are committed to providing reliable, safe, and comfortable transportation services while maintaining our fleet at peak performance. 
             Our garage and spare parts inventory management system helps us track and optimize our maintenance operations, ensuring that our vehicles are always ready to serve our customers.
           </motion.p>
           

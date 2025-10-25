@@ -7,3 +7,7 @@ frontend/.next/
 
 # TypeScript build cache
 tsconfig.tsbuildinfo
+
+# Migration files
+migration-output/
+.env.migration

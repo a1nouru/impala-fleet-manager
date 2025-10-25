@@ -6,7 +6,7 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="font-bold text-xl mb-4">Royal Express</h3>
+            <h3 className="font-bold text-xl mb-4">Impala Express</h3>
             <p className="text-blue-200 mb-4">
               Fleet management and inventory tracking made easy.
             </p>
@@ -97,7 +97,7 @@ export function Footer() {
         
         <div className="border-t border-blue-800 mt-12 pt-6 flex flex-col md:flex-row justify-between items-center">
           <p className="text-blue-200">
-            &copy; {new Date().getFullYear()} Royal Express. All rights reserved.
+            &copy; {new Date().getFullYear()} Impala Express. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0">
             <select className="bg-blue-800 text-blue-200 py-1 px-2 rounded border border-blue-700">

@@ -1,7 +1,7 @@
 # Flagged Reports Feature
 
 ## Overview
-The Royal Express Fleet Manager now automatically flags daily reports that require management attention and forces users to provide explanations for these situations.
+The Impala Express Fleet Manager now automatically flags daily reports that require management attention and forces users to provide explanations for these situations.
 
 ## Flagging Criteria
 A daily report is automatically flagged if it meets **any** of the following conditions:

@@ -1,6 +1,6 @@
-# Royal Express Fleet Management System
+# Impala Express Fleet Management System
 
-A comprehensive web application for managing a fleet of 9 Kinglong buses for Royal Express, a public transportation business in Angola. The system helps track vehicle maintenance, manage spare parts inventory, and monitor repair costs.
+A comprehensive web application for managing a fleet of 9 Kinglong buses for Impala Express, a public transportation business in Angola. The system helps track vehicle maintenance, manage spare parts inventory, and monitor repair costs.
 
 ## Project Structure
 
@@ -78,4 +78,4 @@ royalexpress-fleet-manager/
 
 This project is proprietary and confidential. Unauthorized copying or distribution is prohibited.
 
-© 2024 Royal Express. All rights reserved. 
+© 2024 Impala Express. All rights reserved. 
