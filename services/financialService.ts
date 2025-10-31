@@ -1554,5 +1554,8 @@ export const COMMON_ROUTES = [
   'CAXITO - LUANDA',
   'LUANDA - CAXITO',
   'UIGE - LUANDA',
-  'LUANDA - UIGE'
+  'LUANDA - UIGE',
+  'BENGUELA - LUANDA',
+  'LUANDA - BENGUELA',
+  'URUBANO'
 ] as const; 

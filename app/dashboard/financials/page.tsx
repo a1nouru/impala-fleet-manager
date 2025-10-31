@@ -962,6 +962,9 @@ export default function AllDailyReportsPage() {
                     <SelectItem value="LUANDA - CAXITO">LUANDA - CAXITO</SelectItem>
                     <SelectItem value="UIGE - LUANDA">UIGE - LUANDA</SelectItem>
                     <SelectItem value="LUANDA - UIGE">LUANDA - UIGE</SelectItem>
+                    <SelectItem value="BENGUELA - LUANDA">BENGUELA - LUANDA</SelectItem>
+                    <SelectItem value="LUANDA - BENGUELA">LUANDA - BENGUELA</SelectItem>
+                    <SelectItem value="URUBANO">URUBANO</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

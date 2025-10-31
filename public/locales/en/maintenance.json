@@ -72,7 +72,13 @@
     "cancel": "Cancel",
     "reset": "Reset",
     "submit": "Submit",
-    "update": "Update"
+    "update": "Update",
+    "validationErrorTitle": "Validation Error",
+    "validationError": "Please fill in all required fields and select at least one inventory item.",
+    "createSuccessTitle": "Success",
+    "createSuccess": "Maintenance record created successfully",
+    "updateSuccessTitle": "Success",
+    "updateSuccess": "Maintenance record updated successfully"
   },
   "lifetimeCost": {
     "title": "Total Lifetime Maintenance Cost",
@@ -157,5 +163,34 @@
     "lifetimeRecords": "Lifetime maintenance records",
     "recordsThisMonth": "records this month",
     "pendingActivities": "pending maintenance activities"
+  },
+  "inventory": {
+    "itemsAvailable": "Inventory Items Available",
+    "itemSelected": "item selected",
+    "itemsSelected": "items selected",
+    "totalUnits": "total units",
+    "searchPlaceholder": "Search inventory items...",
+    "noItemsAvailable": "No inventory items available",
+    "noItemsFound": "No inventory items found matching your search",
+    "addItemsFirst": "Please add items to inventory first",
+    "quantityNeeded": "Quantity needed:",
+    "available": "available",
+    "batch": "batch",
+    "batches": "batches",
+    "remaining": "remaining",
+    "selected": "Selected:",
+    "unit": "unit",
+    "units": "units",
+    "qty": "Qty"
+  },
+  "cost": {
+    "totalCost": "Total Cost (Calculated from Inventory)",
+    "autoCalculated": "Auto-calculated from selected items",
+    "costBreakdown": "Cost Breakdown:",
+    "selectItemsToCalculate": "Select inventory items to calculate maintenance cost"
+  },
+  "validation": {
+    "selectInventoryItems": "Please select at least one inventory item for maintenance.",
+    "validationError": "Validation Error"
   }
 } 

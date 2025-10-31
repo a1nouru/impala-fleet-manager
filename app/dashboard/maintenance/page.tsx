@@ -519,12 +519,15 @@ function MaintenanceContent() {
       'date', 
       'status', 
       'technician', 
-      'cost', 
       'description',
       'kilometers'
     ];
     
-    return requiredFields.every(field => !!newRecord[field as keyof typeof newRecord]);
+    const allFieldsFilled = requiredFields.every(field => !!newRecord[field as keyof typeof newRecord]);
+    const hasInventoryItems = selectedParts.length > 0 && 
+      Object.values(selectedPartsQuantities).some(qty => qty > 0);
+    
+    return allFieldsFilled && hasInventoryItems;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -932,7 +935,7 @@ function MaintenanceContent() {
               <span className="sm:hidden">{t("addMaintenance")}</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 w-[calc(100vw-2rem)]">
+          <DialogContent className="sm:max-w-[650px] max-h-[95vh] flex flex-col mx-4 w-[calc(100vw-2rem)]">
             <DialogHeader>
               <DialogTitle className="text-lg">
                 {isEditMode ? t("editMaintenance") : t("scheduleMaintenance")}
@@ -944,7 +947,8 @@ function MaintenanceContent() {
                 }
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <ScrollArea className="max-h-[calc(95vh-140px)] overflow-y-auto">
+            <div className="grid gap-4 py-4 px-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="vehiclePlate" className="flex items-center text-sm">
@@ -1144,7 +1148,7 @@ function MaintenanceContent() {
                   />
                 </div>
 
-                <ScrollArea className="h-48 sm:h-64 border rounded-md p-4">
+                <ScrollArea className="h-96 border rounded-md p-4">
                   {isLoading.parts ? (
                     <div className="flex justify-center items-center h-full">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -1257,6 +1261,7 @@ function MaintenanceContent() {
                 <span className="text-black">*</span> {t("form.requiredFields")}
               </div>
             </div>
+            </ScrollArea>
             <DialogFooter>
               <div className="flex gap-2 justify-end">
                 <Button
