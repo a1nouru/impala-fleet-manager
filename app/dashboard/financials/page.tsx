@@ -38,7 +38,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
+import { AGASEKE_PLATES, isAgasekeVehicle, isUrubanoRoute, isInterprocencialRoute } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionDropdown } from "@/components/ui/action-dropdown";
 
@@ -260,8 +260,9 @@ export default function AllDailyReportsPage() {
     to: new Date(),
   });
   const [groupByDate, setGroupByDate] = useState(true);
-  const [reportTypeFilter, setReportTypeFilter] = useState<"all" | "agaseke" | "regular">("all");
+  const [reportTypeFilter, setReportTypeFilter] = useState<"all" | "agaseke" | "regular" | "urubano" | "interprocencial">("all");
   const [vehiclePlateFilter, setVehiclePlateFilter] = useState<string>("all");
+  const [routeFilter, setRouteFilter] = useState<string>("all");
   const [excludeFilter, setExcludeFilter] = useState<string[]>([]);
   
   // Pagination state
@@ -374,7 +375,11 @@ export default function AllDailyReportsPage() {
     if (reportTypeFilter === "agaseke") {
       passesReportTypeFilter = isAgasekeVehicle(report.vehicles?.plate);
     } else if (reportTypeFilter === "regular") {
-      passesReportTypeFilter = !isAgasekeVehicle(report.vehicles?.plate);
+      passesReportTypeFilter = !isAgasekeVehicle(report.vehicles?.plate) && !isUrubanoRoute(report.route) && !isInterprocencialRoute(report.route);
+    } else if (reportTypeFilter === "urubano") {
+      passesReportTypeFilter = isUrubanoRoute(report.route);
+    } else if (reportTypeFilter === "interprocencial") {
+      passesReportTypeFilter = isInterprocencialRoute(report.route);
     }
     
     // Vehicle plate filter
@@ -383,7 +388,13 @@ export default function AllDailyReportsPage() {
       passesVehicleFilter = report.vehicles?.plate === vehiclePlateFilter;
     }
     
-    return passesDateFilter && passesReportTypeFilter && passesVehicleFilter;
+    // Route filter
+    let passesRouteFilter = true;
+    if (routeFilter !== "all") {
+      passesRouteFilter = report.route === routeFilter;
+    }
+    
+    return passesDateFilter && passesReportTypeFilter && passesVehicleFilter && passesRouteFilter;
   });
 
   // Pagination logic for individual reports view
@@ -885,16 +896,27 @@ export default function AllDailyReportsPage() {
             <FileText className="h-6 w-6" />
             {t("allDailyReports.title")}
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline">{filteredReports.length} {t("allDailyReports.reports")}</Badge>
             {reportTypeFilter !== "all" && (
               <Badge variant="secondary" className="text-xs">
-                {reportTypeFilter === "agaseke" ? t("allDailyReports.agasekeOnly") : t("allDailyReports.regularOnly")}
+                {reportTypeFilter === "agaseke" 
+                  ? t("allDailyReports.agasekeOnly") 
+                  : reportTypeFilter === "regular" 
+                  ? t("allDailyReports.regularOnly")
+                  : reportTypeFilter === "urubano"
+                  ? "URUBANO"
+                  : "Interprocencial"}
               </Badge>
             )}
             {vehiclePlateFilter !== "all" && (
               <Badge variant="secondary" className="text-xs">
                 {vehiclePlateFilter}
+              </Badge>
+            )}
+            {routeFilter !== "all" && (
+              <Badge variant="secondary" className="text-xs">
+                Route: {routeFilter}
               </Badge>
             )}
             {excludeFilter.length > 0 && (
@@ -1122,15 +1144,17 @@ export default function AllDailyReportsPage() {
               <Label>{t("filters.reportType")}:</Label>
               <Select 
                 value={reportTypeFilter} 
-                onValueChange={(value: "all" | "agaseke" | "regular") => setReportTypeFilter(value)}
+                onValueChange={(value: "all" | "agaseke" | "regular" | "urubano" | "interprocencial") => setReportTypeFilter(value)}
               >
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("filters.allVehicles")}</SelectItem>
                   <SelectItem value="agaseke">{t("filters.agasekeVehicles")}</SelectItem>
                   <SelectItem value="regular">{t("filters.regularVehicles")}</SelectItem>
+                  <SelectItem value="urubano">URUBANO</SelectItem>
+                  <SelectItem value="interprocencial">Interprocencial</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1152,6 +1176,39 @@ export default function AllDailyReportsPage() {
                       {vehicle.plate}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Route Filter */}
+            <div className="flex items-center gap-2">
+              <Label>Route:</Label>
+              <Select 
+                value={routeFilter} 
+                onValueChange={(value: string) => setRouteFilter(value)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Routes</SelectItem>
+                  <SelectItem value="LUANDA - HUAMBO">LUANDA - HUAMBO</SelectItem>
+                  <SelectItem value="LUANDA - MBANZA">LUANDA - MBANZA</SelectItem>
+                  <SelectItem value="LUANDA - LUVU">LUANDA - LUVU</SelectItem>
+                  <SelectItem value="LUANDA - SAURIMBO">LUANDA - SAURIMBO</SelectItem>
+                  <SelectItem value="HUAMBO - LUANDA">HUAMBO - LUANDA</SelectItem>
+                  <SelectItem value="MBANZA - LUANDA">MBANZA - LUANDA</SelectItem>
+                  <SelectItem value="LUVU - LUANDA">LUVU - LUANDA</SelectItem>
+                  <SelectItem value="SAURIMBO - LUANDA">SAURIMBO - LUANDA</SelectItem>
+                  <SelectItem value="MBANZA - HUAMBO">MBANZA - HUAMBO</SelectItem>
+                  <SelectItem value="HUAMBO - MBANZA">HUAMBO - MBANZA</SelectItem>
+                  <SelectItem value="CAXITO - LUANDA">CAXITO - LUANDA</SelectItem>
+                  <SelectItem value="LUANDA - CAXITO">LUANDA - CAXITO</SelectItem>
+                  <SelectItem value="UIGE - LUANDA">UIGE - LUANDA</SelectItem>
+                  <SelectItem value="LUANDA - UIGE">LUANDA - UIGE</SelectItem>
+                  <SelectItem value="BENGUELA - LUANDA">BENGUELA - LUANDA</SelectItem>
+                  <SelectItem value="LUANDA - BENGUELA">LUANDA - BENGUELA</SelectItem>
+                  <SelectItem value="URUBANO">URUBANO</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1229,6 +1286,7 @@ export default function AllDailyReportsPage() {
                 setDateFilter({ from: undefined, to: undefined });
                 setReportTypeFilter("all");
                 setVehiclePlateFilter("all");
+                setRouteFilter("all");
                 setExcludeFilter([]);
               }}
             >
