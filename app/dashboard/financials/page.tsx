@@ -260,7 +260,7 @@ export default function AllDailyReportsPage() {
     to: new Date(),
   });
   const [groupByDate, setGroupByDate] = useState(true);
-  const [reportTypeFilter, setReportTypeFilter] = useState<"all" | "agaseke" | "regular" | "urubano" | "interprocencial">("all");
+  const [reportTypeFilter, setReportTypeFilter] = useState<"all" | "urubano" | "interprocencial">("all");
   const [vehiclePlateFilter, setVehiclePlateFilter] = useState<string>("all");
   const [routeFilter, setRouteFilter] = useState<string>("all");
   const [excludeFilter, setExcludeFilter] = useState<string[]>([]);
@@ -372,11 +372,7 @@ export default function AllDailyReportsPage() {
     
     // Vehicle type filter
     let passesReportTypeFilter = true;
-    if (reportTypeFilter === "agaseke") {
-      passesReportTypeFilter = isAgasekeVehicle(report.vehicles?.plate);
-    } else if (reportTypeFilter === "regular") {
-      passesReportTypeFilter = !isAgasekeVehicle(report.vehicles?.plate) && !isUrubanoRoute(report.route) && !isInterprocencialRoute(report.route);
-    } else if (reportTypeFilter === "urubano") {
+    if (reportTypeFilter === "urubano") {
       passesReportTypeFilter = isUrubanoRoute(report.route);
     } else if (reportTypeFilter === "interprocencial") {
       passesReportTypeFilter = isInterprocencialRoute(report.route);
@@ -900,13 +896,7 @@ export default function AllDailyReportsPage() {
             <Badge variant="outline">{filteredReports.length} {t("allDailyReports.reports")}</Badge>
             {reportTypeFilter !== "all" && (
               <Badge variant="secondary" className="text-xs">
-                {reportTypeFilter === "agaseke" 
-                  ? t("allDailyReports.agasekeOnly") 
-                  : reportTypeFilter === "regular" 
-                  ? t("allDailyReports.regularOnly")
-                  : reportTypeFilter === "urubano"
-                  ? "URUBANO"
-                  : "Interprocencial"}
+                {reportTypeFilter === "urubano" ? "URUBANO" : "Interprocencial"}
               </Badge>
             )}
             {vehiclePlateFilter !== "all" && (
@@ -1144,15 +1134,13 @@ export default function AllDailyReportsPage() {
               <Label>{t("filters.reportType")}:</Label>
               <Select 
                 value={reportTypeFilter} 
-                onValueChange={(value: "all" | "agaseke" | "regular" | "urubano" | "interprocencial") => setReportTypeFilter(value)}
+                onValueChange={(value: "all" | "urubano" | "interprocencial") => setReportTypeFilter(value)}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("filters.allVehicles")}</SelectItem>
-                  <SelectItem value="agaseke">{t("filters.agasekeVehicles")}</SelectItem>
-                  <SelectItem value="regular">{t("filters.regularVehicles")}</SelectItem>
                   <SelectItem value="urubano">URUBANO</SelectItem>
                   <SelectItem value="interprocencial">Interprocencial</SelectItem>
                 </SelectContent>
