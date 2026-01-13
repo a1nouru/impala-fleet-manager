@@ -178,6 +178,7 @@ export default function InventoryManagement() {
   // State for parts list that updates with language changes
   const [allParts, setAllParts] = useState<{ id: string; name: string; category: string }[]>([]);
   const [partsSearchTerm, setPartsSearchTerm] = useState('');
+  const [isCustomItem, setIsCustomItem] = useState(false);
 
   // Get all parts in a flat list for the dropdown based on current language
   const getAllParts = (language = 'en') => {
@@ -393,6 +394,10 @@ export default function InventoryManagement() {
       }
     })();
     
+    // Check if item_name is from predefined parts list or custom
+    const isFromPartsList = allParts.some(part => part.name === item.item_name);
+    setIsCustomItem(!isFromPartsList && !!item.item_name);
+    
     setNewItem({
       date: formattedDate,
       item_name: item.item_name || "",
@@ -486,6 +491,7 @@ export default function InventoryManagement() {
     setReceiptPreview(null);
     setIsEditMode(false);
     setEditItemId(null);
+    setIsCustomItem(false);
   };
   
   const handleDialogOpenChange = (open: boolean) => {
@@ -640,75 +646,95 @@ export default function InventoryManagement() {
                 <Label htmlFor="item_name" className="flex items-center text-sm">
                   {t("fields.itemName")} <span className="text-red-500 ml-1">*</span>
                 </Label>
-                <Select
-                  value={newItem.item_name}
-                  onValueChange={(value) => {
-                    setNewItem(prev => ({ ...prev, item_name: value }));
-                  }}
-                  onOpenChange={(open) => {
-                    if (!open) {
-                      setPartsSearchTerm(''); // Clear search when dropdown closes
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={t("placeholders.selectItem")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <div className="p-2 border-b" onClick={(e) => e.stopPropagation()}>
-                      <Input
-                        placeholder={t("parts.searchPlaceholder")}
-                        value={partsSearchTerm}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          setPartsSearchTerm(e.target.value);
-                        }}
-                        onKeyDown={(e) => {
-                          e.stopPropagation();
-                          // Prevent Enter from closing the dropdown
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                          }
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        onFocus={(e) => {
-                          e.stopPropagation();
-                        }}
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                        }}
-                        className="h-8"
-                        autoFocus={false}
-                      />
-                    </div>
-                    {filteredParts.map((part) => (
-                      <SelectItem key={part.id} value={part.name}>
-                        <div className="flex flex-col">
-                          <span>{part.name}</span>
-                          <span className="text-xs text-muted-foreground">{part.category}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                    {filteredParts.length === 0 && partsSearchTerm && (
-                      <div className="p-2 text-sm text-muted-foreground text-center">
-                        {t("parts.noPartsFound")} "{partsSearchTerm}"
+                {!isCustomItem ? (
+                  <Select
+                    value={newItem.item_name}
+                    onValueChange={(value) => {
+                      if (value === "custom") {
+                        setIsCustomItem(true);
+                        setNewItem(prev => ({ ...prev, item_name: "" }));
+                      } else {
+                        setNewItem(prev => ({ ...prev, item_name: value }));
+                      }
+                    }}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        setPartsSearchTerm(''); // Clear search when dropdown closes
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t("placeholders.selectItem")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="p-2 border-b" onClick={(e) => e.stopPropagation()}>
+                        <Input
+                          placeholder={t("parts.searchPlaceholder")}
+                          value={partsSearchTerm}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setPartsSearchTerm(e.target.value);
+                          }}
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+                            // Prevent Enter from closing the dropdown
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                            }
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          onFocus={(e) => {
+                            e.stopPropagation();
+                          }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="h-8"
+                          autoFocus={false}
+                        />
                       </div>
-                    )}
-                    <SelectItem value="custom">
-                      <span className="text-blue-600 font-medium">{t("placeholders.enterCustomName")}</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {newItem.item_name === "custom" && (
-                  <Input
-                    placeholder={t("placeholders.enterCustomName")}
-                    value=""
-                    onChange={(e) => setNewItem(prev => ({ ...prev, item_name: e.target.value }))}
-                    className="mt-2"
-                    autoFocus
-                  />
+                      {filteredParts.map((part) => (
+                        <SelectItem key={part.id} value={part.name}>
+                          <div className="flex flex-col">
+                            <span>{part.name}</span>
+                            <span className="text-xs text-muted-foreground">{part.category}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {filteredParts.length === 0 && partsSearchTerm && (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          {t("parts.noPartsFound")} "{partsSearchTerm}"
+                        </div>
+                      )}
+                      <SelectItem value="custom">
+                        <span className="text-blue-600 font-medium">{t("placeholders.enterCustomName")}</span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder={t("placeholders.enterCustomName")}
+                      value={newItem.item_name}
+                      onChange={(e) => setNewItem(prev => ({ ...prev, item_name: e.target.value }))}
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsCustomItem(false);
+                        setNewItem(prev => ({ ...prev, item_name: "" }));
+                      }}
+                      className="shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </div>
               <div className="space-y-2">
