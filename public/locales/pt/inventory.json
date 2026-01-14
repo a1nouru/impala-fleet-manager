@@ -120,5 +120,36 @@
   "fileUpload": {
     "chooseFile": "Escolher Ficheiro",
     "noFileChosen": "Nenhum ficheiro escolhido"
+  },
+  "import": {
+    "importInvoice": "Importar Factura",
+    "title": "Importar Factura",
+    "description": "Carregue uma factura em Português (PDF ou imagem), extraia os itens, reveja e guarde no inventário.",
+    "fileLabel": "Ficheiro da factura (PDF ou imagem)",
+    "pdfPageNotice": "Facturas em PDF são renderizadas para PNG no navegador (até 5 páginas) antes da extracção.",
+    "selectFileFirst": "Por favor, seleccione primeiro um ficheiro PDF ou imagem.",
+    "extract": "Extrair itens",
+    "extracting": "A extrair...",
+    "extractFailed": "Falha ao extrair itens da factura. Tente novamente.",
+    "extractedTitle": "Itens extraídos",
+    "extractedDescription": "Foram extraídos {{count}} itens da factura.",
+    "invoiceDate": "Data da factura",
+    "unknownDate": "Desconhecida",
+    "itemsFound": "{{count}} itens encontrados",
+    "nothingToSave": "Nada para guardar. Extraia os itens primeiro.",
+    "saveAll": "Guardar todos os itens",
+    "saving": "A guardar...",
+    "saveFailed": "Falha ao guardar itens. Tente novamente.",
+    "savedTitle": "Guardado",
+    "savedDescription": "Foram guardados {{count}} itens no inventário.",
+    "table": {
+      "itemName": "Nome do Item",
+      "description": "Descrição",
+      "quantity": "Qtd",
+      "unitPrice": "Preço unitário",
+      "total": "Total",
+      "actions": "Acções"
+    }
+  }
   }
 }

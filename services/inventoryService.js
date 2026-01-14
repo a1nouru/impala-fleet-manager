@@ -85,6 +85,59 @@ export const inventoryService = {
     }
   },
 
+  // Create multiple inventory items in one insert
+  createBulkInventoryItems: async (items, receiptUrl, created_by) => {
+    try {
+      if (!Array.isArray(items) || items.length === 0) {
+        return [];
+      }
+
+      const recordsToCreate = items.map((item) => {
+        const quantity = Number(item.quantity) || 0;
+        const total_cost = Number(item.total_cost) || 0;
+        const amount_unit =
+          Number(item.amount_unit) ||
+          (quantity > 0 && total_cost > 0 ? total_cost / quantity : 0);
+
+        const record = {
+          ...item,
+          quantity,
+          amount_unit,
+          total_cost: total_cost > 0 ? total_cost : quantity * amount_unit,
+        };
+
+        if (receiptUrl) record.receipt_url = receiptUrl;
+        if (created_by) record.created_by = created_by;
+
+        return record;
+      });
+
+      const { data, error } = await supabaseClient
+        .from("inventory_items")
+        .insert(recordsToCreate)
+        .select();
+
+      if (error) {
+        console.error("Supabase bulk insert error:", error);
+
+        if (
+          error.code === "PGRST106" ||
+          error.message?.includes('relation "public.inventory_items" does not exist')
+        ) {
+          console.warn("inventory_items table does not exist. Please run the inventory migrations.");
+          return [];
+        }
+
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error creating bulk inventory items:", error);
+      throw error;
+    }
+  },
+
   // Update an existing inventory item
   updateInventoryItem: async (id, item) => {
     try {

@@ -32,6 +32,7 @@ import {
   X
 } from "lucide-react"
 import { inventoryService } from "@/services/inventoryService"
+import { invoiceOcrService } from "@/services/invoiceOcrService"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/AuthContext"
 import { format, parseISO } from "date-fns"
@@ -139,6 +140,23 @@ export default function InventoryManagement() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+
+  // Invoice import (OCR) state
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [invoicePreview, setInvoicePreview] = useState<string | null>(null);
+  const [invoiceOcrItems, setInvoiceOcrItems] = useState<Array<{
+    date: string;
+    item_name: string;
+    description: string;
+    quantity: number;
+    amount_unit: number;
+    total_cost: number;
+  }>>([]);
+  const [invoiceOcrDate, setInvoiceOcrDate] = useState<string>("");
+  const [invoicePdfNotice, setInvoicePdfNotice] = useState<string>("");
+  const [invoiceOcrLoading, setInvoiceOcrLoading] = useState(false);
+  const [invoiceSaveLoading, setInvoiceSaveLoading] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -379,6 +397,235 @@ export default function InventoryManagement() {
     }
   };
 
+  // ===== Invoice OCR import helpers =====
+  const resetInvoiceImport = () => {
+    setInvoiceFile(null);
+    setInvoicePreview(null);
+    setInvoiceOcrItems([]);
+    setInvoiceOcrDate("");
+    setInvoicePdfNotice("");
+    setInvoiceOcrLoading(false);
+    setInvoiceSaveLoading(false);
+  };
+
+  const handleInvoiceDialogOpenChange = (open: boolean) => {
+    setInvoiceDialogOpen(open);
+    if (!open) resetInvoiceImport();
+  };
+
+  const handleInvoiceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type (allow images and PDFs)
+    const allowedTypes = ["image/", "application/pdf"];
+    const isValidType = allowedTypes.some((type) => file.type.startsWith(type));
+
+    if (!isValidType) {
+      toast({
+        title: t("validation.invalidFileType"),
+        description: t("validation.selectImageOrPdf"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: t("validation.fileTooLarge"),
+        description: t("validation.selectSmallerFile"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setInvoiceFile(file);
+    setInvoiceOcrItems([]);
+    setInvoiceOcrDate("");
+    setInvoicePdfNotice(file.type === "application/pdf" ? t("import.pdfPageNotice") : "");
+
+    // Create preview (only for images, show file name for PDFs)
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setInvoicePreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    } else if (file.type === "application/pdf") {
+      setInvoicePreview(`PDF: ${file.name}`);
+    }
+  };
+
+  const renderPdfToPngFiles = async (pdfFile: File): Promise<File[]> => {
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf");
+    // @ts-expect-error pdfjs legacy build worker config
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
+      import.meta.url
+    ).toString();
+
+    const arrayBuffer = await pdfFile.arrayBuffer();
+    // @ts-expect-error pdfjs legacy getDocument typing
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+
+    const pageCount = Math.min(pdf.numPages || 0, 5);
+    const out: File[] = [];
+
+    for (let i = 1; i <= pageCount; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2 });
+
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      if (!context) continue;
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({ canvasContext: context, viewport }).promise;
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Failed to create PNG blob"))),
+          "image/png"
+        );
+      });
+
+      out.push(new File([blob], `${pdfFile.name}-page-${i}.png`, { type: "image/png" }));
+    }
+
+    return out;
+  };
+
+  const updateImportedItem = (
+    idx: number,
+    patch: Partial<{
+      date: string;
+      item_name: string;
+      description: string;
+      quantity: number;
+      amount_unit: number;
+      total_cost: number;
+    }>
+  ) => {
+    setInvoiceOcrItems((prev) =>
+      prev.map((it, i) => {
+        if (i !== idx) return it;
+        const next = { ...it, ...patch };
+
+        const q = Number(next.quantity) || 0;
+        const total = Number(next.total_cost) || 0;
+        const unit = Number(next.amount_unit) || 0;
+
+        // Keep totals consistent. Treat total_cost as the canonical "final amount paid per line".
+        if ("total_cost" in patch && q > 0) {
+          next.amount_unit = total / q;
+        } else if ("amount_unit" in patch) {
+          next.total_cost = q > 0 ? unit * q : total;
+        } else if ("quantity" in patch) {
+          next.amount_unit = q > 0 ? total / q : unit;
+        }
+
+        return next;
+      })
+    );
+  };
+
+  const removeImportedItem = (idx: number) => {
+    setInvoiceOcrItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleExtractInvoice = async () => {
+    if (!invoiceFile) {
+      toast({
+        title: t("messages.error"),
+        description: t("import.selectFileFirst"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setInvoiceOcrLoading(true);
+    try {
+      const filesToSend =
+        invoiceFile.type === "application/pdf" ? await renderPdfToPngFiles(invoiceFile) : [invoiceFile];
+
+      const result = await invoiceOcrService.extractInvoiceItems(filesToSend);
+      setInvoiceOcrDate(result.invoice_date || "");
+      setInvoiceOcrItems(Array.isArray(result.items) ? result.items : []);
+
+      toast({
+        title: `✅ ${t("import.extractedTitle")}`,
+        description: t("import.extractedDescription", { count: (result.items || []).length }),
+      });
+    } catch (error: any) {
+      toast({
+        title: `❌ ${t("messages.error")}`,
+        description: error?.message || t("import.extractFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setInvoiceOcrLoading(false);
+    }
+  };
+
+  const handleSaveImportedInvoice = async () => {
+    if (!invoiceFile) {
+      toast({
+        title: t("messages.error"),
+        description: t("import.selectFileFirst"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (invoiceOcrItems.length === 0) {
+      toast({
+        title: t("messages.error"),
+        description: t("import.nothingToSave"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setInvoiceSaveLoading(true);
+    try {
+      const created_by_email = user?.email;
+      const receiptUrl = await inventoryService.uploadReceipt(invoiceFile, undefined);
+
+      const dateToUse = invoiceOcrDate || new Date().toISOString().slice(0, 10);
+      const records = invoiceOcrItems.map((it) => ({
+        ...it,
+        date: it.date || dateToUse,
+        quantity: Number(it.quantity) || 0,
+        amount_unit: Number(it.amount_unit) || 0,
+        total_cost: Number(it.total_cost) || 0,
+        receipt_url: receiptUrl,
+      }));
+
+      await inventoryService.createBulkInventoryItems(records, receiptUrl, created_by_email);
+
+      const updatedItems = await inventoryService.getInventoryItems();
+      setItems(updatedItems);
+
+      toast({
+        title: "✅ " + t("import.savedTitle"),
+        description: t("import.savedDescription", { count: records.length }),
+      });
+
+      setInvoiceDialogOpen(false);
+      resetInvoiceImport();
+    } catch (error: any) {
+      toast({
+        title: "❌ " + t("messages.error"),
+        description: error?.message || t("import.saveFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setInvoiceSaveLoading(false);
+    }
+  };
+
   const handleEditItem = (item: InventoryItem) => {
     setIsEditMode(true);
     setEditItemId(item.id);
@@ -532,23 +779,213 @@ export default function InventoryManagement() {
     <div className="space-y-6">
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <h1 className="text-xl md:text-2xl font-semibold text-gray-800">{t("title")}</h1>
-        
-        <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
-          <DialogTrigger asChild>
-            <Button 
-              className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto" 
-              disabled={isLoading.items}
-              onClick={() => {
-                resetForm();
-                setIsEditMode(false);
-              }}
-            >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">{t("addPurchase")}</span>
-              <span className="sm:hidden">{t("buttons.addItem")}</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 w-[calc(100vw-2rem)]">
+
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Dialog open={invoiceDialogOpen} onOpenChange={handleInvoiceDialogOpenChange}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                disabled={isLoading.items}
+                onClick={() => {
+                  resetInvoiceImport();
+                }}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {t("import.importInvoice")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto mx-4 w-[calc(100vw-2rem)]">
+              <DialogHeader>
+                <DialogTitle className="text-lg">{t("import.title")}</DialogTitle>
+                <DialogDescription className="text-sm">{t("import.description")}</DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">{t("import.fileLabel")}</Label>
+                  <Input type="file" accept="image/*,.pdf,application/pdf" onChange={handleInvoiceFileChange} />
+                  {invoicePdfNotice ? (
+                    <p className="text-xs text-muted-foreground">{invoicePdfNotice}</p>
+                  ) : null}
+
+                  {invoicePreview ? (
+                    <div className="relative">
+                      {invoicePreview.startsWith("PDF:") ? (
+                        <div className="flex items-center gap-2 p-3 border rounded bg-gray-50">
+                          <Receipt className="h-5 w-5 text-red-500" />
+                          <span className="text-sm font-medium">{invoicePreview}</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={invoicePreview}
+                          alt="Invoice preview"
+                          className="max-w-full h-40 object-cover rounded border"
+                        />
+                      )}
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0"
+                        onClick={() => resetInvoiceImport()}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleExtractInvoice}
+                    disabled={!invoiceFile || invoiceOcrLoading}
+                    className="bg-black hover:bg-gray-800 text-white"
+                  >
+                    {invoiceOcrLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {invoiceOcrLoading ? t("import.extracting") : t("import.extract")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => resetInvoiceImport()}
+                    disabled={invoiceOcrLoading || invoiceSaveLoading}
+                  >
+                    {t("buttons.reset")}
+                  </Button>
+                </div>
+
+                {invoiceOcrItems.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="text-sm text-muted-foreground">
+                        {t("import.invoiceDate")}:{" "}
+                        <span className="font-medium text-gray-900">
+                          {invoiceOcrDate || t("import.unknownDate")}
+                        </span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {t("import.itemsFound", { count: invoiceOcrItems.length })}
+                      </div>
+                    </div>
+
+                    <div className="border rounded-lg overflow-hidden">
+                      <ScrollArea className="max-h-[360px]">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 border-b">
+                            <tr>
+                              <th className="px-3 py-2 text-left">{t("import.table.itemName")}</th>
+                              <th className="px-3 py-2 text-left">{t("import.table.description")}</th>
+                              <th className="px-3 py-2 text-right">{t("import.table.quantity")}</th>
+                              <th className="px-3 py-2 text-right">{t("import.table.unitPrice")}</th>
+                              <th className="px-3 py-2 text-right">{t("import.table.total")}</th>
+                              <th className="px-3 py-2 text-right">{t("import.table.actions")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {invoiceOcrItems.map((row, idx) => (
+                              <tr key={idx} className="border-b last:border-b-0">
+                                <td className="px-3 py-2 align-top">
+                                  <Input
+                                    value={row.item_name || ""}
+                                    onChange={(e) => updateImportedItem(idx, { item_name: e.target.value })}
+                                    className="h-8"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 align-top">
+                                  <Input
+                                    value={row.description || ""}
+                                    onChange={(e) => updateImportedItem(idx, { description: e.target.value })}
+                                    className="h-8"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 align-top">
+                                  <Input
+                                    value={String(row.quantity ?? "")}
+                                    onChange={(e) => updateImportedItem(idx, { quantity: Number(e.target.value) || 0 })}
+                                    className="h-8 text-right"
+                                    inputMode="decimal"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 align-top">
+                                  <Input
+                                    value={String(Math.round((row.amount_unit || 0) * 100) / 100)}
+                                    onChange={(e) => updateImportedItem(idx, { amount_unit: Number(e.target.value) || 0 })}
+                                    className="h-8 text-right"
+                                    inputMode="decimal"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 align-top">
+                                  <Input
+                                    value={String(Math.round((row.total_cost || 0) * 100) / 100)}
+                                    onChange={(e) => updateImportedItem(idx, { total_cost: Number(e.target.value) || 0 })}
+                                    className="h-8 text-right"
+                                    inputMode="decimal"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 align-top text-right">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => removeImportedItem(idx)}
+                                    className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  >
+                                    <TrashIcon className="h-4 w-4" />
+                                    <span className="sr-only">Remove</span>
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </ScrollArea>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <DialogFooter>
+                <div className="flex gap-2 justify-end w-full">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setInvoiceDialogOpen(false)}
+                    disabled={invoiceOcrLoading || invoiceSaveLoading}
+                  >
+                    {t("buttons.cancel")}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSaveImportedInvoice}
+                    disabled={invoiceOcrItems.length === 0 || invoiceOcrLoading || invoiceSaveLoading}
+                    className="bg-black hover:bg-gray-800 text-white"
+                  >
+                    {invoiceSaveLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {invoiceSaveLoading ? t("import.saving") : t("import.saveAll")}
+                  </Button>
+                </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+            <DialogTrigger asChild>
+              <Button
+                className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto"
+                disabled={isLoading.items}
+                onClick={() => {
+                  resetForm();
+                  setIsEditMode(false);
+                }}
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">{t("addPurchase")}</span>
+                <span className="sm:hidden">{t("buttons.addItem")}</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 w-[calc(100vw-2rem)]">
             <DialogHeader>
               <DialogTitle className="text-lg">
                 {isEditMode ? t("editItemTitle") : t("addPurchaseTitle")}
@@ -827,6 +1264,7 @@ export default function InventoryManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {isLoading.items ? (

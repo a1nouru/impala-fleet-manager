@@ -120,5 +120,35 @@
   "fileUpload": {
     "chooseFile": "Choose File",
     "noFileChosen": "No file chosen"
+  },
+  "import": {
+    "importInvoice": "Import Invoice",
+    "title": "Import Invoice",
+    "description": "Upload a Portuguese invoice (PDF or image), extract items, review, and save them to inventory.",
+    "fileLabel": "Invoice file (PDF or image)",
+    "pdfPageNotice": "PDF invoices are rendered to PNG in the browser (up to 5 pages) before extraction.",
+    "selectFileFirst": "Please select a PDF or image file first.",
+    "extract": "Extract items",
+    "extracting": "Extracting...",
+    "extractFailed": "Failed to extract invoice items. Please try again.",
+    "extractedTitle": "Items extracted",
+    "extractedDescription": "Extracted {{count}} items from the invoice.",
+    "invoiceDate": "Invoice date",
+    "unknownDate": "Unknown",
+    "itemsFound": "{{count}} items found",
+    "nothingToSave": "Nothing to save. Extract items first.",
+    "saveAll": "Save all items",
+    "saving": "Saving...",
+    "saveFailed": "Failed to save items. Please try again.",
+    "savedTitle": "Saved",
+    "savedDescription": "Saved {{count}} items to inventory.",
+    "table": {
+      "itemName": "Item Name",
+      "description": "Description",
+      "quantity": "Qty",
+      "unitPrice": "Unit price",
+      "total": "Total",
+      "actions": "Actions"
+    }
   }
 }

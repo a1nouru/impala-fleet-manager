@@ -116,18 +116,6 @@ const nextConfig = {
       }
     }
 
-    // Fix vendor chunk resolution issues in development
-    if (dev && !isServer) {
-      // Disable vendor chunks in development to prevent resolution issues
-      config.optimization.splitChunks = {
-        chunks: 'async',
-        cacheGroups: {
-          default: false,
-          vendors: false,
-        },
-      };
-    }
-    
     return config;
   }
 }
