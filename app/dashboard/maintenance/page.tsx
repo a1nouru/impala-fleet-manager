@@ -256,6 +256,31 @@ function MaintenanceContent() {
     acc[key].push(item);
     return acc;
   }, {});
+
+  // Calculate how much of each inventory item has been used in maintenance records
+  const calculateUsedQuantities = (): Record<string, number> => {
+    const usedQty: Record<string, number> = {};
+    
+    records.forEach(record => {
+      if (record.parts && Array.isArray(record.parts)) {
+        record.parts.forEach(partString => {
+          // Parse format: "Item Name (Qty: X)"
+          const qtyMatch = partString.match(/^(.+?)\s*\(Qty:\s*(\d+)\)$/);
+          
+          if (qtyMatch) {
+            const itemName = qtyMatch[1].trim();
+            const quantity = parseInt(qtyMatch[2], 10);
+            usedQty[itemName] = (usedQty[itemName] || 0) + quantity;
+          }
+        });
+      }
+    });
+    
+    return usedQty;
+  };
+
+  // Get used quantities for inventory items
+  const usedQuantities = calculateUsedQuantities();
   
   // UI state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1167,10 +1192,21 @@ function MaintenanceContent() {
                   ) : (
                     <div className="space-y-3">
                       {Object.entries(groupedInventoryItems).map(([itemName, items]) => {
-                        const totalQuantity = items.reduce((sum: number, item: any) => sum + parseFloat(item.quantity || 0), 0);
+                        // Calculate total purchased quantity
+                        const totalPurchasedQuantity = items.reduce((sum: number, item: any) => sum + parseFloat(item.quantity || 0), 0);
+                        // Get how much has already been used in maintenance records
+                        const alreadyUsedQuantity = usedQuantities[itemName] || 0;
+                        // Calculate actual available quantity
+                        const availableQuantity = Math.max(0, totalPurchasedQuantity - alreadyUsedQuantity);
+                        
                         const selectedQuantity = selectedPartsQuantities[itemName] || 0;
                         const isSelected = selectedParts.includes(itemName);
-                        const remainingQuantity = totalQuantity - selectedQuantity;
+                        const remainingAfterSelection = availableQuantity - selectedQuantity;
+                        
+                        // Hide out-of-stock items
+                        if (availableQuantity <= 0) {
+                          return null;
+                        }
                         
                         return (
                           <div key={itemName} className="border rounded-lg p-3 space-y-3">
@@ -1182,7 +1218,7 @@ function MaintenanceContent() {
                                   </label>
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs text-green-600 font-medium">
-                                      ✓ {totalQuantity} {t("inventory.available")}
+                                      ✓ {availableQuantity} {t("inventory.available")}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                       • {items.length} {items.length === 1 ? t("inventory.batch") : t("inventory.batches")}
@@ -1199,7 +1235,7 @@ function MaintenanceContent() {
                                       variant="outline"
                                       size="sm"
                                       className="h-6 w-6 p-0"
-                                      onClick={() => handleQuantityChange(itemName, selectedQuantity - 1, totalQuantity)}
+                                      onClick={() => handleQuantityChange(itemName, selectedQuantity - 1, availableQuantity)}
                                       disabled={selectedQuantity <= 0}
                                     >
                                       -
@@ -1207,9 +1243,9 @@ function MaintenanceContent() {
                                     <Input
                                       type="number"
                                       min="0"
-                                      max={totalQuantity}
+                                      max={availableQuantity}
                                       value={selectedQuantity}
-                                      onChange={(e) => handleQuantityChange(itemName, parseInt(e.target.value) || 0, totalQuantity)}
+                                      onChange={(e) => handleQuantityChange(itemName, parseInt(e.target.value) || 0, availableQuantity)}
                                       className="h-6 w-16 text-center text-xs"
                                     />
                                     <Button
@@ -1217,15 +1253,15 @@ function MaintenanceContent() {
                                       variant="outline"
                                       size="sm"
                                       className="h-6 w-6 p-0"
-                                      onClick={() => handleQuantityChange(itemName, selectedQuantity + 1, totalQuantity)}
-                                      disabled={selectedQuantity >= totalQuantity}
+                                      onClick={() => handleQuantityChange(itemName, selectedQuantity + 1, availableQuantity)}
+                                      disabled={selectedQuantity >= availableQuantity}
                                     >
                                       +
                                     </Button>
                                   </div>
                                   {selectedQuantity > 0 && (
                                     <span className="text-xs text-blue-600 font-medium">
-                                      ({remainingQuantity} {t("inventory.remaining")})
+                                      ({remainingAfterSelection} {t("inventory.remaining")})
                                     </span>
                                   )}
                                 </div>
