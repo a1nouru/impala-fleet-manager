@@ -125,7 +125,7 @@ function LoadingState() {
 const exportToExcel = (data: MaintenanceRecord[], filename: string) => {
   const headers = [
     "Date",
-    "Vehicle Plate", 
+    "Vehicle Plate",
     "Description",
     "Parts",
     "Technician",
@@ -142,42 +142,75 @@ const exportToExcel = (data: MaintenanceRecord[], filename: string) => {
     return str.replace(/[\r\n\t]/g, ' ').replace(/"/g, '""').trim();
   };
 
-  // Calculate totals
+  // Group records by vehicle plate
+  const grouped: Record<string, MaintenanceRecord[]> = {};
+  data.forEach(record => {
+    const plate = record.vehicles?.plate || record.vehiclePlate || 'Unknown';
+    if (!grouped[plate]) grouped[plate] = [];
+    grouped[plate].push(record);
+  });
+
+  // Sort plates alphabetically
+  const sortedPlates = Object.keys(grouped).sort();
+
+  // Calculate grand totals
   const totalCost = data.reduce((sum, record) => sum + (record.cost || 0), 0);
   const totalKilometers = data.reduce((sum, record) => {
     const km = parseFloat(String(record.kilometers || 0).replace(/,/g, ''));
     return sum + (isNaN(km) ? 0 : km);
   }, 0);
 
-  // Create Excel-compatible content with proper CSV formatting
-  const csvRows = [
-    // Headers
+  // Build CSV rows grouped by plate
+  const csvRows: string[] = [
     headers.map(header => `"${header}"`).join(','),
-    // Data rows
-    ...data.map(record => [
-      `"${cleanData(record.date)}"`,
-      `"${cleanData(record.vehicles?.plate || record.vehiclePlate || '')}"`,
-      `"${cleanData(record.description || '')}"`,
-      `"${cleanData(record.parts ? record.parts.join('; ') : '')}"`,
-      `"${cleanData(record.technicians?.name || record.technician || '')}"`,
-      `"${cleanData(record.status || '')}"`,
-      `"${cleanData(record.cost || 0)}"`,
-      `"${cleanData(record.kilometers || '')}"`,
-    ].join(',')),
-    // Empty row
-    '',
-    // Total row
-    [
-      '"TOTAL"',
-      '""',
-      '""', 
-      '""',
-      '""',
-      '""',
-      `"${totalCost.toLocaleString()}"`,
-      `"${totalKilometers.toLocaleString()}"`,
-    ].join(',')
   ];
+
+  sortedPlates.forEach(plate => {
+    const records = grouped[plate];
+
+    // Group header row
+    csvRows.push('');
+    csvRows.push([
+      `"--- ${plate} ---"`,
+      '""', '""', '""', '""', '""', '""', '""',
+    ].join(','));
+
+    // Data rows for this plate
+    records.forEach(record => {
+      csvRows.push([
+        `"${cleanData(record.date)}"`,
+        `"${cleanData(record.vehicles?.plate || record.vehiclePlate || '')}"`,
+        `"${cleanData(record.description || '')}"`,
+        `"${cleanData(record.parts ? record.parts.join('; ') : '')}"`,
+        `"${cleanData(record.technicians?.name || record.technician || '')}"`,
+        `"${cleanData(record.status || '')}"`,
+        `"${cleanData(record.cost || 0)}"`,
+        `"${cleanData(record.kilometers || '')}"`,
+      ].join(','));
+    });
+
+    // Subtotal row for this plate
+    const plateCost = records.reduce((sum, r) => sum + (r.cost || 0), 0);
+    const plateKm = records.reduce((sum, r) => {
+      const km = parseFloat(String(r.kilometers || 0).replace(/,/g, ''));
+      return sum + (isNaN(km) ? 0 : km);
+    }, 0);
+    csvRows.push([
+      `"Subtotal (${plate})"`,
+      '""', '""', '""', '""', '""',
+      `"${plateCost.toLocaleString()}"`,
+      `"${plateKm.toLocaleString()}"`,
+    ].join(','));
+  });
+
+  // Grand total row
+  csvRows.push('');
+  csvRows.push([
+    '"GRAND TOTAL"',
+    '""', '""', '""', '""', '""',
+    `"${totalCost.toLocaleString()}"`,
+    `"${totalKilometers.toLocaleString()}"`,
+  ].join(','));
 
   const csvContent = csvRows.join('\n');
 
@@ -501,8 +534,12 @@ function MaintenanceContent() {
     if (dateRange?.from || dateRange?.to) {
       const recordDate = new Date(record.date);
       
-      if (dateRange.from && recordDate < dateRange.from) {
-        return false;
+      if (dateRange.from) {
+        const startOfDay = new Date(dateRange.from);
+        startOfDay.setHours(0, 0, 0, 0);
+        if (recordDate < startOfDay) {
+          return false;
+        }
       }
       
       if (dateRange.to) {
