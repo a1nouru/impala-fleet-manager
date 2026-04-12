@@ -530,23 +530,20 @@ function MaintenanceContent() {
       return false;
     }
     
-    // Filter by date range
+    // Filter by date range — compare as date-only strings (YYYY-MM-DD) to avoid timezone issues
     if (dateRange?.from || dateRange?.to) {
-      const recordDate = new Date(record.date);
-      
+      const recordDateStr = record.date.split('T')[0]; // "YYYY-MM-DD"
+
       if (dateRange.from) {
-        const startOfDay = new Date(dateRange.from);
-        startOfDay.setHours(0, 0, 0, 0);
-        if (recordDate < startOfDay) {
+        const fromStr = dateRange.from.toLocaleDateString('en-CA'); // "YYYY-MM-DD"
+        if (recordDateStr < fromStr) {
           return false;
         }
       }
-      
+
       if (dateRange.to) {
-        // Set to end of day for the 'to' date
-        const endOfDay = new Date(dateRange.to);
-        endOfDay.setHours(23, 59, 59, 999);
-        if (recordDate > endOfDay) {
+        const toStr = dateRange.to.toLocaleDateString('en-CA'); // "YYYY-MM-DD"
+        if (recordDateStr > toStr) {
           return false;
         }
       }
@@ -1987,21 +1984,17 @@ function MaintenanceContent() {
                onClick={() => {
                  const from = downloadDateRange.from ? format(downloadDateRange.from, "yyyy-MM-dd") : undefined;
                  const to = downloadDateRange.to ? format(downloadDateRange.to, "yyyy-MM-dd") : undefined;
-                 exportToExcel(records.filter(r => {
-                   const recordDate = new Date(r.date);
-                   const isFromDate = from ? recordDate >= new Date(from) : true;
-                   const isToDate = to ? recordDate <= new Date(to) : true;
-                   return isFromDate && isToDate;
-                 }), `maintenance_records_${from || 'all'}_to_${to || 'all'}.xlsx`);
+                 const downloadFilter = (r: MaintenanceRecord) => {
+                   const dateStr = r.date.split('T')[0]; // "YYYY-MM-DD"
+                   if (from && dateStr < from) return false;
+                   if (to && dateStr > to) return false;
+                   return true;
+                 };
+                 exportToExcel(records.filter(downloadFilter), `maintenance_records_${from || 'all'}_to_${to || 'all'}.xlsx`);
                  setDownloadDialogOpen(false);
                  toast({
                    title: "Download Started",
-                   description: `Downloading ${records.filter(r => {
-                     const recordDate = new Date(r.date);
-                     const isFromDate = from ? recordDate >= new Date(from) : true;
-                     const isToDate = to ? recordDate <= new Date(to) : true;
-                     return isFromDate && isToDate;
-                   }).length} records...`
+                   description: `Downloading ${records.filter(downloadFilter).length} records...`
                  });
                }}
                className="w-full sm:w-auto"
