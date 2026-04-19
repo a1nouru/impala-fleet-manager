@@ -129,6 +129,7 @@ const exportToExcel = (data: InventoryItem[], filename: string) => {
 export default function InventoryManagement() {
   // State for data
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [usedQuantities, setUsedQuantities] = useState<Record<string, number>>({});
   
   // UI state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -233,11 +234,15 @@ export default function InventoryManagement() {
     
     const fetchData = async () => {
       try {
-        const itemsData = await inventoryService.getInventoryItems();
-        
+        const [itemsData, usedQty] = await Promise.all([
+          inventoryService.getInventoryItems(),
+          inventoryService.getUsedQuantitiesFromMaintenance(),
+        ]);
+
         if (!isMounted) return;
-        
+
         setItems(itemsData || []);
+        setUsedQuantities(usedQty || {});
         setIsLoading({
           items: false,
           submit: false,
@@ -298,6 +303,16 @@ export default function InventoryManagement() {
     return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
   });
   const currentMonthCost = currentMonthItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
+
+  // Available stock per item_name = total purchased - consumed in maintenance
+  const availableByItemName: Record<string, number> = {};
+  items.forEach(item => {
+    const name = item.item_name || 'Unknown Item';
+    availableByItemName[name] = (availableByItemName[name] || 0) + (item.quantity || 0);
+  });
+  Object.keys(availableByItemName).forEach(name => {
+    availableByItemName[name] = Math.max(0, availableByItemName[name] - (usedQuantities[name] || 0));
+  });
 
   // Filter items based on search term and date range
   const filteredItems = items.filter(item => {
@@ -605,8 +620,12 @@ export default function InventoryManagement() {
 
       await inventoryService.createBulkInventoryItems(records, receiptUrl, created_by_email);
 
-      const updatedItems = await inventoryService.getInventoryItems();
+      const [updatedItems, updatedUsed] = await Promise.all([
+        inventoryService.getInventoryItems(),
+        inventoryService.getUsedQuantitiesFromMaintenance(),
+      ]);
       setItems(updatedItems);
+      setUsedQuantities(updatedUsed || {});
 
       toast({
         title: "✅ " + t("import.savedTitle"),
@@ -707,8 +726,12 @@ export default function InventoryManagement() {
       }
 
       // Refresh the list
-      const updatedItems = await inventoryService.getInventoryItems();
+      const [updatedItems, updatedUsed] = await Promise.all([
+        inventoryService.getInventoryItems(),
+        inventoryService.getUsedQuantitiesFromMaintenance(),
+      ]);
       setItems(updatedItems);
+      setUsedQuantities(updatedUsed || {});
 
       // Close dialog and reset form
       setDialogOpen(false);
@@ -1380,6 +1403,7 @@ export default function InventoryManagement() {
                     <th className="px-4 py-3 text-left text-sm font-medium">{t("table.itemName")}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">{t("table.description")}</th>
                     <th className="px-4 py-3 text-right text-sm font-medium">{t("table.quantity")}</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium">Available</th>
                     <th className="px-4 py-3 text-right text-sm font-medium">{t("table.amountUnit")}</th>
                     <th className="px-4 py-3 text-right text-sm font-medium">{t("table.totalCost")}</th>
                     <th className="px-4 py-3 text-right text-sm font-medium">{t("table.actions")}</th>
@@ -1413,6 +1437,16 @@ export default function InventoryManagement() {
                         <td className="px-4 py-3 text-sm max-w-xs truncate font-medium">{item.item_name || "N/A"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">{item.description}</td>
                         <td className="px-4 py-3 text-sm text-right">{item.quantity.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-sm text-right">
+                          {(() => {
+                            const avail = availableByItemName[item.item_name || 'Unknown Item'] ?? item.quantity;
+                            return (
+                              <span className={avail <= 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                                {avail.toLocaleString()}
+                              </span>
+                            );
+                          })()}
+                        </td>
                         <td className="px-4 py-3 text-sm text-right">{item.amount_unit.toLocaleString()} Kz</td>
                         <td className="px-4 py-3 text-sm text-right font-semibold">{item.total_cost.toLocaleString()} Kz</td>
                         <td className="px-4 py-3 text-sm text-right">
@@ -1550,10 +1584,21 @@ export default function InventoryManagement() {
                             <p className="text-sm text-gray-600">{item.description}</p>
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-3 gap-4">
                             <div>
                               <p className="text-sm font-medium text-gray-700">Quantity</p>
                               <p className="text-sm text-gray-600">{item.quantity.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Available</p>
+                              {(() => {
+                                const avail = availableByItemName[item.item_name || 'Unknown Item'] ?? item.quantity;
+                                return (
+                                  <p className={`text-sm font-medium ${avail <= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {avail.toLocaleString()}
+                                  </p>
+                                );
+                              })()}
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-700">Unit Price</p>

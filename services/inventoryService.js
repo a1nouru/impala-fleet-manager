@@ -247,5 +247,36 @@ export const inventoryService = {
       console.error('Error deleting receipt:', error);
       return false;
     }
+  },
+
+  // Compute how many units of each item_name have been consumed across all maintenance records
+  getUsedQuantitiesFromMaintenance: async () => {
+    try {
+      const { data, error } = await supabaseClient
+        .from('maintenance_records')
+        .select('parts');
+
+      if (error) throw error;
+
+      const usedQty = {};
+      (data || []).forEach(record => {
+        if (!Array.isArray(record.parts)) return;
+        record.parts.forEach(partString => {
+          const qtyMatch = partString.match(/^(.+?)\s*\(Qty:\s*(\d+)\)$/);
+          if (qtyMatch) {
+            const name = qtyMatch[1].trim();
+            usedQty[name] = (usedQty[name] || 0) + parseInt(qtyMatch[2], 10);
+          } else if (!partString.includes('(Custom)') && !partString.includes(':')) {
+            const name = partString.trim();
+            usedQty[name] = (usedQty[name] || 0) + 1;
+          }
+        });
+      });
+
+      return usedQty;
+    } catch (error) {
+      console.error('Error getting used quantities from maintenance:', error);
+      return {};
+    }
   }
 };
