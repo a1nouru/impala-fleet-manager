@@ -994,8 +994,8 @@ function MaintenanceContent() {
               <span className="sm:hidden">{t("addMaintenance")}</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[650px] max-h-[95vh] flex flex-col mx-4 w-[calc(100vw-2rem)]">
-            <DialogHeader>
+          <DialogContent className="!left-0 !top-0 !flex !h-dvh !max-h-dvh !w-screen !max-w-none !translate-x-0 !translate-y-0 flex-col !gap-0 !rounded-none !border-0 !p-0 sm:!left-[50%] sm:!top-[50%] sm:!h-auto sm:!max-h-[92vh] sm:!w-[calc(100vw-2rem)] sm:!max-w-[700px] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!gap-4 sm:!rounded-lg sm:!border sm:!p-6">
+            <DialogHeader className="shrink-0 border-b px-4 pb-4 pl-4 pr-12 pt-[calc(1rem+env(safe-area-inset-top))] text-left sm:border-0 sm:p-0 sm:pr-0">
               <DialogTitle className="text-lg">
                 {isEditMode ? t("editMaintenance") : t("scheduleMaintenance")}
               </DialogTitle>
@@ -1006,8 +1006,8 @@ function MaintenanceContent() {
                 }
               </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[calc(95vh-140px)] overflow-y-auto">
-            <div className="grid gap-4 py-4 px-1">
+            <ScrollArea className="min-h-0 flex-1 overflow-y-auto">
+            <div className="grid gap-4 px-4 py-4 pb-6 sm:px-1 sm:py-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="vehiclePlate" className="flex items-center text-sm">
@@ -1207,7 +1207,7 @@ function MaintenanceContent() {
                   />
                 </div>
 
-                <ScrollArea className="h-96 border rounded-md p-4">
+                <ScrollArea className="max-h-none rounded-md border p-3 sm:h-96 sm:p-4">
                   {isLoading.parts ? (
                     <div className="flex justify-center items-center h-full">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -1243,14 +1243,14 @@ function MaintenanceContent() {
                         }
                         
                         return (
-                          <div key={itemName} className="border rounded-lg p-3 space-y-3">
-                            <div className="flex items-start space-x-3">
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-sm font-medium leading-none cursor-pointer">
+                          <div key={itemName} className="rounded-lg border p-3 space-y-3">
+                            <div className="flex items-start gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                  <label className="text-sm font-medium leading-none cursor-pointer break-words">
                                     {itemName}
                                   </label>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <span className="text-xs text-green-600 font-medium">
                                       ✓ {availableQuantity} {t("inventory.available")}
                                     </span>
@@ -1261,14 +1261,14 @@ function MaintenanceContent() {
                                 </div>
                                 
                                 {/* Quantity Selection */}
-                                <div className="flex items-center gap-2 mt-2">
+                                <div className="flex flex-col gap-2 mt-2 sm:flex-row sm:items-center">
                                   <Label className="text-xs text-muted-foreground">{t("inventory.quantityNeeded")}</Label>
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center gap-2 sm:gap-1">
                                     <Button
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      className="h-6 w-6 p-0"
+                                      className="h-10 w-10 p-0 sm:h-6 sm:w-6"
                                       onClick={() => handleQuantityChange(itemName, selectedQuantity - 1, availableQuantity)}
                                       disabled={selectedQuantity <= 0}
                                     >
@@ -1280,13 +1280,13 @@ function MaintenanceContent() {
                                       max={availableQuantity}
                                       value={selectedQuantity}
                                       onChange={(e) => handleQuantityChange(itemName, parseInt(e.target.value) || 0, availableQuantity)}
-                                      className="h-6 w-16 text-center text-xs"
+                                      className="h-10 w-20 text-center text-sm sm:h-6 sm:w-16 sm:text-xs"
                                     />
                                     <Button
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      className="h-6 w-6 p-0"
+                                      className="h-10 w-10 p-0 sm:h-6 sm:w-6"
                                       onClick={() => handleQuantityChange(itemName, selectedQuantity + 1, availableQuantity)}
                                       disabled={selectedQuantity >= availableQuantity}
                                     >
@@ -1332,13 +1332,14 @@ function MaintenanceContent() {
               </div>
             </div>
             </ScrollArea>
-            <DialogFooter>
-              <div className="flex gap-2 justify-end">
+            <DialogFooter className="shrink-0 border-t bg-background px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:border-0 sm:p-0">
+              <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setDialogOpen(false)}
                   disabled={isLoading.submit}
+                  className="h-11 sm:h-10"
                 >
                   {t("form.cancel")}
                 </Button>
@@ -1347,13 +1348,14 @@ function MaintenanceContent() {
                   variant="outline"
                   disabled={isDataLoading || isLoading.submit}
                   onClick={() => setResetDialogOpen(true)}
+                  className="h-11 sm:h-10"
                 >
                   {t("form.reset")}
                 </Button>
                 <Button
                   onClick={handleSubmit} 
                   disabled={!isFormValid() || isLoading.submit}
-                  className="bg-black hover:bg-gray-800 text-white"
+                  className="h-11 bg-black hover:bg-gray-800 text-white sm:h-10"
                 >
                   {isLoading.submit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isEditMode ? t("form.update") : t("form.submit")}
