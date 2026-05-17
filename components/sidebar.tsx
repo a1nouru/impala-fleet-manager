@@ -4,17 +4,18 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { 
-  Bus, 
-  FileBarChart, 
-  Wrench, 
+import {
+  Bus,
+  FileBarChart,
+  Wrench,
   User,
   LogOut,
   Menu,
   X,
   DollarSign,
   Users,
-  Bell
+  Bell,
+  FolderOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -83,6 +84,12 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
       icon: Bell,
       label: t("navigation.notifications"),
       active: !!pathname?.startsWith("/dashboard/notifications")
+    },
+    {
+      href: "/dashboard/documents",
+      icon: FolderOpen,
+      label: "Documents",
+      active: !!pathname?.startsWith("/dashboard/documents")
     },
     {
       href: "/dashboard/reports",
