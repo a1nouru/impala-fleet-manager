@@ -21,7 +21,8 @@ export const maintenanceService = {
         .select(`
           *,
           vehicles:vehicle_id(plate, model),
-          technicians:technician_id(name)
+          technicians:technician_id(name),
+          employees:driver_id(id, nome)
         `)
         .order('date', { ascending: false });
       
@@ -53,7 +54,8 @@ export const maintenanceService = {
         .select(`
           *,
           vehicles:vehicle_id(plate, model),
-          technicians:technician_id(name)
+          technicians:technician_id(name),
+          employees:driver_id(id, nome)
         `)
         .eq('id', id)
         .single();
