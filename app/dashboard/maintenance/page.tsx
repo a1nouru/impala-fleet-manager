@@ -43,6 +43,8 @@ import { vehicleService } from "@/services/vehicleService"
 import { technicianService } from "@/services/technicianService"
 import { partService } from "@/services/partService"
 import { inventoryService } from "@/services/inventoryService"
+import { hrService } from "@/services/hrService"
+import type { Employee } from "@/services/hrService"
 import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/context/AuthContext"
@@ -93,6 +95,7 @@ interface MaintenanceRecord {
   kilometers?: number;
   vehicle_id?: string;
   technician_id?: string;
+  driver_id?: string;
   vehiclePlate?: string;
   technician?: string;
   parts?: string[];
@@ -103,6 +106,10 @@ interface MaintenanceRecord {
   };
   technicians?: {
     name: string;
+  };
+  employees?: {
+    id: string;
+    nome: string;
   };
 }
 
@@ -270,6 +277,10 @@ function MaintenanceContent() {
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [driverFilter, setDriverFilter] = useState<string>("all");
+  const [driverSearchOpen, setDriverSearchOpen] = useState(false);
+  const [driverSearch, setDriverSearch] = useState("");
   const [busParts, setBusParts] = useState<PartCategory[]>([]);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [partsSearchTerm, setPartsSearchTerm] = useState('');
@@ -353,6 +364,7 @@ function MaintenanceContent() {
     records: true,
     vehicles: true,
     technicians: true,
+    employees: true,
     parts: true,
     submit: false,
     pageReady: false
@@ -365,6 +377,7 @@ function MaintenanceContent() {
     date: "",
     status: "Scheduled", // Default to scheduled
     technician: "",
+    driver: "",
     cost: "",
     description: "",
     kilometers: "", // Add kilometers field
@@ -393,25 +406,28 @@ function MaintenanceContent() {
       try {
         // Fetch all data in parallel for better performance
         const [
-          maintenanceData, 
-          vehicleData, 
-          technicianData, 
+          maintenanceData,
+          vehicleData,
+          technicianData,
           partData,
-          inventoryData
+          inventoryData,
+          employeeData
         ] = await Promise.all([
           maintenanceService.getMaintenanceRecords(),
           vehicleService.getVehicles(),
           technicianService.getTechnicians(),
           partService.getPartsByCategory(),
-          inventoryService.getInventoryItems()
+          inventoryService.getInventoryItems(),
+          hrService.getActiveEmployees()
         ]);
-        
+
         if (!isMounted) return;
-        
+
         // Set the data in state
         setRecords(maintenanceData || []);
         setVehicles(vehicleData || []);
         setTechnicians(technicianData || []);
+        setEmployees(employeeData || []);
         setInventoryItems(inventoryData || []);
         
         // Transform the parts data
@@ -437,11 +453,12 @@ function MaintenanceContent() {
           records: false,
           vehicles: false,
           technicians: false,
+          employees: false,
           parts: false,
           submit: false,
           pageReady: true
         });
-        
+
         setDataInitialized(true);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -451,12 +468,13 @@ function MaintenanceContent() {
             description: "Failed to load data. Please try refreshing the page.",
             variant: "destructive"
           });
-          
+
           // Even with error, mark loading as done to prevent infinite loading
           setIsLoading({
             records: false,
             vehicles: false,
             technicians: false,
+            employees: false,
             parts: false,
             submit: false,
             pageReady: true
@@ -525,11 +543,16 @@ function MaintenanceContent() {
     }
     
     // Filter by plate if a plate filter is selected and not set to "all"
-    if (plateFilter !== "all" && 
+    if (plateFilter !== "all" &&
         (record.vehicles?.plate !== plateFilter && record.vehiclePlate !== plateFilter)) {
       return false;
     }
-    
+
+    // Filter by driver
+    if (driverFilter !== "all" && record.driver_id !== driverFilter) {
+      return false;
+    }
+
     // Filter by date range — compare as date-only strings (YYYY-MM-DD) to avoid timezone issues
     if (dateRange?.from || dateRange?.to) {
       const recordDateStr = record.date.split('T')[0]; // "YYYY-MM-DD"
@@ -574,10 +597,11 @@ function MaintenanceContent() {
   // Check if all required fields are filled
   const isFormValid = () => {
     const requiredFields = [
-      'vehiclePlate', 
-      'date', 
-      'status', 
-      'technician', 
+      'vehiclePlate',
+      'date',
+      'status',
+      'technician',
+      'driver',
       'description',
       'kilometers'
     ];
@@ -764,14 +788,17 @@ function MaintenanceContent() {
       date: formattedDate,
       status: record.status,
       technician: technicianName,
+      driver: record.driver_id || "",
       cost: record.cost.toString(),
       description: record.description,
       kilometers: record.kilometers?.toString() || "",
     });
-    
+
     // Reset custom parts
     setCustomParts(customParts.map(item => ({ ...item, value: '', showInput: false })));
-    
+    setDriverSearch("");
+    setDriverSearchOpen(false);
+
     // Set selected parts
     setSelectedParts(record.parts || []);
     
@@ -782,10 +809,11 @@ function MaintenanceContent() {
   const validateForm = () => {
     const errors: Record<string, boolean> = {};
     const requiredFields = [
-      'vehiclePlate', 
-      'date', 
-      'status', 
-      'technician', 
+      'vehiclePlate',
+      'date',
+      'status',
+      'technician',
+      'driver',
       'description',
       'kilometers'
     ];
@@ -858,6 +886,7 @@ function MaintenanceContent() {
       date: newRecord.date,
       status: newRecord.status,
       technician_id: technician.id,
+      driver_id: newRecord.driver || null,
       cost: calculateMaintenanceCost(), // Use calculated cost from inventory
       description: newRecord.description,
       kilometers: parseFormattedNumber(newRecord.kilometers),
@@ -910,6 +939,7 @@ function MaintenanceContent() {
       date: "",
       status: "Scheduled",
       technician: "",
+      driver: "",
       cost: "", // Keep for compatibility but not used
       description: "",
       kilometers: "",
@@ -920,6 +950,8 @@ function MaintenanceContent() {
     setFormErrors({});
     setIsEditMode(false);
     setEditRecordId(null);
+    setDriverSearch("");
+    setDriverSearchOpen(false);
   };
   
   // Handle dialog open state change
@@ -930,7 +962,7 @@ function MaintenanceContent() {
     }
   };
 
-  const isDataLoading = isLoading.records || isLoading.vehicles || isLoading.technicians || isLoading.parts;
+  const isDataLoading = isLoading.records || isLoading.vehicles || isLoading.technicians || isLoading.employees || isLoading.parts;
 
   const handleDeleteConfirm = async () => {
     if (recordToDelete) {
@@ -1110,6 +1142,63 @@ function MaintenanceContent() {
                   </Select>
                   {formErrors.technician && (
                     <p className="text-xs text-red-500">{t("form.technicianRequired")}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="driver" className="flex items-center text-sm">
+                    Driver <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Popover open={driverSearchOpen} onOpenChange={setDriverSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={`w-full justify-between font-normal ${formErrors.driver ? "border-red-500" : ""}`}
+                      >
+                        {newRecord.driver
+                          ? employees.find(e => e.id === newRecord.driver)?.nome ?? "Select a driver"
+                          : "Select a driver"}
+                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-2" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                      <Input
+                        placeholder="Search drivers..."
+                        value={driverSearch}
+                        onChange={e => setDriverSearch(e.target.value)}
+                        className="mb-2 h-8"
+                      />
+                      {(() => {
+                        const filteredEmployees = employees.filter(e =>
+                          e.nome.toLowerCase().includes(driverSearch.toLowerCase())
+                        );
+                        return (
+                          <div className="max-h-48 overflow-y-auto space-y-1">
+                            {filteredEmployees.map(e => (
+                              <div
+                                key={e.id}
+                                className={`px-2 py-1.5 rounded text-sm cursor-pointer hover:bg-accent ${
+                                  newRecord.driver === e.id ? "bg-accent font-medium" : ""
+                                }`}
+                                onClick={() => {
+                                  handleSelectChange("driver", e.id);
+                                  setDriverSearchOpen(false);
+                                  setDriverSearch("");
+                                }}
+                              >
+                                {e.nome}
+                              </div>
+                            ))}
+                            {filteredEmployees.length === 0 && (
+                              <p className="text-xs text-muted-foreground px-2 py-1">No drivers found</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </PopoverContent>
+                  </Popover>
+                  {formErrors.driver && (
+                    <p className="text-xs text-red-500">Driver is required</p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -1519,10 +1608,30 @@ function MaintenanceContent() {
                             </SelectContent>
                           </Select>
                         </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="driverFilter">Driver</Label>
+                          <Select
+                            value={driverFilter}
+                            onValueChange={(value) => setDriverFilter(value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All Drivers" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Drivers</SelectItem>
+                              {employees.map((employee) => (
+                                <SelectItem key={employee.id} value={employee.id}>
+                                  {employee.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <DialogFooter className="flex-col sm:flex-row space-y-2 sm:space-y-0">
                         <Button variant="outline" onClick={() => {
                           setPlateFilter("all");
+                          setDriverFilter("all");
                           setFilterDialogOpen(false);
                         }} className="w-full sm:w-auto">
                           {t("filters.reset")}
