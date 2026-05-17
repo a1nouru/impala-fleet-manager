@@ -494,7 +494,7 @@ function MaintenanceContent() {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, activeTab, plateFilter, dateRange]);
+  }, [searchTerm, activeTab, plateFilter, driverFilter, dateRange]);
   
   // Skip the rest of the render if data isn't initialized
   if (!isLoading.pageReady) {
