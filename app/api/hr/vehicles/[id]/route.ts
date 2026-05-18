@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 // PUT /api/hr/vehicles/[id] - Update a vehicle
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
