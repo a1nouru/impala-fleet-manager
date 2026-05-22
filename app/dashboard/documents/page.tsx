@@ -26,13 +26,16 @@ import { Badge } from "@/components/ui/badge"
 import {
   Loader2,
   Upload,
-  Download,
   Trash2,
   FileText,
   CalendarIcon,
   Search,
   ChevronLeft,
   ChevronRight,
+  Filter,
+  Eye,
+  Plus,
+  Pencil,
 } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/AuthContext"
@@ -41,6 +44,8 @@ import {
   isWithinInterval,
   startOfDay,
   endOfDay,
+  startOfMonth,
+  endOfMonth,
   parseISO,
 } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -56,13 +61,22 @@ export default function DocumentsPage() {
   const [dateFilter, setDateFilter] = useState<{
     from: Date | undefined
     to: Date | undefined
-  }>({ from: undefined, to: undefined })
+  }>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  })
 
   // Upload dialog
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [documentName, setDocumentName] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+
+  // Edit dialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [documentToEdit, setDocumentToEdit] = useState<CompanyDocument | null>(null)
+  const [editName, setEditName] = useState("")
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -85,7 +99,6 @@ export default function DocumentsPage() {
   }
 
   useEffect(() => { fetchDocuments() }, [])
-
   useEffect(() => { setCurrentPage(1) }, [searchTerm, dateFilter])
 
   const filteredDocuments = documents.filter((doc) => {
@@ -107,7 +120,7 @@ export default function DocumentsPage() {
     return nameMatch && dateMatch
   })
 
-  const totalPages = Math.ceil(filteredDocuments.length / RECORDS_PER_PAGE)
+  const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / RECORDS_PER_PAGE))
   const currentPageDocs = filteredDocuments.slice(
     (currentPage - 1) * RECORDS_PER_PAGE,
     currentPage * RECORDS_PER_PAGE
@@ -131,6 +144,35 @@ export default function DocumentsPage() {
       toast({ title: "Error", description: "Failed to upload document.", variant: "destructive" })
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  const handleView = (doc: CompanyDocument) => {
+    if (doc.file_type === "pdf") {
+      window.open(doc.file_url, "_blank")
+    } else {
+      const a = document.createElement("a")
+      a.href = doc.file_url
+      a.download = doc.name
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
+  }
+
+  const handleEditSave = async () => {
+    if (!documentToEdit || !editName.trim()) return
+    setIsSavingEdit(true)
+    try {
+      await documentService.updateDocumentName(documentToEdit.id, editName.trim())
+      toast({ title: "Success", description: "Document renamed." })
+      setEditDialogOpen(false)
+      setDocumentToEdit(null)
+      fetchDocuments()
+    } catch {
+      toast({ title: "Error", description: "Failed to rename document.", variant: "destructive" })
+    } finally {
+      setIsSavingEdit(false)
     }
   }
 
@@ -165,10 +207,22 @@ export default function DocumentsPage() {
     return `${month}/${day}/${year}`
   }
 
+  const setToday = () => {
+    const today = new Date()
+    setDateFilter({ from: today, to: today })
+  }
+
+  const clearFilters = () => {
+    setSearchTerm("")
+    setDateFilter({ from: undefined, to: undefined })
+  }
+
+  const hasActiveFilters = searchTerm || dateFilter.from || dateFilter.to
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+      <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
           Company Documents
         </h1>
@@ -181,74 +235,96 @@ export default function DocumentsPage() {
         </Button>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 h-9"
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "h-9 justify-start text-left font-normal w-[130px]",
-                  !dateFilter.from && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateFilter.from ? format(dateFilter.from, "MMM dd") : "From"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateFilter.from}
-                onSelect={(date) =>
-                  setDateFilter((prev) => ({ ...prev, from: date }))
-                }
-                initialFocus
+      {/* Filter Bar — Company Expenses style */}
+      <div className="bg-white rounded-lg shadow-sm px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-600 shrink-0">
+            <Filter className="h-4 w-4" />
+            <span>Filters:</span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-gray-500">Search:</span>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search documents..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 h-9 w-48"
               />
-            </PopoverContent>
-          </Popover>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "h-9 justify-start text-left font-normal w-[130px]",
-                  !dateFilter.to && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateFilter.to ? format(dateFilter.to, "MMM dd") : "To"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateFilter.to}
-                onSelect={(date) =>
-                  setDateFilter((prev) => ({ ...prev, to: date }))
-                }
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          {(dateFilter.from || dateFilter.to) && (
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-gray-500">From:</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "h-9 justify-start text-left font-normal w-[120px]",
+                    !dateFilter.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                  {dateFilter.from ? format(dateFilter.from, "MMM dd") : "Pick date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFilter.from}
+                  onSelect={(date) => setDateFilter((prev) => ({ ...prev, from: date }))}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-gray-500">To:</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "h-9 justify-start text-left font-normal w-[120px]",
+                    !dateFilter.to && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                  {dateFilter.to ? format(dateFilter.to, "MMM dd") : "Pick date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFilter.to}
+                  onSelect={(date) => setDateFilter((prev) => ({ ...prev, to: date }))}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 text-sm font-normal shrink-0"
+            onClick={setToday}
+          >
+            Today
+          </Button>
+
+          {hasActiveFilters && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-9"
-              onClick={() => setDateFilter({ from: undefined, to: undefined })}
+              className="h-9 text-sm font-normal text-gray-500 shrink-0"
+              onClick={clearFilters}
             >
-              Clear
+              Clear Filters
             </Button>
           )}
         </div>
@@ -258,20 +334,31 @@ export default function DocumentsPage() {
       <div className="bg-white rounded-lg shadow-sm">
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
         ) : filteredDocuments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <FileText className="h-12 w-12 text-muted-foreground mb-3" />
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="bg-gray-100 rounded-full p-5 mb-4">
+              <FileText className="h-10 w-10 text-gray-400" />
+            </div>
             {documents.length === 0 ? (
               <>
-                <p className="text-lg font-medium text-gray-700">No documents uploaded yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Upload your first document using the button above.</p>
+                <p className="text-lg font-semibold text-gray-800 mb-1">No documents uploaded yet</p>
+                <p className="text-sm text-gray-500 mb-6 max-w-sm">
+                  Keep your company files organized by uploading your first document.
+                </p>
+                <Button
+                  className="bg-black hover:bg-gray-800 text-white px-6"
+                  onClick={() => setUploadDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Upload Your First Document
+                </Button>
               </>
             ) : (
               <>
-                <p className="text-lg font-medium text-gray-700">No documents match your filters</p>
-                <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or date range.</p>
+                <p className="text-lg font-semibold text-gray-800 mb-1">No documents match your filters</p>
+                <p className="text-sm text-gray-500">Try adjusting your search or date range.</p>
               </>
             )}
           </div>
@@ -300,24 +387,40 @@ export default function DocumentsPage() {
                         {formatDate(doc.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => window.open(doc.file_url, "_blank")}
+                            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900"
+                            onClick={() => {
+                              setDocumentToEdit(doc)
+                              setEditName(doc.name)
+                              setEditDialogOpen(true)
+                            }}
+                            title="Edit"
                           >
-                            <Download className="h-4 w-4" />
-                            <span className="sr-only">Download</span>
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
                           </Button>
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900"
+                            onClick={() => handleView(doc)}
+                            title={doc.file_type === "pdf" ? "View" : "Download"}
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                             onClick={() => {
                               setDocumentToDelete(doc)
                               setDeleteDialogOpen(true)
                             }}
+                            title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Delete</span>
@@ -419,6 +522,46 @@ export default function DocumentsPage() {
             >
               {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Upload
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open)
+          if (!open) { setDocumentToEdit(null); setEditName("") }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Rename Document</DialogTitle>
+            <DialogDescription>Update the name for this document.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Document Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleEditSave() }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={isSavingEdit}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditSave}
+              disabled={!editName.trim() || isSavingEdit}
+              className="bg-black hover:bg-gray-800 text-white"
+            >
+              {isSavingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>

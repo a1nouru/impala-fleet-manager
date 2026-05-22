@@ -63,6 +63,14 @@ export const documentService = {
     return data
   },
 
+  updateDocumentName: async (id: string, name: string): Promise<void> => {
+    const { error } = await supabaseClient
+      .from('company_documents')
+      .update({ name })
+      .eq('id', id)
+    if (error) throw error
+  },
+
   deleteDocument: async (id: string, fileUrl: string): Promise<void> => {
     try {
       const url = new URL(fileUrl)
