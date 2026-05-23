@@ -181,9 +181,12 @@ export default function EmployeesPage() {
     if (formatted.length > 24) {
       formatted = formatted.slice(0, 24) + '.' + formatted.slice(24);
     }
-    
-    // Limit to correct length
-    return formatted.slice(0, 29);
+    if (formatted.length > 29) {
+      formatted = formatted.slice(0, 29) + '.' + formatted.slice(29);
+    }
+
+    // Limit to correct length: AO06.0000.0000.0000.0000.0000.0 = 31 chars
+    return formatted.slice(0, 31);
   };
 
   const fetchEmployees = async () => {

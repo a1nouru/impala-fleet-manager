@@ -90,6 +90,7 @@ export default function VehicleDamagesPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hrTablesExist, setHrTablesExist] = useState(true);
 
   // Dialog states
   const [newDamageDialogOpen, setNewDamageDialogOpen] = useState(false);
@@ -136,6 +137,13 @@ export default function VehicleDamagesPage() {
       console.log("🔄 Starting HR data fetch...");
       
       // Fetch data sequentially to better debug issues
+      const tablesExist = await hrService.checkTablesExist();
+      setHrTablesExist(tablesExist);
+      if (!tablesExist) {
+        setIsLoading(false);
+        return;
+      }
+
       console.log("📋 Fetching employees...");
       const employeesData = await hrService.getActiveEmployees();
       console.log("✅ Employees fetched:", employeesData.length);
@@ -512,7 +520,7 @@ export default function VehicleDamagesPage() {
       </div>
 
       {/* Database Setup Warning */}
-      {employees.length === 0 && !isLoading && (
+      {!hrTablesExist && !isLoading && (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">

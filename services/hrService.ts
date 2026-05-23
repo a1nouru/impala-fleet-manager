@@ -105,6 +105,19 @@ class HRService {
     }
   }
 
+  async checkTablesExist(): Promise<boolean> {
+    try {
+      if (!supabase) return false;
+      const { error } = await supabase.from('employees').select('id').limit(1);
+      if (error && error.message.includes('relation') && error.message.includes('does not exist')) {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async getActiveEmployees(): Promise<Employee[]> {
     try {
       if (!supabase) {
@@ -119,7 +132,6 @@ class HRService {
 
       if (error) {
         console.error('Error fetching active employees:', error);
-        // Handle table doesn't exist error
         if (error.message.includes('relation') && error.message.includes('does not exist')) {
           console.warn('Employees table does not exist. Please run the HR migrations.');
           return [];
