@@ -34,8 +34,11 @@ import {
   ChevronRight,
   Filter,
   Eye,
+  EyeOff,
   Plus,
   Pencil,
+  Lock,
+  X,
 } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/AuthContext"
@@ -49,7 +52,7 @@ import {
   parseISO,
 } from "date-fns"
 import { cn } from "@/lib/utils"
-import { documentService, CompanyDocument } from "@/services/documentService"
+import { documentService, CompanyDocument, hashPassword } from "@/services/documentService"
 
 const RECORDS_PER_PAGE = 20
 
@@ -71,6 +74,8 @@ export default function DocumentsPage() {
   const [documentName, setDocumentName] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadPassword, setUploadPassword] = useState('')
+  const [uploadPasswordShow, setUploadPasswordShow] = useState(false)
 
   // Edit dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -86,6 +91,24 @@ export default function DocumentsPage() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
 
+  // Password prompt
+  type PromptAction = 'view' | 'edit' | 'delete'
+  const [promptState, setPromptState] = useState<{
+    open: boolean
+    doc: CompanyDocument | null
+    action: PromptAction | null
+    value: string
+    error: string
+    showPassword: boolean
+  }>({ open: false, doc: null, action: null, value: '', error: '', showPassword: false })
+
+  // Expanded edit state
+  const [editFile, setEditFile] = useState<File | null>(null)
+  const [editFileRemoved, setEditFileRemoved] = useState(false)
+  const [editPassword, setEditPassword] = useState('')
+  const [editPasswordShow, setEditPasswordShow] = useState(false)
+  const [editPasswordAction, setEditPasswordAction] = useState<'keep' | 'change' | 'remove'>('keep')
+
   const fetchDocuments = async () => {
     try {
       setIsLoading(true)
@@ -100,6 +123,47 @@ export default function DocumentsPage() {
 
   useEffect(() => { fetchDocuments() }, [])
   useEffect(() => { setCurrentPage(1) }, [searchTerm, dateFilter])
+
+  const triggerAction = (doc: CompanyDocument, action: PromptAction) => {
+    if (doc.password_hash) {
+      setPromptState({ open: true, doc, action, value: '', error: '', showPassword: false })
+    } else {
+      executeAction(doc, action)
+    }
+  }
+
+  const executeAction = (doc: CompanyDocument, action: PromptAction) => {
+    if (action === 'view') handleView(doc)
+    else if (action === 'edit') {
+      setDocumentToEdit(doc)
+      setEditName(doc.name)
+      setEditFile(null)
+      setEditFileRemoved(false)
+      setEditPassword('')
+      setEditPasswordAction('keep')
+      setEditDialogOpen(true)
+    }
+    else if (action === 'delete') {
+      setDocumentToDelete(doc)
+      setDeleteDialogOpen(true)
+    }
+  }
+
+  const handlePromptConfirm = async () => {
+    const { doc, action, value } = promptState
+    if (!doc || !action) return
+    try {
+      const hash = await hashPassword(value)
+      if (hash !== doc.password_hash) {
+        setPromptState(prev => ({ ...prev, error: 'Incorrect password', value: '' }))
+        return
+      }
+      setPromptState({ open: false, doc: null, action: null, value: '', error: '', showPassword: false })
+      executeAction(doc, action)
+    } catch {
+      setPromptState(prev => ({ ...prev, error: 'Could not verify password, try again' }))
+    }
+  }
 
   const filteredDocuments = documents.filter((doc) => {
     const nameMatch = doc.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -133,12 +197,15 @@ export default function DocumentsPage() {
       await documentService.uploadDocument(
         documentName.trim(),
         selectedFile,
-        user?.email || ""
+        user?.email || "",
+        uploadPassword || undefined
       )
       toast({ title: "Success", description: "Document uploaded successfully." })
       setUploadDialogOpen(false)
       setDocumentName("")
       setSelectedFile(null)
+      setUploadPassword("")
+      setUploadPasswordShow(false)
       fetchDocuments()
     } catch {
       toast({ title: "Error", description: "Failed to upload document.", variant: "destructive" })
@@ -148,6 +215,7 @@ export default function DocumentsPage() {
   }
 
   const handleView = (doc: CompanyDocument) => {
+    if (!doc.file_url) return
     if (doc.file_type === "pdf") {
       window.open(doc.file_url, "_blank")
     } else {
@@ -164,13 +232,33 @@ export default function DocumentsPage() {
     if (!documentToEdit || !editName.trim()) return
     setIsSavingEdit(true)
     try {
-      await documentService.updateDocumentName(documentToEdit.id, editName.trim())
-      toast({ title: "Success", description: "Document renamed." })
+      const patch: Parameters<typeof documentService.updateDocument>[1] = {}
+
+      if (editName.trim() !== documentToEdit.name) patch.name = editName.trim()
+
+      if (editFileRemoved) {
+        patch.removeFile = true
+        patch.currentFileUrl = documentToEdit.file_url
+      } else if (editFile) {
+        patch.newFile = editFile
+        patch.currentFileUrl = documentToEdit.file_url
+      }
+
+      if (editPasswordAction === 'remove') {
+        patch.passwordHash = null
+      } else if (editPasswordAction === 'change' && editPassword) {
+        patch.passwordHash = await hashPassword(editPassword)
+      } else if (!documentToEdit.password_hash && editPassword) {
+        patch.passwordHash = await hashPassword(editPassword)
+      }
+
+      await documentService.updateDocument(documentToEdit.id, patch)
+      toast({ title: "Success", description: "Document updated." })
       setEditDialogOpen(false)
       setDocumentToEdit(null)
       fetchDocuments()
     } catch {
-      toast({ title: "Error", description: "Failed to rename document.", variant: "destructive" })
+      toast({ title: "Error", description: "Failed to update document.", variant: "destructive" })
     } finally {
       setIsSavingEdit(false)
     }
@@ -207,6 +295,17 @@ export default function DocumentsPage() {
     return `${month}/${day}/${year}`
   }
 
+  const getFilenameFromUrl = (url: string): string => {
+    try {
+      const parts = new URL(url).pathname.split('/')
+      const raw = parts[parts.length - 1] || 'file'
+      const withoutUuid = raw.replace(/^[0-9a-f-]{36}-/, '')
+      return withoutUuid || raw
+    } catch {
+      return 'file'
+    }
+  }
+
   const setToday = () => {
     const today = new Date()
     setDateFilter({ from: today, to: today })
@@ -235,7 +334,7 @@ export default function DocumentsPage() {
         </Button>
       </div>
 
-      {/* Filter Bar — Company Expenses style */}
+      {/* Filter Bar */}
       <div className="bg-white rounded-lg shadow-sm px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 text-sm font-medium text-gray-600 shrink-0">
@@ -378,7 +477,14 @@ export default function DocumentsPage() {
                 <TableBody>
                   {currentPageDocs.map((doc) => (
                     <TableRow key={doc.id}>
-                      <TableCell className="font-medium">{doc.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <span className="flex items-center gap-1.5">
+                          {doc.name}
+                          {doc.password_hash && (
+                            <Lock className="h-3.5 w-3.5 text-gray-400 shrink-0" title="Password protected" />
+                          )}
+                        </span>
+                      </TableCell>
                       <TableCell>{typeBadge(doc.file_type)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {doc.uploaded_by || "-"}
@@ -392,11 +498,7 @@ export default function DocumentsPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900"
-                            onClick={() => {
-                              setDocumentToEdit(doc)
-                              setEditName(doc.name)
-                              setEditDialogOpen(true)
-                            }}
+                            onClick={() => triggerAction(doc, 'edit')}
                             title="Edit"
                           >
                             <Pencil className="h-4 w-4" />
@@ -406,7 +508,7 @@ export default function DocumentsPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900"
-                            onClick={() => handleView(doc)}
+                            onClick={() => triggerAction(doc, 'view')}
                             title={doc.file_type === "pdf" ? "View" : "Download"}
                           >
                             <Eye className="h-4 w-4" />
@@ -416,10 +518,7 @@ export default function DocumentsPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => {
-                              setDocumentToDelete(doc)
-                              setDeleteDialogOpen(true)
-                            }}
+                            onClick={() => triggerAction(doc, 'delete')}
                             title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -462,6 +561,67 @@ export default function DocumentsPage() {
         )}
       </div>
 
+      {/* Password Prompt Dialog */}
+      <Dialog
+        open={promptState.open}
+        onOpenChange={(open) => {
+          if (!open) setPromptState({ open: false, doc: null, action: null, value: '', error: '', showPassword: false })
+        }}
+      >
+        <DialogContent className="sm:max-w-[380px] mx-4 w-[calc(100vw-2rem)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-4 w-4" /> This document is protected
+            </DialogTitle>
+            <DialogDescription>
+              Enter the password to {promptState.action} &ldquo;{promptState.doc?.name}&rdquo;.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <div className="relative">
+              <Input
+                type={promptState.showPassword ? 'text' : 'password'}
+                placeholder="Password"
+                value={promptState.value}
+                onChange={(e) => setPromptState(prev => ({ ...prev, value: e.target.value, error: '' }))}
+                onKeyDown={(e) => { if (e.key === 'Enter') handlePromptConfirm() }}
+                className={cn("pr-9", promptState.error && "border-red-500")}
+                autoFocus
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1 h-7 w-7 p-0"
+                onClick={() => setPromptState(prev => ({ ...prev, showPassword: !prev.showPassword }))}
+                type="button"
+              >
+                {promptState.showPassword
+                  ? <EyeOff className="h-4 w-4 text-gray-400" />
+                  : <Eye className="h-4 w-4 text-gray-400" />}
+              </Button>
+            </div>
+            {promptState.error && (
+              <p className="text-sm text-red-500">{promptState.error}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPromptState({ open: false, doc: null, action: null, value: '', error: '', showPassword: false })}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePromptConfirm}
+              disabled={!promptState.value}
+              className="bg-black hover:bg-gray-800 text-white"
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Upload Dialog */}
       <Dialog
         open={uploadDialogOpen}
@@ -470,6 +630,8 @@ export default function DocumentsPage() {
           if (!open) {
             setDocumentName("")
             setSelectedFile(null)
+            setUploadPassword("")
+            setUploadPasswordShow(false)
           }
         }}
       >
@@ -506,6 +668,32 @@ export default function DocumentsPage() {
                 <p className="text-xs text-muted-foreground">{selectedFile.name}</p>
               )}
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="upload-password">
+                Password <span className="text-gray-400 font-normal text-xs">(optional)</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="upload-password"
+                  type={uploadPasswordShow ? 'text' : 'password'}
+                  placeholder="Leave blank for no protection"
+                  value={uploadPassword}
+                  onChange={(e) => setUploadPassword(e.target.value)}
+                  className="pr-9"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  className="absolute right-1 top-1 h-7 w-7 p-0"
+                  onClick={() => setUploadPasswordShow(p => !p)}
+                >
+                  {uploadPasswordShow
+                    ? <EyeOff className="h-4 w-4 text-gray-400" />
+                    : <Eye className="h-4 w-4 text-gray-400" />}
+                </Button>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -532,15 +720,25 @@ export default function DocumentsPage() {
         open={editDialogOpen}
         onOpenChange={(open) => {
           setEditDialogOpen(open)
-          if (!open) { setDocumentToEdit(null); setEditName("") }
+          if (!open) {
+            setDocumentToEdit(null)
+            setEditName("")
+            setEditFile(null)
+            setEditFileRemoved(false)
+            setEditPassword('')
+            setEditPasswordAction('keep')
+            setEditPasswordShow(false)
+          }
         }}
       >
-        <DialogContent className="sm:max-w-[425px] mx-4 w-[calc(100vw-2rem)]">
+        <DialogContent className="sm:max-w-[460px] mx-4 w-[calc(100vw-2rem)]">
           <DialogHeader>
-            <DialogTitle>Rename Document</DialogTitle>
-            <DialogDescription>Update the name for this document.</DialogDescription>
+            <DialogTitle>Edit Document</DialogTitle>
+            <DialogDescription>Update the name, file, or password for this document.</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="grid gap-5 py-4">
+
+            {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="edit-name">Document Name</Label>
               <Input
@@ -550,6 +748,119 @@ export default function DocumentsPage() {
                 onKeyDown={(e) => { if (e.key === "Enter") handleEditSave() }}
               />
             </div>
+
+            {/* Attachment */}
+            <div className="space-y-2">
+              <Label>Attachment</Label>
+              {editFileRemoved ? (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border text-sm text-gray-500">
+                  <span className="flex-1">No attachment</span>
+                  <Button variant="ghost" size="sm" className="h-6 text-xs px-2"
+                    onClick={() => setEditFileRemoved(false)}>
+                    Undo
+                  </Button>
+                </div>
+              ) : editFile ? (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border text-sm">
+                  <span className="truncate flex-1 text-gray-700">{editFile.name}</span>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
+                    onClick={() => setEditFile(null)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border text-sm">
+                  <span className="truncate flex-1 text-gray-600">
+                    {documentToEdit?.file_url
+                      ? getFilenameFromUrl(documentToEdit.file_url)
+                      : 'No attachment'}
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-6 text-xs px-2 shrink-0"
+                    onClick={() => document.getElementById('edit-file-input')?.click()}>
+                    Replace
+                  </Button>
+                  {documentToEdit?.file_url && (
+                    <Button variant="ghost" size="sm"
+                      className="h-6 text-xs px-2 text-red-500 hover:text-red-600 shrink-0"
+                      onClick={() => setEditFileRemoved(true)}>
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              )}
+              <input
+                id="edit-file-input"
+                type="file"
+                accept=".pdf,.xlsx,.xls,.docx,.doc"
+                className="hidden"
+                onChange={(e) => {
+                  setEditFile(e.target.files?.[0] || null)
+                  e.target.value = ''
+                }}
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <Label>Password</Label>
+              {documentToEdit?.password_hash ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    {(['keep', 'change', 'remove'] as const).map(opt => (
+                      <Button
+                        key={opt}
+                        variant={editPasswordAction === opt ? 'default' : 'outline'}
+                        size="sm"
+                        type="button"
+                        className={cn(
+                          "h-7 text-xs capitalize",
+                          editPasswordAction === opt && "bg-black text-white hover:bg-gray-800"
+                        )}
+                        onClick={() => setEditPasswordAction(opt)}
+                      >
+                        {opt === 'keep' ? 'Keep' : opt === 'change' ? 'Change' : 'Remove'}
+                      </Button>
+                    ))}
+                  </div>
+                  {editPasswordAction === 'change' && (
+                    <div className="relative">
+                      <Input
+                        type={editPasswordShow ? 'text' : 'password'}
+                        placeholder="New password"
+                        value={editPassword}
+                        onChange={(e) => setEditPassword(e.target.value)}
+                        className="pr-9"
+                      />
+                      <Button variant="ghost" size="sm" type="button"
+                        className="absolute right-1 top-1 h-7 w-7 p-0"
+                        onClick={() => setEditPasswordShow(p => !p)}>
+                        {editPasswordShow
+                          ? <EyeOff className="h-4 w-4 text-gray-400" />
+                          : <Eye className="h-4 w-4 text-gray-400" />}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="relative">
+                  <Input
+                    type={editPasswordShow ? 'text' : 'password'}
+                    placeholder="Add password (optional)"
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    className="pr-9"
+                  />
+                  <Button variant="ghost" size="sm" type="button"
+                    className="absolute right-1 top-1 h-7 w-7 p-0"
+                    onClick={() => setEditPasswordShow(p => !p)}>
+                    {editPasswordShow
+                      ? <EyeOff className="h-4 w-4 text-gray-400" />
+                      : <Eye className="h-4 w-4 text-gray-400" />}
+                  </Button>
+                </div>
+              )}
+            </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={isSavingEdit}>
