@@ -42,13 +42,21 @@ export interface DateAudit {
 
 export interface DailyExpense {
   id: string;
-  report_id: string;
+  report_id?: string | null; // null for standalone (report-free) expenses
+  vehicle_id?: string | null; // set on standalone expenses (vehicle is required)
+  expense_date?: string | null; // set on standalone expenses (no parent report to borrow the date from)
+  route?: string | null; // optional route on standalone expenses
   category: string;
   description?: string;
   amount: number;
   receipt_url?: string; // URL to fuel receipt image
   created_at: string;
   updated_at: string;
+}
+
+// A standalone expense as returned from the DB, with its vehicle joined for display.
+export interface StandaloneExpense extends DailyExpense {
+  vehicles?: { plate: string } | null;
 }
 
 export interface BankDepositSlip {
@@ -271,6 +279,28 @@ export const financialService = {
     }
 
     return data;
+  },
+
+  /**
+   * Fetches standalone (report-free) expenses, joining the vehicle for display.
+   * These are expenses created directly from the All Expenses page rather than
+   * from within a daily report.
+   */
+  async getStandaloneExpenses(): Promise<StandaloneExpense[]> {
+    const { data, error } = await supabase
+      .from('daily_expenses')
+      .select(`*, vehicles ( plate )`)
+      .is('report_id', null)
+      .order('expense_date', { ascending: false });
+
+    if (error) {
+      // If the columns/relationship don't exist yet (migration not applied), don't
+      // break the whole expenses page — just return nothing.
+      console.error('Error fetching standalone expenses:', error);
+      return [];
+    }
+
+    return (data as StandaloneExpense[]) || [];
   },
 
   /**

@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Filter, CalendarIcon, Receipt, Eye, Edit, Trash2, Download, ChevronLeft, ChevronRight, Upload, X, FileText } from "lucide-react";
+import { Loader2, Filter, CalendarIcon, Receipt, Eye, Edit, Trash2, Download, ChevronLeft, ChevronRight, Upload, X, FileText, Plus } from "lucide-react";
 
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
+import { vehicleService } from "@/services/vehicleService";
 import { toast } from "@/components/ui/use-toast";
 import {
   Dialog,
@@ -186,6 +187,107 @@ export default function AllExpensesPage() {
     to: new Date(),
   });
 
+  // Standalone "Add Expense" flow (report-free vehicle expenses)
+  const [vehicles, setVehicles] = useState<{ id: string; plate: string }[]>([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newExpense, setNewExpense] = useState<{
+    category: string;
+    vehicle_id: string;
+    expense_date: string;
+    route: string;
+    description: string;
+    amount: string;
+  }>({
+    category: "",
+    vehicle_id: "",
+    expense_date: format(new Date(), "yyyy-MM-dd"),
+    route: "",
+    description: "",
+    amount: "",
+  });
+  const [newReceiptFile, setNewReceiptFile] = useState<File | null>(null);
+
+  const resetNewExpense = () => {
+    setNewExpense({
+      category: "",
+      vehicle_id: "",
+      expense_date: format(new Date(), "yyyy-MM-dd"),
+      route: "",
+      description: "",
+      amount: "",
+    });
+    setNewReceiptFile(null);
+  };
+
+  const fetchVehicles = async () => {
+    try {
+      const data = await vehicleService.getVehicles();
+      setVehicles(
+        (data || [])
+          .filter((v: any) => v?.id && v?.plate)
+          .map((v: any) => ({ id: v.id, plate: v.plate }))
+      );
+    } catch (error) {
+      console.error("Failed to load vehicles", error);
+    }
+  };
+
+  const handleCreateStandaloneExpense = async () => {
+    const amountNum = parseFloat(newExpense.amount);
+    if (!newExpense.category || !newExpense.vehicle_id || !newExpense.expense_date || isNaN(amountNum) || amountNum <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please choose a category, a vehicle, a date, and a valid amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Fuel expenses require a receipt, matching the in-report rule.
+    if (newExpense.category === "Fuel" && !newReceiptFile) {
+      toast({
+        title: "❌ Receipt required",
+        description: "A fuel receipt is required for fuel expenses.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      let receiptUrl = "";
+      if (newExpense.category === "Fuel" && newReceiptFile && user?.id) {
+        setIsUploadingReceipt(true);
+        try {
+          receiptUrl = await financialService.uploadFuelReceipt(newReceiptFile, user.id);
+        } finally {
+          setIsUploadingReceipt(false);
+        }
+      }
+
+      await financialService.createDailyExpense({
+        report_id: null,
+        vehicle_id: newExpense.vehicle_id,
+        expense_date: newExpense.expense_date,
+        route: newExpense.route.trim() || null,
+        category: newExpense.category,
+        description: newExpense.description.trim() || undefined,
+        amount: amountNum,
+        receipt_url: receiptUrl || undefined,
+      } as Omit<DailyExpense, "id" | "created_at" | "updated_at">);
+
+      toast({ title: "✅ Success", description: "Expense added successfully." });
+      setIsAddDialogOpen(false);
+      resetNewExpense();
+      fetchExpenses();
+    } catch (error) {
+      toast({ title: "❌ Error", description: "Failed to add expense.", variant: "destructive" });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const fetchExpenses = async () => {
     try {
       setIsLoading(true);
@@ -208,7 +310,23 @@ export default function AllExpensesPage() {
           });
         }
       });
-      
+
+      // Merge in standalone (report-free) expenses, shaping them like report-backed
+      // ones so the rest of the page (filtering, grouping, edit, delete) is unchanged.
+      const standalone = await financialService.getStandaloneExpenses();
+      standalone.forEach(expense => {
+        if (!expense.expense_date) return;
+        allExpenses.push({
+          ...expense,
+          report: {
+            id: '',
+            report_date: expense.expense_date,
+            vehicle_plate: expense.vehicles?.plate || 'Unknown',
+            route: expense.route || undefined,
+          }
+        });
+      });
+
       setExpenses(allExpenses);
     } catch (error) {
       toast({
@@ -223,6 +341,7 @@ export default function AllExpensesPage() {
 
   useEffect(() => {
     fetchExpenses();
+    fetchVehicles();
   }, []);
 
   // Filter expenses based on selected filters
@@ -488,6 +607,13 @@ export default function AllExpensesPage() {
           </h2>
           <p className="text-muted-foreground">{t("allExpenses.subtitle")}</p>
         </div>
+        <Button
+          onClick={() => { resetNewExpense(); setIsAddDialogOpen(true); }}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add Expense
+        </Button>
       </div>
 
       {/* Sub Navigation */}
@@ -1169,6 +1295,150 @@ export default function AllExpensesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Standalone Expense Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) resetNewExpense(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Expense</DialogTitle>
+            <DialogDescription>
+              {newExpense.category
+                ? "Assign this expense to a vehicle. It is recorded directly, without a daily report."
+                : "First, choose the type of expense you want to add."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Step 1: choose the expense type */}
+            <div className="space-y-2">
+              <Label>{t("expenses.expenseType")}</Label>
+              <Select
+                value={newExpense.category}
+                onValueChange={(value) => setNewExpense(prev => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("expenses.selectExpenseType")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Fuel">{t("expenses.categories.fuel")}</SelectItem>
+                  <SelectItem value="Subsidy">{t("expenses.categories.subsidy")}</SelectItem>
+                  <SelectItem value="Other">{t("expenses.categories.other")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Step 2: details (revealed once a type is chosen) */}
+            {newExpense.category && (
+              <>
+                <div className="space-y-2">
+                  <Label>Vehicle</Label>
+                  <Select
+                    value={newExpense.vehicle_id}
+                    onValueChange={(value) => setNewExpense(prev => ({ ...prev, vehicle_id: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={vehicles.length ? "Select a vehicle" : "No vehicles available"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicles.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={newExpense.expense_date}
+                      onChange={(e) => setNewExpense(prev => ({ ...prev, expense_date: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Amount</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={newExpense.amount}
+                      onChange={(e) => setNewExpense(prev => ({ ...prev, amount: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Route (optional)</Label>
+                  <Input
+                    placeholder="e.g. LUANDA - HUAMBO"
+                    value={newExpense.route}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, route: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={newExpense.description}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Optional description..."
+                  />
+                </div>
+
+                {/* Fuel Receipt Upload (required for fuel) */}
+                {newExpense.category === "Fuel" && (
+                  <div className="space-y-2">
+                    <Label>{t("expenses.fuelReceipt")}</Label>
+                    {newReceiptFile ? (
+                      <div className="flex items-center justify-between p-2 bg-blue-50 rounded-md border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <Upload className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm text-blue-700">{newReceiptFile.name}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNewReceiptFile(null)}
+                          className="h-7 w-7 p-0 text-red-500 hover:text-red-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => setNewReceiptFile(e.target.files?.[0] || null)}
+                          className="hidden"
+                          id="receipt-upload-add-expense"
+                        />
+                        <label htmlFor="receipt-upload-add-expense" className="cursor-pointer">
+                          <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-600">{t("expenses.uploadFuelReceipt")}</p>
+                          <p className="text-xs text-gray-400 mt-1">{t("expenses.receiptFileFormats")}</p>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetNewExpense(); }}>
+              {t("buttons.cancel")}
+            </Button>
+            <Button
+              onClick={handleCreateStandaloneExpense}
+              disabled={!newExpense.category || isCreating || isUploadingReceipt}
+            >
+              {(isCreating || isUploadingReceipt) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isUploadingReceipt ? "Uploading..." : "Save Expense"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-} 
+}
