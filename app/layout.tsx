@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/use-toast";
@@ -19,14 +19,23 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Impala Express - Fleet Management System (Internal)",
   description: "Internal tool for managing bus fleet, tracking maintenance, and monitoring spare parts inventory.",
+  applicationName: "Impala Fleet",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Impala Fleet",
+  },
   icons: {
-    icon: [
-      {
-        url: '/favicon.svg',
-        href: '/favicon.svg',
-      }
-    ]
-  }
+    icon: [{ url: '/favicon.svg', href: '/favicon.svg' }],
+    apple: [{ url: '/icons/apple-touch-icon-180.png', sizes: '180x180' }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2563eb",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
