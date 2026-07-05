@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { notificationService } from '@/services/notificationService';
+import { sendPushToAll } from '@/lib/push/sender';
 
 // This endpoint can be called by a cron job service like Vercel Cron or external schedulers
 export async function POST(request: NextRequest) {
@@ -74,7 +75,17 @@ export async function POST(request: NextRequest) {
         if (whatsappResult.success) {
           // Update the last triggered time
           await notificationService.updateLastTriggered(notification.id);
-          
+
+          try {
+            await sendPushToAll({
+              title: notification.name,
+              body: processedMessage,
+              url: '/dashboard/notifications',
+            });
+          } catch (pushErr) {
+            console.error('⚠️ Push fan-out failed (WhatsApp still sent):', pushErr);
+          }
+
           console.log(`✅ Successfully triggered notification: ${notification.name}`);
           results.push({
             notificationId: notification.id,
