@@ -5,6 +5,7 @@ import { ToastProvider } from "@/components/ui/use-toast";
 import { AuthProvider } from "@/context/AuthContext";
 import { DebugEnvironment } from "./debug-env";
 import { I18nProvider } from "@/components/I18nProvider";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,6 +58,7 @@ export default function RootLayout({
           </ToastProvider>
         </AuthProvider>
         <DebugEnvironment />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
