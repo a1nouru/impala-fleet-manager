@@ -1,6 +1,6 @@
 // Impala Fleet service worker. Caching is intentionally minimal:
 // static assets only + an offline fallback. Authenticated pages/APIs are NEVER cached.
-const CACHE = 'impala-pwa-v1';
+const CACHE = 'impala-pwa-v2';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE = [OFFLINE_URL, '/icons/icon-192.png'];
 
@@ -42,4 +42,30 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   // Everything else (API, data): straight to network, no caching.
+});
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'Impala Fleet', body: 'You have a new notification', url: '/dashboard' };
+  try { if (event.data) data = { ...data, ...event.data.json() }; } catch (_) {}
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: data.url || '/dashboard' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = event.notification.data?.url || '/dashboard';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const c of clients) {
+        if ('focus' in c) { c.navigate(target); return c.focus(); }
+      }
+      return self.clients.openWindow(target);
+    })
+  );
 });
