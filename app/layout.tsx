@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { DebugEnvironment } from "./debug-env";
 import { I18nProvider } from "@/components/I18nProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { PushOptIn } from "@/components/PushOptIn";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,9 +57,10 @@ export default function RootLayout({
               {children}
             </I18nProvider>
           </ToastProvider>
+          <DebugEnvironment />
+          <ServiceWorkerRegister />
+          <PushOptIn />
         </AuthProvider>
-        <DebugEnvironment />
-        <ServiceWorkerRegister />
       </body>
     </html>
   );
