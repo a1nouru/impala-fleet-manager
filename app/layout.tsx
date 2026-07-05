@@ -7,6 +7,7 @@ import { DebugEnvironment } from "./debug-env";
 import { I18nProvider } from "@/components/I18nProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { PushOptIn } from "@/components/PushOptIn";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +61,7 @@ export default function RootLayout({
           <DebugEnvironment />
           <ServiceWorkerRegister />
           <PushOptIn />
+          <InstallPrompt />
         </AuthProvider>
       </body>
     </html>
