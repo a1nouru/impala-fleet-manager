@@ -64,6 +64,9 @@ interface ExpenseWithReport extends DailyExpense {
   };
 }
 
+// Fixed pump price used to derive the fuel amount from liters in the Add Expense dialog.
+const FUEL_PRICE_PER_LITER = 425; // Kz per liter
+
 // Helper to format currency
 const formatCurrency = (value: number) => {
   return value.toLocaleString("en-US", {
@@ -167,6 +170,11 @@ export default function AllExpensesPage() {
   });
   const [selectedExpenseType, setSelectedExpenseType] = useState<string>("");
   const [customExpenseType, setCustomExpenseType] = useState<string>("");
+  const [editedLiters, setEditedLiters] = useState<string>("");
+
+  // Derive a liters figure from a stored fuel amount for editing.
+  const litersFromAmount = (amount: number) =>
+    amount > 0 ? String(Math.round((amount / FUEL_PRICE_PER_LITER) * 100) / 100) : "";
 
   // State for fuel receipt uploads
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -198,6 +206,7 @@ export default function AllExpensesPage() {
     route: string;
     description: string;
     amount: string;
+    liters: string;
   }>({
     category: "",
     vehicle_id: "",
@@ -205,6 +214,7 @@ export default function AllExpensesPage() {
     route: "",
     description: "",
     amount: "",
+    liters: "",
   });
   const [newReceiptFile, setNewReceiptFile] = useState<File | null>(null);
 
@@ -216,6 +226,7 @@ export default function AllExpensesPage() {
       route: "",
       description: "",
       amount: "",
+      liters: "",
     });
     setNewReceiptFile(null);
   };
@@ -234,11 +245,18 @@ export default function AllExpensesPage() {
   };
 
   const handleCreateStandaloneExpense = async () => {
-    const amountNum = parseFloat(newExpense.amount);
+    const isFuel = newExpense.category === "Fuel";
+    // For fuel the amount is always derived from liters, so the two can never disagree.
+    const litersNum = parseFloat(newExpense.liters);
+    const amountNum = isFuel
+      ? Math.round(litersNum * FUEL_PRICE_PER_LITER * 100) / 100
+      : parseFloat(newExpense.amount);
     if (!newExpense.category || !newExpense.vehicle_id || !newExpense.expense_date || isNaN(amountNum) || amountNum <= 0) {
       toast({
         title: "Validation Error",
-        description: "Please choose a category, a vehicle, a date, and a valid amount.",
+        description: isFuel
+          ? "Please choose a vehicle, a date, and a valid number of liters."
+          : "Please choose a category, a vehicle, a date, and a valid amount.",
         variant: "destructive",
       });
       return;
@@ -270,7 +288,7 @@ export default function AllExpensesPage() {
         report_id: null,
         vehicle_id: newExpense.vehicle_id,
         expense_date: newExpense.expense_date,
-        route: newExpense.route.trim() || null,
+        route: isFuel ? null : newExpense.route.trim() || null,
         category: newExpense.category,
         description: newExpense.description.trim() || undefined,
         amount: amountNum,
@@ -414,6 +432,7 @@ export default function AllExpensesPage() {
       setCustomExpenseType("");
       if (expense.category === "Fuel") {
         setCurrentReceiptUrl(expense.receipt_url || "");
+        setEditedLiters(litersFromAmount(expense.amount || 0));
       }
     } else {
       setSelectedExpenseType("Other");
@@ -446,6 +465,19 @@ export default function AllExpensesPage() {
     } else {
       setEditedExpenseData(prev => ({ ...prev, category: customExpenseType }));
     }
+    if (value === "Fuel") {
+      setEditedLiters(litersFromAmount(editedExpenseData.amount || 0));
+    }
+  };
+
+  const handleEditedLitersChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditedLiters(value);
+    const litersNum = parseFloat(value);
+    setEditedExpenseData(prev => ({
+      ...prev,
+      amount: isNaN(litersNum) ? 0 : Math.round(litersNum * FUEL_PRICE_PER_LITER * 100) / 100,
+    }));
   };
 
   const handleCustomExpenseTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1077,15 +1109,39 @@ export default function AllExpensesPage() {
                 />
               )}
             </div>
-            <div className="space-y-2">
-              <Label>Amount</Label>
-              <Input 
-                name="amount" 
-                type="number" 
-                value={editedExpenseData.amount} 
-                onChange={handleExpenseInputChange} 
-              />
-            </div>
+            {selectedExpenseType === "Fuel" ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Liters</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={editedLiters}
+                    onChange={handleEditedLitersChange}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-md border bg-gray-50 p-3 text-sm">
+                  <span className="text-muted-foreground">
+                    Amount ({FUEL_PRICE_PER_LITER.toLocaleString()} Kz/L)
+                  </span>
+                  <span className="font-semibold">
+                    {formatCurrency(editedExpenseData.amount || 0)}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <Input
+                  name="amount"
+                  type="number"
+                  value={editedExpenseData.amount}
+                  onChange={handleExpenseInputChange}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea 
@@ -1355,26 +1411,53 @@ export default function AllExpensesPage() {
                       onChange={(e) => setNewExpense(prev => ({ ...prev, expense_date: e.target.value }))}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Amount</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={newExpense.amount}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, amount: e.target.value }))}
-                    />
-                  </div>
+                  {newExpense.category === "Fuel" ? (
+                    <div className="space-y-2">
+                      <Label>Liters</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0"
+                        value={newExpense.liters}
+                        onChange={(e) => setNewExpense(prev => ({ ...prev, liters: e.target.value }))}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Amount</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={newExpense.amount}
+                        onChange={(e) => setNewExpense(prev => ({ ...prev, amount: e.target.value }))}
+                      />
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Route (optional)</Label>
-                  <Input
-                    placeholder="e.g. LUANDA - HUAMBO"
-                    value={newExpense.route}
-                    onChange={(e) => setNewExpense(prev => ({ ...prev, route: e.target.value }))}
-                  />
-                </div>
+                {newExpense.category === "Fuel" && (
+                  <div className="flex items-center justify-between rounded-md border bg-gray-50 p-3 text-sm">
+                    <span className="text-muted-foreground">
+                      Amount ({FUEL_PRICE_PER_LITER.toLocaleString()} Kz/L)
+                    </span>
+                    <span className="font-semibold">
+                      {formatCurrency((parseFloat(newExpense.liters) || 0) * FUEL_PRICE_PER_LITER)}
+                    </span>
+                  </div>
+                )}
+
+                {newExpense.category !== "Fuel" && (
+                  <div className="space-y-2">
+                    <Label>Route (optional)</Label>
+                    <Input
+                      placeholder="e.g. LUANDA - HUAMBO"
+                      value={newExpense.route}
+                      onChange={(e) => setNewExpense(prev => ({ ...prev, route: e.target.value }))}
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Description</Label>
