@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { usedQuantitiesByNormalizedName } from '@/lib/inventory/usage';
 
 const supabaseClient = createClient();
 
@@ -249,7 +250,8 @@ export const inventoryService = {
     }
   },
 
-  // Compute how many units of each item_name have been consumed across all maintenance records
+  // Compute how many units of each item have been consumed across all maintenance
+  // records, keyed by normalized item name (see lib/inventory/usage).
   getUsedQuantitiesFromMaintenance: async () => {
     try {
       const { data, error } = await supabaseClient
@@ -258,22 +260,7 @@ export const inventoryService = {
 
       if (error) throw error;
 
-      const usedQty = {};
-      (data || []).forEach(record => {
-        if (!Array.isArray(record.parts)) return;
-        record.parts.forEach(partString => {
-          const qtyMatch = partString.match(/^(.+?)\s*\(Qty:\s*(\d+)\)$/);
-          if (qtyMatch) {
-            const name = qtyMatch[1].trim();
-            usedQty[name] = (usedQty[name] || 0) + parseInt(qtyMatch[2], 10);
-          } else if (!partString.includes('(Custom)') && !partString.includes(':')) {
-            const name = partString.trim();
-            usedQty[name] = (usedQty[name] || 0) + 1;
-          }
-        });
-      });
-
-      return usedQty;
+      return usedQuantitiesByNormalizedName(data);
     } catch (error) {
       console.error('Error getting used quantities from maintenance:', error);
       return {};

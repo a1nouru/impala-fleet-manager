@@ -43,6 +43,7 @@ import { vehicleService } from "@/services/vehicleService"
 import { technicianService } from "@/services/technicianService"
 import { partService } from "@/services/partService"
 import { inventoryService } from "@/services/inventoryService"
+import { normalizeItemName, usedQuantitiesByNormalizedName } from "@/lib/inventory/usage"
 import { hrService } from "@/services/hrService"
 import type { Employee } from "@/services/hrService"
 import { toast } from "@/components/ui/use-toast"
@@ -301,30 +302,9 @@ function MaintenanceContent() {
     return acc;
   }, {});
 
-  // Calculate how much of each inventory item has been used in maintenance records
-  const calculateUsedQuantities = (): Record<string, number> => {
-    const usedQty: Record<string, number> = {};
-    
-    records.forEach(record => {
-      if (record.parts && Array.isArray(record.parts)) {
-        record.parts.forEach(partString => {
-          // Parse format: "Item Name (Qty: X)"
-          const qtyMatch = partString.match(/^(.+?)\s*\(Qty:\s*(\d+)\)$/);
-          
-          if (qtyMatch) {
-            const itemName = qtyMatch[1].trim();
-            const quantity = parseInt(qtyMatch[2], 10);
-            usedQty[itemName] = (usedQty[itemName] || 0) + quantity;
-          }
-        });
-      }
-    });
-    
-    return usedQty;
-  };
-
-  // Get used quantities for inventory items
-  const usedQuantities = calculateUsedQuantities();
+  // How much of each inventory item has been used in maintenance records, keyed by
+  // normalized item name so case/spacing variants match (see lib/inventory/usage).
+  const usedQuantities = usedQuantitiesByNormalizedName(records);
   
   // UI state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1318,7 +1298,7 @@ function MaintenanceContent() {
                         // Calculate total purchased quantity
                         const totalPurchasedQuantity = items.reduce((sum: number, item: any) => sum + parseFloat(item.quantity || 0), 0);
                         // Get how much has already been used in maintenance records
-                        const alreadyUsedQuantity = usedQuantities[itemName] || 0;
+                        const alreadyUsedQuantity = usedQuantities[normalizeItemName(itemName)] || 0;
                         // Calculate actual available quantity
                         const availableQuantity = Math.max(0, totalPurchasedQuantity - alreadyUsedQuantity);
                         
