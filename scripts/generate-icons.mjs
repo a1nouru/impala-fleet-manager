@@ -5,7 +5,7 @@ import { mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-const source = process.argv[2] || 'public/logo.svg';
+const source = process.argv[2] || 'public/logo-source.svg';
 const maskableBg = process.argv[3] || '#ffffff';
 const outDir = 'public/icons';
 
