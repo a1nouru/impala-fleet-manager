@@ -1307,6 +1307,114 @@ export default function AllDailyReportsPage() {
             </div>
           ) : groupByDate && displayData ? (
             // Grouped by Date View
+            <>
+            <div className="md:hidden space-y-3">
+              {displayData.map((group) => {
+                const dateAudited = isDateAudited(group.date);
+                const agasekeCount = group.reports.filter(r => isAgasekeVehicle(r.vehicles?.plate)).length;
+                const regularCount = group.vehicleCount - agasekeCount;
+                return (
+                  <Card key={group.date} className="overflow-hidden">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium break-words">{format(parseISO(group.date), "MMMM do, yyyy")}</span>
+                        {dateAudited && (
+                          <span className="flex items-center gap-1 text-green-600 text-xs flex-shrink-0">
+                            <CheckCircle className="h-4 w-4" />
+                            Audited
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm">{t("allDailyReports.vehicleCount", { count: group.vehicleCount })}</span>
+                          {agasekeCount > 0 && (
+                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                              {t("allDailyReports.agasekeCount", { count: agasekeCount })}
+                            </Badge>
+                          )}
+                          {regularCount > 0 && (
+                            <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
+                              {t("allDailyReports.regularCount", { count: regularCount })}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground break-words">
+                          {group.reports.map(r => r.vehicles?.plate).join(', ')}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">{t("table.totalRevenue")}</p>
+                          <p className="break-words">{formatCurrency(group.totalRevenue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">{t("table.totalExpenses")}</p>
+                          <p className="break-words">{formatCurrency(group.totalExpenses)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">{t("table.netBalance")}</p>
+                          <p className={cn("break-words", group.netBalance >= 0 ? "text-green-600" : "text-red-600")}>
+                            {formatCurrency(group.netBalance)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          const from = startOfDay(parseISO(group.date));
+                          const to = endOfDay(parseISO(group.date));
+                          setDateFilter({ from, to });
+                          setGroupByDate(false);
+                        }}>
+                          {t("table.viewDetails")}
+                        </Button>
+                        {canUserAudit() && (
+                          dateAudited ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDateAuditClick(group.date, 'remove')}
+                              className="text-orange-600 hover:text-orange-700"
+                            >
+                              <Shield className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDateAuditClick(group.date, 'audit')}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <ShieldCheck className="h-4 w-4" />
+                            </Button>
+                          )
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+              <Card className="border-2">
+                <CardContent className="p-4">
+                  <p className="font-bold mb-2">{t("table.total")}</p>
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t("table.totalRevenue")}</p>
+                      <p className="font-bold break-words">{formatCurrency(displayData.reduce((acc, group) => acc + group.totalRevenue, 0))}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t("table.totalExpenses")}</p>
+                      <p className="font-bold break-words">{formatCurrency(displayData.reduce((acc, group) => acc + group.totalExpenses, 0))}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t("table.netBalance")}</p>
+                      <p className="font-bold break-words">{formatCurrency(displayData.reduce((acc, group) => acc + group.netBalance, 0))}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1425,10 +1533,97 @@ export default function AllDailyReportsPage() {
                 </TableRow>
               </TableFooter>
             </Table>
+            </div>
+            </>
           ) : (
             // Individual Reports View
             <>
               {filteredReports.length > 0 ? (
+                <>
+                <div className="md:hidden space-y-3">
+                  {currentPageReports.map((report) => {
+                    const isFlagged = isReportFlagged(report);
+                    const flaggingReason = isFlagged ? getFlaggingReason(report) : '';
+                    const totalExpenses = (report.daily_expenses || []).reduce((sum, expense) => sum + expense.amount, 0);
+                    const netBalance = calculateNetBalance(report, excludeFilter);
+                    return (
+                      <Card key={report.id} className={cn("overflow-hidden", isFlagged && "border-red-200 bg-red-50")}>
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium break-words">{format(parseISO(report.report_date), "PP")}</span>
+                                <span className="break-words">{report.vehicles?.plate}</span>
+                                {isAgasekeVehicle(report.vehicles?.plate) && (
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                                    {t("status.agaseke")}
+                                  </Badge>
+                                )}
+                              </div>
+                              {isFlagged && (
+                                <div className="flex items-start gap-1 mt-1">
+                                  <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                                  <span className="text-xs text-amber-700 break-words">{flaggingReason}</span>
+                                </div>
+                              )}
+                            </div>
+                            <Badge variant={report.status === 'Operational' ? 'default' : 'destructive'} className="flex-shrink-0">
+                              {report.status === 'Operational' ? t("status.operational") : t("status.nonOperational")}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground break-words">{report.route}</p>
+                          <div className="grid grid-cols-3 gap-2 text-sm">
+                            <div>
+                              <p className="text-xs text-muted-foreground">{t("table.revenue")}</p>
+                              <p className="break-words">{formatCurrency(calculateTotalRevenue(report))}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">{t("table.expenses")}</p>
+                              <div className="flex items-center gap-1">
+                                <p className="break-words">{formatCurrency(totalExpenses)}</p>
+                                {(!report.daily_expenses || report.daily_expenses.length === 0) && (
+                                  <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" title={t("expenses.noExpensesIndicator")}></div>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">{t("table.net")}</p>
+                              <p className={cn("break-words", netBalance >= 0 ? "text-green-600" : "text-red-600")}>
+                                {formatCurrency(netBalance)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Button variant="outline" size="sm" onClick={() => handleEditClick(report)}>
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            {isFlagged && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleExplanationClick(report)}
+                                className="text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                              >
+                                <AlertTriangle className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-500 hover:text-red-600"
+                              onClick={() => handleDeleteClick(report)}
+                              disabled={report.deposit_reports && report.deposit_reports.length > 0}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <div className="hidden md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1552,6 +1747,8 @@ export default function AllDailyReportsPage() {
                     </TableRow>
                   </TableFooter>
                 </Table>
+                </div>
+                </>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <p className="text-sm">{t("allDailyReports.noReportsFound")}</p>
