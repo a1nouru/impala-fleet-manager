@@ -32,6 +32,12 @@ export const metadata: Metadata = {
     icon: [{ url: '/favicon.svg', href: '/favicon.svg' }],
     apple: [{ url: '/icons/apple-touch-icon-180.png', sizes: '180x180' }],
   },
+  // Next 15's appleWebApp.capable only emits `mobile-web-app-capable`; iOS needs
+  // the apple-prefixed tag to launch the home-screen icon standalone (not as a
+  // bookmark that opens the default browser).
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
