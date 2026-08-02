@@ -1051,7 +1051,7 @@ export default function AllDailyReportsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
             <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
               <Filter className="h-4 w-4" />
               <Label className="text-sm">{t("filters.filters")}:</Label>
@@ -1065,7 +1065,7 @@ export default function AllDailyReportsPage() {
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "w-[140px] justify-start text-left font-normal",
+                      "flex-1 sm:flex-none sm:w-[140px] justify-start text-left font-normal",
                       !dateFilter.from && "text-muted-foreground"
                     )}
                   >
@@ -1091,7 +1091,7 @@ export default function AllDailyReportsPage() {
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "w-[140px] justify-start text-left font-normal",
+                      "flex-1 sm:flex-none sm:w-[140px] justify-start text-left font-normal",
                       !dateFilter.to && "text-muted-foreground"
                     )}
                   >
@@ -1111,11 +1111,12 @@ export default function AllDailyReportsPage() {
             </div>
 
             {/* View Toggle */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Label>{t("filters.view")}:</Label>
               <Button
                 variant={groupByDate ? "default" : "outline"}
                 size="sm"
+                className="flex-1 sm:flex-none"
                 onClick={() => setGroupByDate(true)}
               >
                 {t("filters.groupedByDate")}
@@ -1123,6 +1124,7 @@ export default function AllDailyReportsPage() {
               <Button
                 variant={!groupByDate ? "default" : "outline"}
                 size="sm"
+                className="flex-1 sm:flex-none"
                 onClick={() => setGroupByDate(false)}
               >
                 {t("filters.individualReports")}
@@ -1136,7 +1138,7 @@ export default function AllDailyReportsPage() {
                 value={reportTypeFilter} 
                 onValueChange={(value: "all" | "urubano" | "interprocencial") => setReportTypeFilter(value)}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="flex-1 sm:flex-none sm:w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1154,7 +1156,7 @@ export default function AllDailyReportsPage() {
                 value={vehiclePlateFilter} 
                 onValueChange={(value: string) => setVehiclePlateFilter(value)}
               >
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="flex-1 sm:flex-none sm:w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1175,7 +1177,7 @@ export default function AllDailyReportsPage() {
                 value={routeFilter} 
                 onValueChange={(value: string) => setRouteFilter(value)}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="flex-1 sm:flex-none sm:w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1209,7 +1211,7 @@ export default function AllDailyReportsPage() {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-[160px] sm:w-[180px] justify-between text-left font-normal",
+                      "flex-1 sm:flex-none sm:w-[180px] justify-between text-left font-normal",
                       excludeFilter.length === 0 && "text-muted-foreground"
                     )}
                   >

@@ -85,7 +85,7 @@ export function DashboardLayoutClient({
           userName={user?.email?.split('@')[0] || "User"} 
           onLogout={handleLogout} 
         />
-        <div className="flex-1 overflow-auto overscroll-none md:ml-0">
+        <div className="flex-1 min-w-0 overflow-auto overscroll-none md:ml-0">
           {/* Mobile padding to account for hamburger menu */}
           <div className="md:hidden h-14 sm:h-16" />
           

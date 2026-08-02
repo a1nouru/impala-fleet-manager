@@ -42,13 +42,13 @@ export default function FinancialsLayout({
 
   return (
     <div className="space-y-6">
-      <div className="flex border-b">
+      <div className="flex border-b overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden -mx-3 px-3 sm:mx-0 sm:px-0">
         {financialNavItems.map((item) => (
           <Link
             key={item.name}
             href={item.href}
             className={cn(
-              "px-4 py-2 text-sm font-medium",
+              "px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0",
               pathname === item.href || (item.href === "/dashboard/financials/expenses" && pathname === "/dashboard/financials/company-expenses")
                 ? "border-b-2 border-black text-black"
                 : "text-muted-foreground hover:text-black"
