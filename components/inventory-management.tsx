@@ -32,6 +32,7 @@ import {
   X
 } from "lucide-react"
 import { inventoryService } from "@/services/inventoryService"
+import { normalizeItemName, availableByNormalizedName } from "@/lib/inventory/usage"
 import { invoiceOcrService } from "@/services/invoiceOcrService"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/AuthContext"
@@ -304,15 +305,9 @@ export default function InventoryManagement() {
   });
   const currentMonthCost = currentMonthItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
 
-  // Available stock per item_name = total purchased - consumed in maintenance
-  const availableByItemName: Record<string, number> = {};
-  items.forEach(item => {
-    const name = item.item_name || 'Unknown Item';
-    availableByItemName[name] = (availableByItemName[name] || 0) + (item.quantity || 0);
-  });
-  Object.keys(availableByItemName).forEach(name => {
-    availableByItemName[name] = Math.max(0, availableByItemName[name] - (usedQuantities[name] || 0));
-  });
+  // Available stock per normalized item name = total purchased - consumed in
+  // maintenance. Keyed by normalized name so case/spacing variants match (and pool).
+  const availableByItemName = availableByNormalizedName(items, usedQuantities);
 
   // Filter items based on search term and date range
   const filteredItems = items.filter(item => {
@@ -1439,7 +1434,7 @@ export default function InventoryManagement() {
                         <td className="px-4 py-3 text-sm text-right">{item.quantity.toLocaleString()}</td>
                         <td className="px-4 py-3 text-sm text-right">
                           {(() => {
-                            const avail = availableByItemName[item.item_name || 'Unknown Item'] ?? item.quantity;
+                            const avail = availableByItemName[normalizeItemName(item.item_name || 'Unknown Item')] ?? item.quantity;
                             return (
                               <span className={avail <= 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
                                 {avail.toLocaleString()}
@@ -1592,7 +1587,7 @@ export default function InventoryManagement() {
                             <div>
                               <p className="text-sm font-medium text-gray-700">Available</p>
                               {(() => {
-                                const avail = availableByItemName[item.item_name || 'Unknown Item'] ?? item.quantity;
+                                const avail = availableByItemName[normalizeItemName(item.item_name || 'Unknown Item')] ?? item.quantity;
                                 return (
                                   <p className={`text-sm font-medium ${avail <= 0 ? 'text-red-600' : 'text-green-600'}`}>
                                     {avail.toLocaleString()}
