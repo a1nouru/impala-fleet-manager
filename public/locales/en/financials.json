@@ -7,8 +7,7 @@
     "bankDeposits": "Bank Deposits",
     "rental": "Rental",
     "analytics": "Financial Analytics",
-    "bankVerification": "Bank Verification",
-    "loans": "Loans"
+    "bankVerification": "Bank Verification"
   },
   "allDailyReports": {
     "title": "All Daily Reports",
@@ -44,9 +43,9 @@
     "addExpense": "Add Expense",
     "addExpenseTitle": "Add New Company Expense",
     "addExpenseDescription": "Record a new company expense with receipt or note if no receipt available.",
-    "noExpensesFound": "No company expenses yet",
-    "noExpensesSubtext": "Start tracking your company expenses by adding your first expense. Upload receipts and categorize expenses to keep your finances organized.",
-    "addFirstExpense": "Add Your First Expense",
+          "noExpensesFound": "No company expenses yet",
+      "noExpensesSubtext": "Start tracking your company expenses by adding your first expense. Upload receipts and categorize expenses to keep your finances organized.",
+      "addFirstExpense": "Add Your First Expense",
     "expenseCount": "{{count}} expenses",
     "totalAmount": "Total Amount",
     "groupedByDate": "Grouped by Date",
@@ -56,7 +55,7 @@
     "noReceipt": "No Receipt",
     "receiptRequired": "Receipt Required",
     "uploadReceipt": "Upload Receipt",
-    "receiptAttached": "View Receipt",
+          "receiptAttached": "View Receipt",
     "category": "Category",
     "description": "Description",
     "amount": "Amount",
@@ -460,101 +459,6 @@
       "profit": "Profit",
       "receipts": "Receipts",
       "actions": "Actions"
-    }
-  },
-  "loans": {
-    "title": "Loans",
-    "subtitle": "Loans the company has issued and who received them.",
-    "register": "Loan register",
-    "newLoan": "New loan",
-    "lock": "Lock",
-    "empty": "No loans recorded yet.",
-    "searchPlaceholder": "Search borrower...",
-    "password": {
-      "title": "Protected page",
-      "description": "Enter the password to view the loans register.",
-      "label": "Password",
-      "unlock": "Unlock",
-      "required": "Please enter the password.",
-      "incorrect": "Incorrect password.",
-      "verifyFailed": "Could not verify the password. Try again."
-    },
-    "summary": {
-      "issued": "Total issued",
-      "outstanding": "Outstanding",
-      "repaid": "Repaid",
-      "openLoans": "Open loans"
-    },
-    "filters": {
-      "allAccounts": "All accounts",
-      "allStatuses": "All statuses"
-    },
-    "status": {
-      "open": "Open",
-      "closed": "Closed"
-    },
-    "table": {
-      "borrower": "Issued to",
-      "amount": "Amount",
-      "account": "Issued from",
-      "issueDate": "Issued on",
-      "dueDate": "Due",
-      "status": "Status",
-      "slip": "Bank slip",
-      "actions": "Actions",
-      "viewSlip": "View",
-      "repaid": "Repaid"
-    },
-    "actions": {
-      "close": "Close loan",
-      "reopen": "Reopen",
-      "edit": "Edit",
-      "delete": "Delete"
-    },
-    "form": {
-      "createTitle": "Record a loan",
-      "editTitle": "Edit loan",
-      "description": "Capture who received the loan and how much.",
-      "borrower": "Issued to",
-      "borrowerPlaceholder": "Name of person or company",
-      "contact": "Contact",
-      "contactPlaceholder": "Phone or email",
-      "amount": "Amount (Kz)",
-      "account": "Issuing account",
-      "accountHint": "Which company account the money came out of.",
-      "issueDate": "Issued on",
-      "dueDate": "Due date",
-      "purpose": "Purpose",
-      "notes": "Notes"
-    },
-    "close": {
-      "title": "Close loan",
-      "description": "Attach the bank slip confirming this loan was paid back.",
-      "repaymentDate": "Repayment date",
-      "repaidAmount": "Amount repaid (Kz)",
-      "slip": "Bank slip",
-      "existingSlip": "A slip is already on file; upload a new one to replace it.",
-      "confirm": "Mark as paid"
-    },
-    "delete": {
-      "title": "Delete this loan?",
-      "description": "This removes the loan and its bank slip permanently."
-    },
-    "messages": {
-      "loadFailed": "Could not load loans.",
-      "saveFailed": "Could not save the loan.",
-      "created": "Loan recorded",
-      "updated": "Loan updated",
-      "closed": "Loan closed",
-      "closeFailed": "Could not close the loan.",
-      "reopened": "Loan reopened",
-      "reopenFailed": "Could not reopen the loan.",
-      "deleted": "Loan deleted",
-      "deleteFailed": "Could not delete the loan.",
-      "borrowerRequired": "Borrower is required",
-      "amountRequired": "Enter a valid amount",
-      "slipRequired": "Bank slip required",
-      "slipRequiredDesc": "Attach the bank slip confirming the loan was paid back."
     }
   }
 }

@@ -38,10 +38,6 @@ export default function FinancialsLayout({
       name: t("navigation.bankVerification"),
       href: "/dashboard/financials/verification",
     },
-    {
-      name: t("navigation.loans"),
-      href: "/dashboard/financials/loans",
-    },
   ];
 
   return (
