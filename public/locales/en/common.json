@@ -5,7 +5,8 @@
     "vehicles": "Vehicles",
     "notifications": "Notifications",
     "reports": "Reports",
-    "settings": "Settings"
+    "settings": "Settings",
+    "loans": "Loans"
   },
   "buttons": {
     "add": "Add",
@@ -88,4 +89,4 @@
     "name": "Impala Express Fleet Manager",
     "tagline": "Professional Vehicle Management"
   }
-} 
+}
