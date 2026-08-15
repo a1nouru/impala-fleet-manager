@@ -22,7 +22,9 @@
     "updateDamageDetails": "Atualizar os detalhes da entrada de dano e plano de pagamento.",
     "updateDamage": "Atualizar Dano",
     "deleteConfirmation": "Tem a certeza absoluta?",
-    "deleteWarning": "Esta ação não pode ser desfeita. Isto eliminará permanentemente a entrada de dano para {employeeName} envolvendo o veículo {vehiclePlate}."
+    "deleteWarning": "Esta ação não pode ser desfeita. Isto eliminará permanentemente a entrada de dano para {{employeeName}} envolvendo o veículo {{vehiclePlate}}.",
+    "cancel": "Cancelar",
+    "delete": "Eliminar"
   },
   "summary": {
     "totalDamagesValue": "Valor Total de Danos",

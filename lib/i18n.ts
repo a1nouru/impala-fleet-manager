@@ -14,7 +14,7 @@ i18n
   .init({
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'maintenance', 'financials', 'inventory'],
+    ns: ['common', 'maintenance', 'financials', 'inventory', 'hr', 'auth', 'notifications'],
     
     lng: isClient ? localStorage.getItem('preferred-language') || 'en' : 'en',
     

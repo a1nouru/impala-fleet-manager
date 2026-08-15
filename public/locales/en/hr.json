@@ -22,7 +22,9 @@
     "updateDamageDetails": "Update the damage entry details and payment plan.",
     "updateDamage": "Update Damage",
     "deleteConfirmation": "Are you absolutely sure?",
-    "deleteWarning": "This action cannot be undone. This will permanently delete the damage entry for {employeeName} involving vehicle {vehiclePlate}."
+    "deleteWarning": "This action cannot be undone. This will permanently delete the damage entry for {{employeeName}} involving vehicle {{vehiclePlate}}.",
+    "cancel": "Cancel",
+    "delete": "Delete"
   },
   "summary": {
     "totalDamagesValue": "Total Damages Value",
