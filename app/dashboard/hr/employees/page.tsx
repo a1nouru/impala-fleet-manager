@@ -487,7 +487,7 @@ export default function EmployeesPage() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={newEmployee.valor}
+                    value={newEmployee.valor === 0 ? "" : newEmployee.valor}
                     onChange={(e) => handleInputChange("valor", e.target.value)}
                     placeholder="0.00"
                     className={cn(fieldErrors.valor && "border-red-500")}
@@ -722,7 +722,7 @@ export default function EmployeesPage() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={editedEmployee.valor}
+                    value={editedEmployee.valor === 0 ? "" : editedEmployee.valor}
                     onChange={(e) => handleEditInputChange("valor", e.target.value)}
                   />
                 </div>
