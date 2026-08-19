@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, AlertTriangle, Upload, X, Eye } from "lucide-react";
@@ -651,7 +652,7 @@ export default function AllDailyReportsPage() {
                                                     <TooltipTrigger>
                                                       <div 
                                                         className="flex items-center gap-1 cursor-pointer text-blue-600 hover:text-blue-800"
-                                                        onClick={() => window.open(expense.receipt_url, '_blank')}
+                                                        onClick={() => openStoredFile(expense.receipt_url)}
                                                       >
                                                         <FileText className="h-4 w-4" />
                                                         <span className="text-xs">{t("expenses.receiptIndicator")}</span>
@@ -845,7 +846,7 @@ export default function AllDailyReportsPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => window.open(currentReceiptUrl, '_blank')}
+                                  onClick={() => openStoredFile(currentReceiptUrl)}
                                   className="h-7 w-7 p-0"
                                 >
                                   <Eye className="h-4 w-4" />

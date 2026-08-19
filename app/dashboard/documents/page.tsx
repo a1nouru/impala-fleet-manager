@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { signStoredUrl } from "@/lib/storage-url"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -214,13 +215,15 @@ export default function DocumentsPage() {
     }
   }
 
-  const handleView = (doc: CompanyDocument) => {
+  const handleView = async (doc: CompanyDocument) => {
     if (!doc.file_url) return
+    const url = await signStoredUrl(doc.file_url)
+    if (!url) return
     if (doc.file_type === "pdf") {
-      window.open(doc.file_url, "_blank")
+      window.open(url, "_blank")
     } else {
       const a = document.createElement("a")
-      a.href = doc.file_url
+      a.href = url
       a.download = doc.name
       document.body.appendChild(a)
       a.click()

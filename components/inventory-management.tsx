@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { openStoredFile, signStoredUrl } from "@/lib/storage-url"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -142,6 +143,18 @@ export default function InventoryManagement() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  // Display-only signed URL for the preview image. receiptPreview itself stays
+  // the raw stored value because it is reused as the value saved to the DB.
+  const [receiptPreviewSrc, setReceiptPreviewSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    signStoredUrl(receiptPreview).then((u) => {
+      if (active) setReceiptPreviewSrc(u);
+    });
+    return () => {
+      active = false;
+    };
+  }, [receiptPreview]);
 
   // Invoice import (OCR) state
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
@@ -1226,9 +1239,9 @@ export default function InventoryManagement() {
                           <span className="text-sm font-medium">{receiptPreview}</span>
                         </div>
                       ) : (
-                        <img 
-                          src={receiptPreview} 
-                          alt="Receipt preview" 
+                        <img
+                          src={receiptPreviewSrc ?? receiptPreview}
+                          alt="Receipt preview"
                           className="max-w-full h-32 object-cover rounded border"
                         />
                       )}
@@ -1450,7 +1463,7 @@ export default function InventoryManagement() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => window.open(item.receipt_url, '_blank')}
+                                onClick={() => openStoredFile(item.receipt_url)}
                                 className="h-8 w-8 p-0"
                               >
                                 <Receipt className="h-4 w-4 text-blue-600" />
@@ -1537,7 +1550,7 @@ export default function InventoryManagement() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => window.open(item.receipt_url, '_blank')}
+                                onClick={() => openStoredFile(item.receipt_url)}
                                 className="h-8 w-8 p-0"
                               >
                                 <Receipt className="h-4 w-4 text-blue-600" />

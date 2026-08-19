@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { openStoredFile, signStoredUrls } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Banknote, Paperclip, Eye, Trash2, ChevronDown, ChevronRight, Edit3 } from "lucide-react";
@@ -779,10 +780,11 @@ export default function BankDepositsPage() {
     }
   };
 
-  const handleDepositRowClick = (deposit: BankDeposit) => {
+  const handleDepositRowClick = async (deposit: BankDeposit) => {
     // Use the new slip system only (legacy URLs should be migrated)
     const slips = deposit.bank_deposit_slips || [];
-    const slipUrls = slips.map(slip => slip.slip_url).filter(Boolean);
+    // Buckets are private: mint fresh signed URLs before opening tabs.
+    const slipUrls = (await signStoredUrls(slips.map(slip => slip.slip_url))).filter(Boolean) as string[];
 
     console.log('🔍 Deposit click debug:', {
       depositId: deposit.id,
@@ -1911,7 +1913,7 @@ export default function BankDepositsPage() {
               {selectedDeposit?.deposit_slip_url && (
                 <Button
                   variant="outline"
-                  onClick={() => window.open(selectedDeposit.deposit_slip_url, '_blank', 'noopener,noreferrer')}
+                  onClick={() => openStoredFile(selectedDeposit.deposit_slip_url)}
                 >
                   <Paperclip className="h-4 w-4 mr-2" />
                   View Bank Slip

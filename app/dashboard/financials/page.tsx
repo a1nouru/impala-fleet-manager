@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle, Upload, X, Eye, ChevronDown, Shield, ShieldCheck } from "lucide-react";
@@ -2123,7 +2124,7 @@ export default function AllDailyReportsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.open(editedExpenseData.receipt_url, '_blank')}
+                    onClick={() => openStoredFile(editedExpenseData.receipt_url)}
                     className="h-7 w-7 p-0"
                   >
                     <Eye className="h-4 w-4" />
