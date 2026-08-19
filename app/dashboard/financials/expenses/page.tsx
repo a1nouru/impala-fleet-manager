@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -912,7 +913,7 @@ export default function AllExpensesPage() {
                             {expense.category.toLowerCase() === "fuel" && expense.receipt_url && (
                               <div 
                                 className="flex items-center cursor-pointer text-blue-600 hover:text-blue-800"
-                                onClick={() => window.open(expense.receipt_url, '_blank')}
+                                onClick={() => openStoredFile(expense.receipt_url)}
                                 title="Click to view fuel receipt"
                               >
                                 <FileText className="h-4 w-4" />
@@ -1049,7 +1050,7 @@ export default function AllExpensesPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(selectedExpense.receipt_url, '_blank')}
+                          onClick={() => openStoredFile(selectedExpense.receipt_url)}
                           className="h-8"
                         >
                           <FileText className="h-4 w-4 mr-2" />
@@ -1168,7 +1169,7 @@ export default function AllExpensesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => window.open(currentReceiptUrl, '_blank')}
+                          onClick={() => openStoredFile(currentReceiptUrl)}
                           className="h-7 w-7 p-0"
                         >
                           <Eye className="h-4 w-4" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { signStoredUrls } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -341,7 +342,7 @@ export default function VehicleDamagesPage() {
     }
   };
 
-  const handleViewDocuments = (damage: VehicleDamage) => {
+  const handleViewDocuments = async (damage: VehicleDamage) => {
     if (!damage.document_urls || damage.document_urls.length === 0) {
       toast({
         title: "No Documents",
@@ -351,10 +352,10 @@ export default function VehicleDamagesPage() {
       return;
     }
 
-    // Open each document in a new tab
-    damage.document_urls.forEach((url, index) => {
-      const fileName = damage.document_names?.[index] || `Document ${index + 1}`;
-      window.open(url, '_blank');
+    // Buckets are private: mint fresh signed URLs before opening tabs.
+    const signedUrls = await signStoredUrls(damage.document_urls);
+    signedUrls.forEach((url) => {
+      if (url) window.open(url, '_blank');
     });
   };
 

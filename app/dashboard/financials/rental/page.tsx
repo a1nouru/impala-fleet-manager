@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Car, Receipt, Eye, Trash2, ChevronDown, ChevronRight, DollarSign } from "lucide-react";
@@ -676,7 +677,7 @@ export default function RentalPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(receipt.receipt_url, '_blank')}
+                          onClick={() => openStoredFile(receipt.receipt_url)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -710,7 +711,7 @@ export default function RentalPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => window.open(expense.receipt_url, '_blank')}
+                              onClick={() => openStoredFile(expense.receipt_url)}
                             >
                               <Receipt className="h-3 w-3" />
                             </Button>

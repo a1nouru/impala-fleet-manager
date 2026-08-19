@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Plus, PlusCircle, Filter, CalendarIcon, Receipt, Edit, Trash2, ChevronLeft, ChevronRight, Paperclip, Search, X } from "lucide-react";
@@ -1104,7 +1105,7 @@ export default function CompanyExpensesPage() {
                       size="sm"
                       onClick={() => {
                         if (receipt.receipt_url) {
-                          window.open(receipt.receipt_url, '_blank');
+                          openStoredFile(receipt.receipt_url);
                         } else {
                           toast({
                             title: "Error",
