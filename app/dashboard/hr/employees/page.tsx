@@ -154,39 +154,14 @@ export default function EmployeesPage() {
     return `OUR${nextNumber.toString().padStart(4, '0')}`;
   };
 
-  // Auto-format IBAN/NIB as user types
+  // Auto-format IBAN/NIB as user types.
+  // Angolan IBAN: AO + 23 digits (25 chars), displayed as AO06.0000.0000.0000.0000.0000.0
   const formatIbanNib = (value: string): string => {
-    // Remove all non-alphanumeric characters
-    const cleaned = value.replace(/[^\w]/g, '');
-    
-    // Ensure it starts with AO
-    let formatted = cleaned;
-    if (!formatted.startsWith('AO')) {
-      formatted = 'AO' + formatted.replace(/^AO/i, '');
-    }
-    
-    // Add dots in the correct positions
-    if (formatted.length > 4) {
-      formatted = formatted.slice(0, 4) + '.' + formatted.slice(4);
-    }
-    if (formatted.length > 9) {
-      formatted = formatted.slice(0, 9) + '.' + formatted.slice(9);
-    }
-    if (formatted.length > 14) {
-      formatted = formatted.slice(0, 14) + '.' + formatted.slice(14);
-    }
-    if (formatted.length > 19) {
-      formatted = formatted.slice(0, 19) + '.' + formatted.slice(19);
-    }
-    if (formatted.length > 24) {
-      formatted = formatted.slice(0, 24) + '.' + formatted.slice(24);
-    }
-    if (formatted.length > 29) {
-      formatted = formatted.slice(0, 29) + '.' + formatted.slice(29);
-    }
-
-    // Limit to correct length: AO06.0000.0000.0000.0000.0000.0 = 31 chars
-    return formatted.slice(0, 31);
+    const cleaned = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    // Keep only the 23 digits that follow the AO country code
+    const digits = cleaned.replace(/^A?O?/, '').replace(/\D/g, '').slice(0, 23);
+    const full = 'AO' + digits;
+    return full.match(/.{1,4}/g)?.join('.') ?? full;
   };
 
   const fetchEmployees = async () => {
