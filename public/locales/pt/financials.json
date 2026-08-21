@@ -7,7 +7,8 @@
     "bankDeposits": "Depósitos Bancários",
     "rental": "Aluguer",
     "analytics": "Análise Financeira",
-    "bankVerification": "Verificação Bancária"
+    "bankVerification": "Verificação Bancária",
+    "busStations": "Receita das Estações"
   },
   "allDailyReports": {
     "title": "Todos os Relatórios Diários",
@@ -582,6 +583,53 @@
       "closedDesc": "O empréstimo está agora marcado como pago.",
       "reopenedDesc": "O empréstimo está novamente em aberto.",
       "deletedDesc": "O empréstimo foi removido do registo."
+    }
+  },
+  "busStations": {
+    "title": "Receita das Estações Rodoviárias",
+    "newEntry": "Novo Registo",
+    "editEntry": "Editar Registo",
+    "busStation": "Estação Rodoviária",
+    "allStations": "Todas as Estações",
+    "vehicle": "Veículo",
+    "selectVehicle": "Selecionar veículo",
+    "dateRange": "Período",
+    "period": "Período",
+    "revenue": "Receita",
+    "passengers": "Passageiros",
+    "passengersPlaceholder": "Passageiros",
+    "cargo": "Carga",
+    "total": "Total",
+    "totalRevenue": "Receita Total",
+    "totalDeposited": "Total Depositado",
+    "deposited": "Depositado",
+    "variance": "Diferença",
+    "forSelectedPeriod": "Para o período selecionado",
+    "addRow": "Adicionar linha",
+    "bankSlips": "Comprovativos de depósito",
+    "addSlip": "Adicionar comprovativo",
+    "noSlips": "Ainda não há comprovativos anexados.",
+    "viewSlip": "Ver comprovativo",
+    "amount": "Valor",
+    "notes": "Observações",
+    "vehicles": "Veículos",
+    "actions": "Ações",
+    "noEntries": "Sem receita de estações registada neste período.",
+    "saved": "Receita da estação guardada",
+    "savedBody": "O registo, as linhas de veículos e os comprovativos foram guardados.",
+    "deleted": "Registo eliminado",
+    "deletedBody": "O registo e tudo o que lhe estava associado foi removido.",
+    "confirmDelete": "Eliminar este registo?",
+    "confirmDeleteBody": "Isto remove permanentemente o registo, as linhas de veículos e os comprovativos.",
+    "errors": {
+      "title": "Não foi possível guardar",
+      "noRows": "Adicione pelo menos uma linha de veículo.",
+      "missingDates": "Cada linha precisa de data de início e fim.",
+      "badDateOrder": "A data de fim não pode ser anterior à data de início.",
+      "duplicateVehicle": "Cada veículo só pode aparecer uma vez por registo.",
+      "saveFailed": "Ocorreu um erro ao guardar este registo.",
+      "loadFailed": "Não foi possível carregar a receita das estações.",
+      "deleteFailed": "Não foi possível eliminar este registo."
     }
   }
 }

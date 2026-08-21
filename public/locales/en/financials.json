@@ -7,7 +7,8 @@
     "bankDeposits": "Bank Deposits",
     "rental": "Rental",
     "analytics": "Financial Analytics",
-    "bankVerification": "Bank Verification"
+    "bankVerification": "Bank Verification",
+    "busStations": "Bus Station Revenue"
   },
   "allDailyReports": {
     "title": "All Daily Reports",
@@ -561,6 +562,53 @@
       "closedDesc": "The loan is now marked as paid.",
       "reopenedDesc": "The loan is open again.",
       "deletedDesc": "The loan was removed from the register."
+    }
+  },
+  "busStations": {
+    "title": "Bus Station Revenue",
+    "newEntry": "New Entry",
+    "editEntry": "Edit Entry",
+    "busStation": "Bus Station",
+    "allStations": "All Stations",
+    "vehicle": "Vehicle",
+    "selectVehicle": "Select vehicle",
+    "dateRange": "Date Range",
+    "period": "Period",
+    "revenue": "Revenue",
+    "passengers": "Passengers",
+    "passengersPlaceholder": "Passengers",
+    "cargo": "Cargo",
+    "total": "Total",
+    "totalRevenue": "Total Revenue",
+    "totalDeposited": "Total Deposited",
+    "deposited": "Deposited",
+    "variance": "Variance",
+    "forSelectedPeriod": "For the selected period",
+    "addRow": "Add row",
+    "bankSlips": "Bank slip deposits",
+    "addSlip": "Add slip",
+    "noSlips": "No bank slips attached yet.",
+    "viewSlip": "View slip",
+    "amount": "Amount",
+    "notes": "Notes",
+    "vehicles": "Vehicles",
+    "actions": "Actions",
+    "noEntries": "No bus station revenue recorded for this period.",
+    "saved": "Bus station revenue saved",
+    "savedBody": "The entry, its vehicle rows, and its bank slips have been stored.",
+    "deleted": "Entry deleted",
+    "deletedBody": "The entry and everything attached to it has been removed.",
+    "confirmDelete": "Delete this entry?",
+    "confirmDeleteBody": "This permanently removes the entry, its vehicle rows, and its bank slips.",
+    "errors": {
+      "title": "Could not save",
+      "noRows": "Add at least one vehicle row.",
+      "missingDates": "Every row needs a start and end date.",
+      "badDateOrder": "A row's end date cannot be before its start date.",
+      "duplicateVehicle": "Each vehicle may appear only once in an entry.",
+      "saveFailed": "Something went wrong saving this entry.",
+      "loadFailed": "Could not load bus station revenue.",
+      "deleteFailed": "Could not delete this entry."
     }
   }
 }

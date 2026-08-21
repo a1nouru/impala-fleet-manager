@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Loader2, Bus } from "lucide-react";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { subDays, format } from "date-fns";
 import { financialService } from "@/services/financialService";
+import { busStationService } from "@/services/busStationService";
 import { toast } from "@/components/ui/use-toast";
 import { AgasekeReport } from "@/components/agaseke-report";
 import { RecentDeposits } from "@/components/recent-deposits";
@@ -34,6 +35,11 @@ export default function AnalyticsPage() {
     net_balance: number;
   } | null>(null);
 
+  // Bus station takings live outside daily_reports, so they are fetched
+  // separately and folded into the displayed totals here rather than inside
+  // the shared get_financial_summary RPC.
+  const [busStationRevenue, setBusStationRevenue] = useState(0);
+
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -42,12 +48,16 @@ export default function AnalyticsPage() {
 
       try {
         setIsLoading(true);
-        const summaryData = await financialService.getFinancialSummary(
-          format(dateRange.from, "yyyy-MM-dd"),
-          format(dateRange.to, "yyyy-MM-dd")
-        );
-        
+        const from = format(dateRange.from, "yyyy-MM-dd");
+        const to = format(dateRange.to, "yyyy-MM-dd");
+
+        const [summaryData, stationRevenue] = await Promise.all([
+          financialService.getFinancialSummary(from, to),
+          busStationService.getBusStationRevenueTotal(from, to),
+        ]);
+
         setSummary(summaryData);
+        setBusStationRevenue(stationRevenue);
       } catch (error) {
         toast({
           title: "Error",
@@ -55,6 +65,7 @@ export default function AnalyticsPage() {
           variant: "destructive",
         });
         setSummary(null);
+        setBusStationRevenue(0);
       } finally {
         setIsLoading(false);
       }
@@ -91,10 +102,19 @@ export default function AnalyticsPage() {
         <DateRangePicker date={dateRange} onDateChange={setDateRange} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {renderSummaryCard(t("analytics.totalRevenue"), summary?.total_revenue, DollarSign)}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {renderSummaryCard(
+          t("analytics.totalRevenue"),
+          (summary?.total_revenue || 0) + busStationRevenue,
+          DollarSign
+        )}
+        {renderSummaryCard(t("busStations.title"), busStationRevenue, Bus)}
         {renderSummaryCard(t("analytics.totalExpenses"), summary?.total_expenses, TrendingDown)}
-        {renderSummaryCard(t("analytics.netBalance"), summary?.net_balance, TrendingUp)}
+        {renderSummaryCard(
+          t("analytics.netBalance"),
+          (summary?.net_balance || 0) + busStationRevenue,
+          TrendingUp
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
