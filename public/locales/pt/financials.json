@@ -156,7 +156,10 @@
     "customCategory": "Categoria Personalizada",
     "enterCategory": "Introduza o nome da categoria",
     "enterDescription": "Introduza a descrição",
-    "enterAmount": "Introduza o valor"
+    "enterAmount": "Introduza o valor",
+    "depositableReports": "{{count}} relatórios depositáveis",
+    "withLosses": "{{count}} com prejuízo",
+    "totalForDate": "Total do dia"
   },
   "table": {
     "date": "Data",
@@ -183,7 +186,9 @@
     "deposits": "Depósitos",
     "reportsCovered": "Relatórios Cobertos",
     "depositDate": "Data do Depósito",
-    "slipAttached": "Comprovativo Anexado"
+    "slipAttached": "Comprovativo Anexado",
+    "slipsAttachedCount": "{{count}} talões",
+    "depositStatus": "Estado do Depósito"
   },
   "filters": {
     "filters": "Filtros",
@@ -203,7 +208,8 @@
     "bankFilter": "Filtro do Banco",
     "allBanks": "Todos os Bancos",
     "bank": "Banco",
-    "individualDeposits": "Depósitos Individuais"
+    "individualDeposits": "Depósitos Individuais",
+    "excludingCategories": "Excluindo {{count}} categoria(s)"
   },
   "buttons": {
     "cancel": "Cancelar",
@@ -228,7 +234,9 @@
     "operational": "Operacional",
     "nonOperational": "Não Operacional",
     "agaseke": "Agaseke",
-    "regular": "Regular"
+    "regular": "Regular",
+    "deposited": "Depositado",
+    "pending": "Pendente"
   },
   "messages": {
     "success": "Sucesso",
@@ -251,12 +259,25 @@
     "invalidFileType": "Tipo de ficheiro inválido. Por favor carregue um PDF ou imagem",
     "fileTooLarge": "Ficheiro demasiado grande. Tamanho máximo é 5MB",
     "errorOpeningBankSlip": "Falha ao abrir comprovativo bancário. Por favor tente novamente",
-    "reportDeleted": "Relatório diário eliminado com sucesso",
+    "reportDeleted": "Relatório diário eliminado com sucesso.",
     "cannotDeleteReportInDeposit": "Não é possível eliminar relatório que está incluído em depósitos bancários",
     "reportAudited": "Relatório marcado como auditado com sucesso",
     "auditRemoved": "Estado de auditoria removido com sucesso",
     "errorAuditing": "Falha ao atualizar estado de auditoria",
-    "unauthorizedAudit": "Não está autorizado a realizar ações de auditoria."
+    "unauthorizedAudit": "Não está autorizado a realizar ações de auditoria.",
+    "depositCreatedWithDetails": "Depósito bancário de {{amount}} registado com {{count}} relatório(s).",
+    "invalidFileTypeNamed": "{{name}} não é um tipo de ficheiro válido. Carregue apenas ficheiros PDF, JPG ou PNG.",
+    "fileTooLargeNamed": "{{name}} é demasiado grande. O tamanho máximo é 5MB.",
+    "selectAtLeastOneFile": "Selecione pelo menos um ficheiro para carregar.",
+    "slipsAdded": "{{count}} talão(ões) adicionado(s) ao depósito.",
+    "errorAddingSlips": "Ocorreu um erro ao adicionar os talões. Tente novamente.",
+    "depositUpdatedWithReports": "Depósito bancário atualizado com {{count}} relatório(s).",
+    "slipRemoved": "Talão bancário removido com sucesso.",
+    "errorRemovingSlip": "Falha ao remover o talão. Tente novamente.",
+    "receiptUploadFailedCreate": "Falha ao carregar o recibo. A despesa será criada sem recibo — pode adicioná-lo mais tarde.",
+    "receiptUploadFailedUpdate": "Falha ao carregar o recibo. A despesa será atualizada sem novo recibo.",
+    "depositUpdated": "Depósito bancário atualizado com sucesso",
+    "fillAllFields": "Por favor preencha todos os campos obrigatórios"
   },
   "expenses": {
     "title": "Despesas",
@@ -506,6 +527,7 @@
     "residualExcess": "Os talões bancários excedem a receita líquida selecionada em {{amount}}, mesmo antes das despesas da empresa.",
     "badgeMatchedWithExpenses": "Verificado + despesas",
     "badgeUnverified": "Não verificado",
-    "tooltipWithExpenses": "Verificado após subtrair {{amount}} de despesas da empresa registadas na data do depósito."
+    "tooltipWithExpenses": "Verificado após subtrair {{amount}} de despesas da empresa registadas na data do depósito.",
+    "filesSelected": "{{count}} ficheiro(s) selecionado(s)"
   }
 }

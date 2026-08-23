@@ -208,7 +208,7 @@ export default function BankDepositsPage() {
       setUndepositedReports(undepositedData);
     } catch (error) {
       toast({
-        title: "Error",
+        title: t("messages.error"),
         description: t("messages.errorLoading"),
         variant: "destructive",
       });
@@ -488,14 +488,14 @@ export default function BankDepositsPage() {
         amount: editingDeposit.amount,
       });
       toast({
-        title: "Success",
+        title: t("messages.success"),
         description: t("messages.depositUpdated"),
       });
       setEditingDeposit(null); // Close dialog
       fetchPageData(); // Refresh all data
     } catch (error) {
       toast({
-        title: "Error",
+        title: t("messages.error"),
         description: t("messages.errorUpdating"),
         variant: "destructive",
       });
@@ -515,13 +515,13 @@ export default function BankDepositsPage() {
     try {
       await financialService.deleteBankDeposit(depositToDelete.id);
       toast({
-        title: "Success",
+        title: t("messages.success"),
         description: t("messages.depositDeleted"),
       });
       fetchPageData();
     } catch (error) {
       toast({
-        title: "Error",
+        title: t("messages.error"),
         description: t("messages.errorDeleting"),
         variant: "destructive",
       });
@@ -537,8 +537,8 @@ export default function BankDepositsPage() {
   const handleSubmit = async () => {
     if (selectedReports.length === 0) {
       toast({
-        title: "⚠️ No Reports Selected",
-        description: "Please select at least one report for this deposit.",
+        title: t("messages.validationError"),
+        description: t("messages.selectAtLeastOneReport"),
         variant: "destructive",
       });
       return;
@@ -546,8 +546,8 @@ export default function BankDepositsPage() {
     
     if (bankSlipFiles.length === 0) {
       toast({
-        title: "📄 Bank Slip Required",
-        description: "Please upload at least one bank slip (PDF, JPG, or PNG) before proceeding.",
+        title: t("messages.validationError"),
+        description: t("messages.attachBankSlip"),
         variant: "destructive",
       });
       return;
@@ -571,8 +571,8 @@ export default function BankDepositsPage() {
       );
 
       toast({
-        title: "✅ Deposit Created Successfully",
-        description: `Bank deposit of ${formatCurrency(newDeposit.amount)} has been logged with ${selectedReports.length} reports.`,
+        title: t("messages.success"),
+        description: t("messages.depositCreatedWithDetails", { amount: formatCurrency(newDeposit.amount), count: selectedReports.length }),
       });
 
       // Reset form and refresh data
@@ -582,8 +582,8 @@ export default function BankDepositsPage() {
     } catch (error) {
       console.error("❌ Error creating deposit:", error);
       toast({
-        title: "❌ Error Creating Deposit",
-        description: "There was an error creating the bank deposit. Please try again.",
+        title: t("messages.error"),
+        description: t("messages.errorCreating"),
         variant: "destructive",
       });
     } finally {
@@ -617,8 +617,8 @@ export default function BankDepositsPage() {
       for (const file of files) {
         if (!allowedTypes.includes(file.type)) {
           toast({
-            title: "Invalid File Type",
-            description: `${file.name} is not a valid file type. Please upload PDF, JPG, or PNG files only.`,
+            title: t("messages.validationError"),
+            description: t("messages.invalidFileTypeNamed", { name: file.name }),
             variant: "destructive",
           });
           return;
@@ -626,8 +626,8 @@ export default function BankDepositsPage() {
         
         if (file.size > maxSize) {
           toast({
-            title: "File Too Large",
-            description: `${file.name} is too large. Maximum file size is 5MB.`,
+            title: t("messages.validationError"),
+            description: t("messages.fileTooLargeNamed", { name: file.name }),
             variant: "destructive",
           });
           return;
@@ -657,8 +657,8 @@ export default function BankDepositsPage() {
       for (const file of files) {
         if (!allowedTypes.includes(file.type)) {
           toast({
-            title: "Invalid File Type",
-            description: `${file.name} is not a valid file type. Please upload PDF, JPG, or PNG files only.`,
+            title: t("messages.validationError"),
+            description: t("messages.invalidFileTypeNamed", { name: file.name }),
             variant: "destructive",
           });
           return;
@@ -666,8 +666,8 @@ export default function BankDepositsPage() {
         
         if (file.size > maxSize) {
           toast({
-            title: "File Too Large",
-            description: `${file.name} is too large. Maximum file size is 5MB.`,
+            title: t("messages.validationError"),
+            description: t("messages.fileTooLargeNamed", { name: file.name }),
             variant: "destructive",
           });
           return;
@@ -682,8 +682,8 @@ export default function BankDepositsPage() {
   const handleAddSlipsToDeposit = async () => {
     if (!addSlipsDeposit || additionalSlipFiles.length === 0) {
       toast({
-        title: "No Files Selected",
-        description: "Please select at least one file to upload.",
+        title: t("messages.validationError"),
+        description: t("messages.selectAtLeastOneFile"),
         variant: "destructive",
       });
       return;
@@ -695,8 +695,8 @@ export default function BankDepositsPage() {
       await financialService.addSlipsToDeposit(addSlipsDeposit.id, additionalSlipFiles);
       
       toast({
-        title: "✅ Slips Added Successfully",
-        description: `Added ${additionalSlipFiles.length} slip(s) to the deposit.`,
+        title: t("messages.success"),
+        description: t("messages.slipsAdded", { count: additionalSlipFiles.length }),
       });
 
       // Reset and close dialog
@@ -709,8 +709,8 @@ export default function BankDepositsPage() {
     } catch (error) {
       console.error("❌ Error adding slips:", error);
       toast({
-        title: "❌ Error Adding Slips",
-        description: "There was an error adding the slips. Please try again.",
+        title: t("messages.error"),
+        description: t("messages.errorAddingSlips"),
         variant: "destructive",
       });
     } finally {
@@ -750,8 +750,8 @@ export default function BankDepositsPage() {
     } catch (error) {
       console.error('Error opening edit dialog:', error);
       toast({
-        title: "Error",
-        description: "Failed to load edit dialog. Please try again.",
+        title: t("messages.error"),
+        description: t("messages.errorLoading"),
         variant: "destructive",
       });
     }
@@ -770,8 +770,8 @@ export default function BankDepositsPage() {
     
     if (editSelectedReports.length === 0) {
       toast({
-        title: "⚠️ No Reports Selected",
-        description: "Please select at least one report for this deposit.",
+        title: t("messages.validationError"),
+        description: t("messages.selectAtLeastOneReport"),
         variant: "destructive",
       });
       return;
@@ -799,8 +799,8 @@ export default function BankDepositsPage() {
       );
 
       toast({
-        title: "✅ Deposit Updated Successfully",
-        description: `Bank deposit updated with ${editSelectedReports.length} reports.`,
+        title: t("messages.success"),
+        description: t("messages.depositUpdatedWithReports", { count: editSelectedReports.length }),
       });
 
       // Reset and close dialog
@@ -814,8 +814,8 @@ export default function BankDepositsPage() {
     } catch (error) {
       console.error("❌ Error updating deposit:", error);
       toast({
-        title: "❌ Error Updating Deposit",
-        description: "There was an error updating the deposit. Please try again.",
+        title: t("messages.error"),
+        description: t("messages.errorUpdating"),
         variant: "destructive",
       });
     } finally {
@@ -841,14 +841,14 @@ export default function BankDepositsPage() {
       setEditCurrentSlips(prev => prev.filter((_, index) => index !== slipIndex));
       
       toast({
-        title: "✅ Slip Removed",
-        description: "Bank slip has been removed successfully.",
+        title: t("messages.success"),
+        description: t("messages.slipRemoved"),
       });
     } catch (error) {
       console.error('Error removing slip:', error);
       toast({
-        title: "❌ Error",
-        description: "Failed to remove the slip. Please try again.",
+        title: t("messages.error"),
+        description: t("messages.errorRemovingSlip"),
         variant: "destructive",
       });
     }
@@ -877,7 +877,7 @@ export default function BankDepositsPage() {
       console.error('Error fetching deposit reports:', error);
       setDepositReports([]);
       toast({
-        title: "Error",
+        title: t("messages.error"),
         description: t("messages.errorLoading"),
         variant: "destructive",
       });
@@ -953,8 +953,8 @@ export default function BankDepositsPage() {
       } catch (error) {
         console.error('❌ Error opening bank slips:', error);
         toast({
-          title: "Error Opening Bank Slips",
-          description: "There was an error opening the bank slips. Please try again.",
+          title: t("messages.error"),
+          description: t("messages.errorOpeningBankSlip"),
           variant: "destructive",
         });
       }
@@ -1020,7 +1020,7 @@ export default function BankDepositsPage() {
             )}
             {excludeFilter.length > 0 && (
               <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                Excluding {excludeFilter.length} {excludeFilter.length === 1 ? 'category' : 'categories'}
+                {t("filters.excludingCategories", { count: excludeFilter.length })}
               </Badge>
             )}
           </div>
@@ -1093,7 +1093,7 @@ export default function BankDepositsPage() {
                         {bankSlipFiles.length > 0 && (
                           <div className="space-y-2">
                             <div className="text-sm font-medium text-gray-700">
-                              {bankSlipFiles.length} file(s) selected
+                              {t("slipVerification.filesSelected", { count: bankSlipFiles.length })}
                             </div>
                             {bankSlipFiles.map((file, index) => (
                               <div key={index} className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
@@ -1174,9 +1174,9 @@ export default function BankDepositsPage() {
                                                             <span className="sm:hidden">{format(parseISO(dateGroup.date), "EEE, dd MMM")}</span>
                                                         </div>
                                                         <div className="text-xs text-muted-foreground">
-                                                            {dateGroup.depositableReports.length} depositable reports
-                                                            {dateGroup.reports.length !== dateGroup.depositableReports.length && 
-                                                                ` (${dateGroup.reports.length - dateGroup.depositableReports.length} with losses)`
+                                                            {t("form.depositableReports", { count: dateGroup.depositableReports.length })}
+                                                            {dateGroup.reports.length !== dateGroup.depositableReports.length &&
+                                                                ` (${t("form.withLosses", { count: dateGroup.reports.length - dateGroup.depositableReports.length })})`
                                                             }
                                                         </div>
                                                     </div>
@@ -1190,7 +1190,7 @@ export default function BankDepositsPage() {
                                                         <span className="sm:hidden text-xs">{formatCurrency(totalNetBalance).replace('AOA ', '')}</span>
                                                     </div>
                                                     <div className="text-xs text-muted-foreground hidden sm:block">
-                                                        Total for date
+                                                        {t("form.totalForDate")}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1612,7 +1612,7 @@ export default function BankDepositsPage() {
                               return (
                                 <Badge variant="secondary" className="text-xs">
                                   <Paperclip className="h-3 w-3 mr-1" />
-                                  {slipCount > 1 ? `${slipCount} slips` : t("table.slipAttached")}
+                                  {slipCount > 1 ? t("table.slipsAttachedCount", { count: slipCount }) : t("table.slipAttached")}
                                 </Badge>
                               );
                             }
@@ -1952,16 +1952,16 @@ export default function BankDepositsPage() {
             {/* Available Reports - Right Column */}
             <div className="lg:col-span-3 space-y-2 flex flex-col overflow-hidden">
               <div className="flex items-center justify-between">
-                <Label>Available Reports</Label>
+                <Label>{t("form.availableReports")}</Label>
                 <Badge variant="outline">
-                  {editAvailableReports.length} reports available
+                  {editAvailableReports.length} {t("form.reportsAvailable")}
                 </Badge>
               </div>
               
               <ScrollArea className="flex-1 border rounded-md">
                 <div className="p-2 space-y-2">
                   {editAvailableReports.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No reports available</p>
+                    <p className="text-center text-muted-foreground py-8">{t("form.noReportsAvailable")}</p>
                   ) : (
                     editAvailableReports.map((report) => {
                       const netBalance = calculateNetBalance(report, excludeFilter);

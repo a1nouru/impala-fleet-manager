@@ -156,7 +156,10 @@
     "customCategory": "Custom Category",
     "enterCategory": "Enter category name",
     "enterDescription": "Enter description",
-    "enterAmount": "Enter amount"
+    "enterAmount": "Enter amount",
+    "depositableReports": "{{count}} depositable reports",
+    "withLosses": "{{count}} with losses",
+    "totalForDate": "Total for date"
   },
   "table": {
     "date": "Date",
@@ -183,7 +186,9 @@
     "deposits": "Deposits",
     "reportsCovered": "Reports Covered",
     "depositDate": "Deposit Date",
-    "slipAttached": "Slip Attached"
+    "slipAttached": "Slip Attached",
+    "slipsAttachedCount": "{{count}} slips",
+    "depositStatus": "Deposit Status"
   },
   "filters": {
     "filters": "Filters",
@@ -203,7 +208,8 @@
     "bankFilter": "Bank Filter",
     "allBanks": "All Banks",
     "bank": "Bank",
-    "individualDeposits": "Individual Deposits"
+    "individualDeposits": "Individual Deposits",
+    "excludingCategories": "Excluding {{count}} category(ies)"
   },
   "buttons": {
     "cancel": "Cancel",
@@ -227,7 +233,9 @@
     "operational": "Operational",
     "nonOperational": "Non-Operational",
     "agaseke": "Agaseke",
-    "regular": "Regular"
+    "regular": "Regular",
+    "deposited": "Deposited",
+    "pending": "Pending"
   },
   "messages": {
     "success": "Success",
@@ -250,12 +258,25 @@
     "invalidFileType": "Invalid file type. Please upload a PDF or image file",
     "fileTooLarge": "File is too large. Maximum size is 5MB",
     "errorOpeningBankSlip": "Failed to open bank slip. Please try again",
-    "reportDeleted": "Daily report deleted successfully",
+    "reportDeleted": "Daily report deleted successfully.",
     "cannotDeleteReportInDeposit": "Cannot delete report that is included in bank deposits",
     "reportAudited": "Report marked as audited successfully",
     "auditRemoved": "Audit status removed successfully",
     "errorAuditing": "Failed to update audit status",
-    "unauthorizedAudit": "You are not authorized to perform audit actions."
+    "unauthorizedAudit": "You are not authorized to perform audit actions.",
+    "depositCreatedWithDetails": "Bank deposit of {{amount}} has been logged with {{count}} report(s).",
+    "invalidFileTypeNamed": "{{name}} is not a valid file type. Please upload PDF, JPG, or PNG files only.",
+    "fileTooLargeNamed": "{{name}} is too large. Maximum file size is 5MB.",
+    "selectAtLeastOneFile": "Please select at least one file to upload.",
+    "slipsAdded": "Added {{count}} slip(s) to the deposit.",
+    "errorAddingSlips": "There was an error adding the slips. Please try again.",
+    "depositUpdatedWithReports": "Bank deposit updated with {{count}} report(s).",
+    "slipRemoved": "Bank slip has been removed successfully.",
+    "errorRemovingSlip": "Failed to remove the slip. Please try again.",
+    "receiptUploadFailedCreate": "Receipt upload failed. The expense will be created without a receipt — you can add it later.",
+    "receiptUploadFailedUpdate": "Receipt upload failed. The expense will be updated without a new receipt.",
+    "depositUpdated": "Bank deposit updated successfully",
+    "fillAllFields": "Please fill in all required fields"
   },
   "expenses": {
     "title": "Expenses",
@@ -485,6 +506,7 @@
     "residualExcess": "The bank slips exceed the selected net revenue by {{amount}} even before company expenses.",
     "badgeMatchedWithExpenses": "Verified + expenses",
     "badgeUnverified": "Unverified",
-    "tooltipWithExpenses": "Verified after subtracting {{amount}} of company expenses recorded on the deposit date."
+    "tooltipWithExpenses": "Verified after subtracting {{amount}} of company expenses recorded on the deposit date.",
+    "filesSelected": "{{count}} file(s) selected"
   }
 }

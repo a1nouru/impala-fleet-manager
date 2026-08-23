@@ -143,11 +143,11 @@ export default function AllDailyReportsPage() {
     if (!editingReport) return;
     try {
         await financialService.updateDailyReport(editingReport.id, editedReportData);
-        toast({ title: "Success", description: "Report updated successfully." });
+        toast({ title: t("messages.success"), description: t("messages.reportUpdated") });
         setIsEditDialogOpen(false);
         fetchReports(); // Refresh data
     } catch (error) {
-        toast({ title: "Error", description: "Failed to update report.", variant: "destructive" });
+        toast({ title: t("messages.error"), description: t("messages.errorUpdating"), variant: "destructive" });
     }
   };
 
@@ -166,8 +166,8 @@ export default function AllDailyReportsPage() {
       setDepositVerifications(verifications);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to load daily reports.",
+        title: t("messages.error"),
+        description: t("messages.errorLoading"),
         variant: "destructive",
       });
     } finally {
@@ -268,8 +268,8 @@ export default function AllDailyReportsPage() {
       
       if (!allowedTypes.includes(file.type)) {
         toast({
-          title: "❌ Invalid File Type",
-          description: "Please upload PDF, JPG, or PNG files only.",
+          title: t("messages.validationError"),
+          description: t("messages.invalidFileType"),
           variant: "destructive",
         });
         return;
@@ -277,8 +277,8 @@ export default function AllDailyReportsPage() {
       
       if (file.size > maxSize) {
         toast({
-          title: "❌ File Too Large",
-          description: "Maximum file size is 5MB.",
+          title: t("messages.validationError"),
+          description: t("messages.fileTooLarge"),
           variant: "destructive",
         });
         return;
@@ -326,7 +326,7 @@ export default function AllDailyReportsPage() {
 
   const handleAddNewExpense = async () => {
     if (!editingReport || !newExpenseData.category || !newExpenseData.amount) {
-        toast({ title: "Error", description: "Please provide a category and amount for the new expense.", variant: "destructive" });
+        toast({ title: t("messages.validationError"), description: t("messages.fillRequired"), variant: "destructive" });
         return;
     }
 
@@ -352,8 +352,8 @@ export default function AllDailyReportsPage() {
           } catch (uploadError) {
             console.error("Receipt upload failed:", uploadError);
             toast({
-              title: "⚠️ Receipt Upload Failed",
-              description: "Expense will be created without receipt. You can add it later.",
+              title: t("messages.error"),
+              description: t("messages.receiptUploadFailedCreate"),
               variant: "destructive",
             });
           } finally {
@@ -367,7 +367,7 @@ export default function AllDailyReportsPage() {
         };
 
         await financialService.createDailyExpense({ report_id: editingReport.id, ...expenseData } as DailyExpense);
-        toast({ title: "✅ Success", description: "Expense added successfully." });
+        toast({ title: t("messages.success"), description: t("messages.expenseAdded") });
         
         // Reset form
         setNewExpenseData({ category: "", description: "", amount: 0 });
@@ -380,7 +380,7 @@ export default function AllDailyReportsPage() {
         const updatedReport = await financialService.getDailyReportById(editingReport.id);
         if (updatedReport) setEditingReport(updatedReport);
     } catch (error) {
-        toast({ title: "❌ Error", description: "Failed to add expense.", variant: "destructive" });
+        toast({ title: t("messages.error"), description: t("messages.errorCreating"), variant: "destructive" });
     }
   };
 
@@ -420,8 +420,8 @@ export default function AllDailyReportsPage() {
             } catch (uploadError) {
               console.error("Receipt upload failed:", uploadError);
               toast({
-                title: "⚠️ Receipt Upload Failed",
-                description: "Expense will be updated without new receipt.",
+                title: t("messages.error"),
+                description: t("messages.receiptUploadFailedUpdate"),
                 variant: "destructive",
               });
             } finally {
@@ -439,7 +439,7 @@ export default function AllDailyReportsPage() {
         }
 
         await financialService.updateDailyExpense(editingExpense.id, finalExpenseData);
-        toast({ title: "✅ Success", description: "Expense updated successfully." });
+        toast({ title: t("messages.success"), description: t("messages.expenseUpdated") });
         setIsExpenseDialogOpen(false);
         
         // Reset receipt state
@@ -452,7 +452,7 @@ export default function AllDailyReportsPage() {
             if (updatedReport) setEditingReport(updatedReport);
         }
     } catch (error) {
-        toast({ title: "❌ Error", description: "Failed to update expense.", variant: "destructive" });
+        toast({ title: t("messages.error"), description: t("messages.errorUpdating"), variant: "destructive" });
     }
   };
 
@@ -460,14 +460,14 @@ export default function AllDailyReportsPage() {
     if (window.confirm("Are you sure you want to delete this expense?")) {
         try {
             await financialService.deleteDailyExpense(expenseId);
-            toast({ title: "Success", description: "Expense deleted." });
+            toast({ title: t("messages.success"), description: t("messages.expenseDeleted") });
             // Refresh the main report
             if(editingReport) {
                 const updatedReport = await financialService.getDailyReportById(editingReport.id);
                 if (updatedReport) setEditingReport(updatedReport);
             }
         } catch (error) {
-            toast({ title: "Error", description: "Failed to delete expense.", variant: "destructive" });
+            toast({ title: t("messages.error"), description: t("messages.errorDeleting"), variant: "destructive" });
         }
     }
   };
@@ -477,14 +477,14 @@ export default function AllDailyReportsPage() {
         try {
             await financialService.deleteDailyReport(reportId);
             toast({ 
-                title: "✅ Success", 
-                description: "Daily report deleted successfully." 
+                title: t("messages.success"), 
+                description: t("messages.reportDeleted") 
             });
             fetchReports(); // Refresh the reports list
         } catch (error) {
             toast({ 
-                title: "❌ Error", 
-                description: "Failed to delete daily report.", 
+                title: t("messages.error"), 
+                description: t("messages.errorDeleting"), 
                 variant: "destructive" 
             });
         }
@@ -509,14 +509,14 @@ export default function AllDailyReportsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Vehicle</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Revenue</TableHead>
-                            <TableHead>Expenses</TableHead>
-                            <TableHead>Net Balance</TableHead>
-                            <TableHead>Deposit Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>{t("table.date")}</TableHead>
+                            <TableHead>{t("table.vehicle")}</TableHead>
+                            <TableHead>{t("table.status")}</TableHead>
+                            <TableHead>{t("table.revenue")}</TableHead>
+                            <TableHead>{t("table.expenses")}</TableHead>
+                            <TableHead>{t("table.netBalance")}</TableHead>
+                            <TableHead>{t("table.depositStatus")}</TableHead>
+                            <TableHead className="text-right">{t("table.actions")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -571,7 +571,7 @@ export default function AllDailyReportsPage() {
                                                 return (
                                                     <Badge variant={isDeposited ? "secondary" : "outline"} className="flex items-center gap-1 w-fit">
                                                         {isDeposited ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                                                        {isDeposited ? "Deposited" : "Pending"}
+                                                        {isDeposited ? t("status.deposited") : t("status.pending")}
                                                     </Badge>
                                                 );
                                             }
