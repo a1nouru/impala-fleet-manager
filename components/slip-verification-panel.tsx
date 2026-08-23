@@ -137,6 +137,25 @@ export function SlipVerificationPanel({ status, error, slips, verification }: Sl
         </div>
       )}
 
+      {verification.informationalSlipIndexes.length > 0 && (
+        <div className="space-y-1 border-t pt-2">
+          <div className="text-xs font-medium text-muted-foreground">{t("slipVerification.otherDocuments")}</div>
+          {verification.informationalSlipIndexes.map((i) => {
+            const s = slips[i];
+            if (!s) return null;
+            return (
+              <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                <span className="truncate text-muted-foreground">
+                  {s.reference || s.source_file}
+                  {s.date ? ` · ${s.date}` : ""}
+                </span>
+                <span className="font-mono flex-shrink-0 text-muted-foreground">{formatAOA(s.amount)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className="flex items-center gap-1 border-t pt-2">
         <Badge variant="outline" className="text-[10px]">
           {t("slipVerification.slipCount", { count: slips.length })}

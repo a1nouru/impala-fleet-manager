@@ -85,6 +85,21 @@ describe("verifySlips", () => {
     expect([...used].sort()).toEqual([0, 1]);
   });
 
+  it("excludes 'other' documents (e.g. Saída de Caixa vouchers) from the slips total and matching", () => {
+    const result = verifySlips(
+      [report("r1", "A", "2026-08-18", 763_750)],
+      [slip(763_750), slip(640_000, { slip_type: "other" })],
+      763_750
+    );
+
+    expect(result.slipsTotal).toBe(763_750);
+    expect(result.totalsMatch).toBe(true);
+    expect(result.allReportsMatched).toBe(true);
+    // The voucher is surfaced for the accountant but never counted or matched.
+    expect(result.unmatchedSlipIndexes).toEqual([]);
+    expect(result.informationalSlipIndexes).toEqual([1]);
+  });
+
   it("tolerates sub-cent OCR rounding noise", () => {
     const result = verifySlips(
       [report("r1", "A", "2026-08-19", 100_000)],

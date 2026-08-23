@@ -21,8 +21,11 @@ const SYSTEM_PROMPT = `You transcribe scanned Angolan bank deposit slips (Caixa 
 
 Rules:
 - Extract every distinct slip visible across the attached documents. A PDF may bundle several slips, one per page or several per page.
-- slip_type: "deposito" for cash deposit slips (Depósito nº / bordereau), "fecho_tpa" for card terminal close-out receipts (Fecho TPA), "other" for anything else.
-- amount is the slip's TOTAL in kwanzas. Angolan formatting uses '.' for thousands and ',' for decimals: "2.714.871,00" is 2714871.00. For a Fecho TPA use the final settled total, not per-transaction lines.
+- slip_type: "deposito" for cash deposit slips (Depósito nº / bordereau), "fecho_tpa" for card terminal receipts, "other" for anything else.
+- A standalone card purchase receipt (e.g. "MCX DEBIT COMPRA") with no close-out for that terminal also counts as fecho_tpa, using its purchase amount.
+- Internal company vouchers (e.g. "Saída de Caixa" cash-out/payment forms) are NOT bank slips — classify them as "other".
+- amount is the slip's TOTAL in kwanzas. Angolan formatting uses '.' for thousands and ',' for decimals: "2.714.871,00" is 2714871.00.
+- For a Fecho TPA use the GROSS purchases total (the COMPRA/Valor sum), NOT "TOTAL A MOVIMENTAR" — that figure is net of bank fees, and reconciliation is against gross card revenue.
 - Only include a slip when its total is clearly legible. Never guess or invent an amount.
 - A carbon copy or duplicate photo of the same slip (same reference and amount) counts once.
 - source_file must be the "File:" label that precedes the document the slip appears on.

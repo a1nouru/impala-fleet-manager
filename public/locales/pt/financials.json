@@ -496,6 +496,7 @@
     "readOnlyNote": "Os valores são lidos dos talões e não podem ser editados. Se um talão foi mal lido, carregue uma cópia mais nítida.",
     "badgeMatched": "Talões verificados",
     "badgeTotalsOnly": "Totais correspondem",
-    "badgeMismatch": "Talões divergentes"
+    "badgeMismatch": "Talões divergentes",
+    "otherDocuments": "Outros documentos (não contabilizados)"
   }
 }

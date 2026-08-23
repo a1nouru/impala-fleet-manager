@@ -28,6 +28,9 @@ export interface ReportVerdict extends ReportLine {
 export interface SlipVerification {
   reports: ReportVerdict[];
   unmatchedSlipIndexes: number[];
+  // Documents that are not bank slips (slip_type "other", e.g. internal
+  // Saída de Caixa vouchers): shown to the accountant, never counted.
+  informationalSlipIndexes: number[];
   slipsTotal: number;
   selectedTotal: number;
   totalsMatch: boolean;
@@ -46,11 +49,14 @@ export function verifySlips(
   selectedTotal: number
 ): SlipVerification {
   const used = new Array<boolean>(slips.length).fill(false);
+  // Only real bank slips participate: internal vouchers and stray documents
+  // ("other") are informational, so they can't be used to force a match.
+  const countable = (i: number) => slips[i].slip_type !== "other";
   const verdicts: ReportVerdict[] = reports.map((r) => ({ ...r, matched: false, matchedSlipIndexes: [] }));
 
   // Pass 1: one slip whose amount equals the report's net balance.
   for (const v of verdicts) {
-    const i = slips.findIndex((s, idx) => !used[idx] && eq(s.amount, v.netBalance));
+    const i = slips.findIndex((s, idx) => !used[idx] && countable(idx) && eq(s.amount, v.netBalance));
     if (i !== -1) {
       used[i] = true;
       v.matched = true;
@@ -62,9 +68,9 @@ export function verifySlips(
   for (const v of verdicts) {
     if (v.matched) continue;
     outer: for (let a = 0; a < slips.length; a++) {
-      if (used[a]) continue;
+      if (used[a] || !countable(a)) continue;
       for (let b = a + 1; b < slips.length; b++) {
-        if (used[b]) continue;
+        if (used[b] || !countable(b)) continue;
         if (eq(slips[a].amount + slips[b].amount, v.netBalance)) {
           used[a] = used[b] = true;
           v.matched = true;
@@ -75,11 +81,12 @@ export function verifySlips(
     }
   }
 
-  const slipsTotal = slips.reduce((sum, s) => sum + s.amount, 0);
+  const slipsTotal = slips.reduce((sum, s) => (s.slip_type === "other" ? sum : sum + s.amount), 0);
 
   return {
     reports: verdicts,
-    unmatchedSlipIndexes: slips.map((_, i) => i).filter((i) => !used[i]),
+    unmatchedSlipIndexes: slips.map((_, i) => i).filter((i) => !used[i] && countable(i)),
+    informationalSlipIndexes: slips.map((_, i) => i).filter((i) => !countable(i)),
     slipsTotal,
     selectedTotal,
     totalsMatch: eq(slipsTotal, selectedTotal),

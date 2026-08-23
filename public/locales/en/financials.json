@@ -475,6 +475,7 @@
     "readOnlyNote": "Amounts are read from the slips and cannot be edited. If a slip was misread, upload a clearer copy.",
     "badgeMatched": "Slips verified",
     "badgeTotalsOnly": "Totals match",
-    "badgeMismatch": "Slip mismatch"
+    "badgeMismatch": "Slip mismatch",
+    "otherDocuments": "Other documents (not counted)"
   }
 }
