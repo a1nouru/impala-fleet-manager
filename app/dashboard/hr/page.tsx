@@ -435,7 +435,7 @@ export default function VehicleDamagesPage() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={newDamage.total_damage_cost}
+                    value={newDamage.total_damage_cost === 0 ? "" : newDamage.total_damage_cost}
                     onChange={(e) => handleInputChange("total_damage_cost", e.target.value)}
                     placeholder="0.00"
                   />
@@ -446,7 +446,7 @@ export default function VehicleDamagesPage() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={newDamage.monthly_deduction_amount}
+                    value={newDamage.monthly_deduction_amount === 0 ? "" : newDamage.monthly_deduction_amount}
                     onChange={(e) => handleInputChange("monthly_deduction_amount", e.target.value)}
                     placeholder="0.00"
                   />
@@ -815,7 +815,7 @@ export default function VehicleDamagesPage() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={editedDamage.total_damage_cost}
+                    value={editedDamage.total_damage_cost === 0 ? "" : editedDamage.total_damage_cost}
                     onChange={(e) => handleEditInputChange("total_damage_cost", e.target.value)}
                   />
                 </div>
@@ -825,7 +825,7 @@ export default function VehicleDamagesPage() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={editedDamage.monthly_deduction_amount}
+                    value={editedDamage.monthly_deduction_amount === 0 ? "" : editedDamage.monthly_deduction_amount}
                     onChange={(e) => handleEditInputChange("monthly_deduction_amount", e.target.value)}
                     placeholder="0.00"
                   />

@@ -298,31 +298,47 @@ export default function CompanyExpensesPage() {
     if (files.length > 0) {
       const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
       const maxSize = 5 * 1024 * 1024; // 5MB
+      const validFiles: File[] = [];
+      const invalidFiles: string[] = [];
       
       for (const file of files) {
         if (!allowedTypes.includes(file.type)) {
-          toast({
-            title: "Invalid File Type",
-            description: `${file.name} is not a valid file type. Please upload PDF, JPG, or PNG files only.`,
-            variant: "destructive",
-          });
-          return;
+          invalidFiles.push(`${file.name} (invalid type)`);
+          continue;
         }
         
         if (file.size > maxSize) {
-          toast({
-            title: "File Too Large",
-            description: `${file.name} is too large. Maximum file size is 5MB.`,
-            variant: "destructive",
-          });
-          return;
+          invalidFiles.push(`${file.name} (too large, max 5MB)`);
+          continue;
         }
+        
+        validFiles.push(file);
       }
       
-      setReceiptFiles(prev => [...prev, ...files]);
-      setExpenseFormData(prev => ({ ...prev, has_receipt: true }));
-      setNoReceiptSelected(false);
+      // Show error for invalid files
+      if (invalidFiles.length > 0) {
+        toast({
+          title: "⚠️ Some Files Rejected",
+          description: `${invalidFiles.length} file(s) were rejected: ${invalidFiles.slice(0, 2).join(', ')}${invalidFiles.length > 2 ? '...' : ''}. Only PDF, JPG, and PNG files under 5MB are allowed.`,
+          variant: "destructive",
+        });
+      }
+      
+      // Add valid files
+      if (validFiles.length > 0) {
+        setReceiptFiles(prev => [...prev, ...validFiles]);
+        setExpenseFormData(prev => ({ ...prev, has_receipt: true }));
+        setNoReceiptSelected(false);
+        
+        toast({
+          title: "✅ Files Added",
+          description: `${validFiles.length} receipt${validFiles.length !== 1 ? 's' : ''} added successfully. Total: ${receiptFiles.length + validFiles.length} receipt${receiptFiles.length + validFiles.length !== 1 ? 's' : ''}.`,
+        });
+      }
     }
+    
+    // Reset input so the same files can be selected again if needed
+    e.target.value = '';
   };
 
   const removeReceiptFile = (index: number) => {
@@ -364,8 +380,8 @@ export default function CompanyExpensesPage() {
 
     if (!noReceiptSelected && receiptFiles.length === 0) {
       toast({
-        title: "Receipt Required",
-        description: "Please upload a receipt or indicate that no receipt is available.",
+        title: "📎 Receipt Required",
+        description: "Please upload at least one receipt or check the 'No receipt available' option. You can upload multiple receipts at once.",
         variant: "destructive",
       });
       return;
@@ -415,6 +431,7 @@ export default function CompanyExpensesPage() {
       has_receipt: expense.has_receipt,
     });
     setCategorySearchTerm(expense.category);
+    setReceiptFiles([]); // Clear receipt files for edit mode
     setEditExpenseDialogOpen(true);
   };
 
@@ -431,18 +448,32 @@ export default function CompanyExpensesPage() {
 
     setIsSubmitting(true);
     try {
+      // Calculate if expense has receipts (existing + new)
+      const existingReceiptsCount = selectedExpense.company_expense_receipts?.length || 0;
+      const hasReceipts = existingReceiptsCount > 0 || receiptFiles.length > 0;
+
+      // Update expense details
       await financialService.updateCompanyExpense(selectedExpense.id, {
         expense_date: expenseFormData.expense_date,
         category: expenseFormData.category,
         description: expenseFormData.description,
         amount: parseFloat(expenseFormData.amount as string),
-        has_receipt: expenseFormData.has_receipt,
+        has_receipt: hasReceipts,
       });
 
-      toast({
-        title: "✅ Success",
-        description: "Expense updated successfully.",
-      });
+      // Upload new receipts if any
+      if (receiptFiles.length > 0) {
+        await financialService.addReceiptsToExpense(selectedExpense.id, receiptFiles);
+        toast({
+          title: "✅ Success",
+          description: `Expense updated successfully. ${receiptFiles.length} new receipt${receiptFiles.length !== 1 ? 's' : ''} added.`,
+        });
+      } else {
+        toast({
+          title: "✅ Success",
+          description: "Expense updated successfully.",
+        });
+      }
 
       setEditExpenseDialogOpen(false);
       resetForm();
@@ -450,7 +481,7 @@ export default function CompanyExpensesPage() {
     } catch (error) {
       toast({
         title: "❌ Error",
-        description: "Failed to update expense.",
+        description: "Failed to update expense. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -631,15 +662,39 @@ export default function CompanyExpensesPage() {
 
               {/* Receipt Upload Section */}
               <div className="space-y-2">
-                <Label>{t("companyExpenses.uploadReceipt")}</Label>
+                <div className="flex items-center justify-between">
+                  <Label>{t("companyExpenses.uploadReceipt")}</Label>
+                  <span className="text-xs text-muted-foreground">
+                    ✓ Unlimited receipts allowed
+                  </span>
+                </div>
                 <div className="space-y-3">
-                  <Input
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleFileChange}
-                    className="cursor-pointer"
-                  />
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      id="receipt-upload-input"
+                    />
+                    <label htmlFor="receipt-upload-input" className="cursor-pointer block text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="p-3 bg-gray-100 rounded-full">
+                          <Paperclip className="h-6 w-6 text-gray-600" />
+                        </div>
+                        <div className="text-sm font-medium text-gray-700">
+                          Click to upload receipts
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          PDF, JPG, PNG (max 5MB per file)
+                        </div>
+                        <div className="text-xs text-green-600 font-medium">
+                          Select multiple files at once or add more later
+                        </div>
+                      </div>
+                    </label>
+                  </div>
                   
                   <div className="flex items-center space-x-2">
                     <input
@@ -656,23 +711,42 @@ export default function CompanyExpensesPage() {
 
                   {receiptFiles.length > 0 && (
                     <div className="space-y-2">
-                      <div className="text-sm font-medium text-gray-700">
-                        {receiptFiles.length} file(s) selected
-                      </div>
-                      {receiptFiles.map((file, index) => (
-                        <div key={index} className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                          <Paperclip className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-700 truncate flex-1">{file.name}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeReceiptFile(index)}
-                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700 flex-shrink-0"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-gray-700">
+                          📎 {receiptFiles.length} receipt{receiptFiles.length !== 1 ? 's' : ''} attached
                         </div>
-                      ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setReceiptFiles([])}
+                          className="text-xs text-red-500 hover:text-red-700 h-auto py-1 px-2"
+                        >
+                          Clear all
+                        </Button>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
+                        {receiptFiles.map((file, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md group hover:bg-green-100 transition-colors">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Paperclip className="h-4 w-4 text-green-600 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm text-green-700 truncate">{file.name}</div>
+                                <div className="text-xs text-green-600">
+                                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeReceiptFile(index)}
+                              className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -970,7 +1044,7 @@ export default function CompanyExpensesPage() {
 
       {/* Edit Expense Dialog */}
       <Dialog open={editExpenseDialogOpen} onOpenChange={setEditExpenseDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t("companyExpenses.editExpense")}</DialogTitle>
           </DialogHeader>
@@ -1032,6 +1106,96 @@ export default function CompanyExpensesPage() {
                 onChange={handleInputChange}
                 rows={3}
               />
+            </div>
+
+            {/* Existing Receipts */}
+            {selectedExpense && selectedExpense.company_expense_receipts && selectedExpense.company_expense_receipts.length > 0 && (
+              <div className="space-y-2">
+                <Label>Current Receipts ({selectedExpense.company_expense_receipts.length})</Label>
+                <div className="max-h-32 overflow-y-auto space-y-2">
+                  {selectedExpense.company_expense_receipts.map((receipt, index) => (
+                    <div key={receipt.id || index} className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                      <Paperclip className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                      <span className="text-sm text-blue-700 truncate flex-1">{receipt.file_name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openStoredFile(receipt.receipt_url)}
+                        className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
+                      >
+                        View
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add More Receipts */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Add More Receipts</Label>
+                <span className="text-xs text-muted-foreground">
+                  Optional - add unlimited receipts
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-gray-400 transition-colors">
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="receipt-upload-edit"
+                  />
+                  <label htmlFor="receipt-upload-edit" className="cursor-pointer block text-center">
+                    <div className="flex flex-col items-center gap-1">
+                      <Paperclip className="h-5 w-5 text-gray-600" />
+                      <div className="text-xs font-medium text-gray-700">
+                        Upload additional receipts
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        PDF, JPG, PNG (max 5MB)
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                {receiptFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold text-gray-700">
+                        📎 {receiptFiles.length} new receipt{receiptFiles.length !== 1 ? 's' : ''} to add
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setReceiptFiles([])}
+                        className="text-xs text-red-500 hover:text-red-700 h-auto py-1 px-2"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto space-y-2">
+                      {receiptFiles.map((file, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                          <Paperclip className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-sm text-green-700 truncate flex-1">{file.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeReceiptFile(index)}
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700 flex-shrink-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
