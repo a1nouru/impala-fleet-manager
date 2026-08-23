@@ -72,7 +72,10 @@ export interface BankDepositSlip {
 
 export interface BankDeposit {
     id: string;
-    bank_name: 'Caixa Angola' | 'BAI';
+    bank_name: 'Caixa Angola' | 'BAI' | 'Standard Bank';
+    // Which vehicle group this deposit covers (they bank into different
+    // accounts). Null on legacy deposits logged before group scoping.
+    deposit_group?: 'regular' | 'agaseke' | null;
     deposit_date: string;
     amount: number;
     deposit_slip_url?: string; // Legacy field - kept for backward compatibility
@@ -469,7 +472,8 @@ export const financialService = {
     depositData: Omit<BankDeposit, 'id' | 'created_at' | 'updated_at'>,
     reportIds: string[],
     bankSlipFiles?: File[],
-    slipVerification?: SlipVerification | null
+    slipVerification?: SlipVerification | null,
+    depositGroup?: 'regular' | 'agaseke' | null
   ): Promise<BankDeposit> {
     // First create the deposit to get the ID using the new function
     const { data: depositId, error } = await supabase.rpc('create_bank_deposit_with_multiple_reports', {
@@ -484,16 +488,19 @@ export const financialService = {
       throw error;
     }
 
-    // Persist the read-only slip OCR verdict alongside the deposit so a
-    // mismatch stays visible to the accountant after logging.
-    if (slipVerification) {
-      const { error: verificationError } = await supabase
+    // Persist the read-only slip OCR verdict and vehicle group alongside the
+    // deposit so a mismatch stays visible to the accountant after logging.
+    if (slipVerification || depositGroup) {
+      const extras: Record<string, unknown> = {};
+      if (slipVerification) extras.slip_verification = slipVerification;
+      if (depositGroup) extras.deposit_group = depositGroup;
+      const { error: extrasError } = await supabase
         .from('bank_deposits')
-        .update({ slip_verification: slipVerification })
+        .update(extras)
         .eq('id', depositId);
-      if (verificationError) {
-        // Deposit itself was created; don't fail the whole flow over the verdict.
-        console.error('Error saving slip verification:', verificationError);
+      if (extrasError) {
+        // Deposit itself was created; don't fail the whole flow over metadata.
+        console.error('Error saving deposit verification metadata:', extrasError);
       }
     }
 

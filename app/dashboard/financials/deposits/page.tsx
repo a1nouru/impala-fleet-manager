@@ -59,7 +59,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
+import { AGASEKE_PLATES, isAgasekeVehicle, normalizePlate, REGULAR_CASH_ACCOUNT, REGULAR_TPA_ACCOUNT } from "@/lib/constants";
 
 // Common expense categories for exclude filter
 const EXPENSE_CATEGORIES = [
@@ -178,8 +178,11 @@ export default function BankDepositsPage() {
   // State for creating new deposits
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false);
   const [bankSlipFiles, setBankSlipFiles] = useState<File[]>([]);
+  // Regular and Agaseke vehicles bank into different accounts, so a deposit
+  // is scoped to one vehicle type; the bank is derived from it.
+  const [vehicleType, setVehicleType] = useState<"regular" | "agaseke">("regular");
   const [newDeposit, setNewDeposit] = useState({
-    bank_name: "Caixa Angola" as const,
+    bank_name: "Caixa Angola" as "Caixa Angola" | "BAI" | "Standard Bank",
     deposit_date: format(new Date(), "yyyy-MM-dd"),
     amount: 0,
   });
@@ -328,8 +331,11 @@ export default function BankDepositsPage() {
         netBalance: calculateNetBalance(report, excludeFilter),
       }];
     });
-    return verifySlips(lines, extractedSlips, newDeposit.amount, d1Expenses);
-  }, [slipStatus, extractedSlips, selectedReports, undepositedReports, excludeFilter, newDeposit.amount, d1Expenses]);
+    return verifySlips(lines, extractedSlips, newDeposit.amount, d1Expenses, {
+      expectedGroup: vehicleType,
+      regularAccounts: [REGULAR_CASH_ACCOUNT, REGULAR_TPA_ACCOUNT],
+    });
+  }, [slipStatus, extractedSlips, selectedReports, undepositedReports, excludeFilter, newDeposit.amount, d1Expenses, vehicleType]);
 
   // Auto-set deposit date to latest report date when reports are selected
   useEffect(() => {
@@ -396,7 +402,7 @@ export default function BankDepositsPage() {
   };
 
   const handleDateSelection = (date: string) => {
-    const groupedReports = groupReportsByDate(undepositedReports, excludeFilter);
+    const groupedReports = groupReportsByDate(getFilteredReports(), excludeFilter);
     const dateGroup = groupedReports.find(group => group.date === date);
     
     if (!dateGroup) return;
@@ -425,7 +431,7 @@ export default function BankDepositsPage() {
 
   // Update selected dates when individual reports are selected/deselected
   useEffect(() => {
-    const groupedReports = groupReportsByDate(undepositedReports, excludeFilter);
+    const groupedReports = groupReportsByDate(getFilteredReports(), excludeFilter);
     const newSelectedDates: string[] = [];
     
     groupedReports.forEach(group => {
@@ -438,7 +444,8 @@ export default function BankDepositsPage() {
     });
     
     setSelectedDates(newSelectedDates);
-  }, [selectedReports, undepositedReports, excludeFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedReports, undepositedReports, excludeFilter, vehicleType]);
   
   // --- Handlers for the Edit functionality (Refactored) ---
 
@@ -567,7 +574,8 @@ export default function BankDepositsPage() {
         depositData,
         selectedReports,
         bankSlipFiles,
-        slipVerification
+        slipVerification,
+        vehicleType
       );
 
       toast({
@@ -592,6 +600,7 @@ export default function BankDepositsPage() {
   };
 
   const resetDepositForm = () => {
+    setVehicleType("regular");
     setNewDeposit({
       bank_name: "Caixa Angola",
       deposit_date: format(new Date(), "yyyy-MM-dd"),
@@ -966,28 +975,24 @@ export default function BankDepositsPage() {
     }
   };
 
-  // Filter reports for display based on selected bank
-  const getFilteredReports = () => {
-    if (newDeposit.bank_name === "Caixa Angola") {
-      return undepositedReports.filter(
-        (report) => !isAgasekeVehicle(report.vehicles?.plate)
-      );
-    }
-    return undepositedReports;
-  };
+  // A report belongs to the Agaseke or Regular group by its vehicle's plate.
+  const reportGroup = (report: DailyReport): "regular" | "agaseke" =>
+    isAgasekeVehicle(normalizePlate(report.vehicles?.plate || "")) ? "agaseke" : "regular";
 
-  // Clear selected AGASEKE reports if switching to Caixa Angola
+  // The dialog only ever lists reports of the selected vehicle type — the
+  // two groups bank into different accounts and are deposited separately.
+  const getFilteredReports = () => undepositedReports.filter((report) => reportGroup(report) === vehicleType);
+
+  // Drop any selections from the other group when the vehicle type changes.
   useEffect(() => {
-    if (newDeposit.bank_name === "Caixa Angola") {
-      setSelectedReports((prev) =>
-        prev.filter((reportId) => {
-          const report = undepositedReports.find((r) => r.id === reportId);
-          return report && !isAgasekeVehicle(report.vehicles?.plate);
-        })
-      );
-    }
+    setSelectedReports((prev) =>
+      prev.filter((reportId) => {
+        const report = undepositedReports.find((r) => r.id === reportId);
+        return report && reportGroup(report) === vehicleType;
+      })
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newDeposit.bank_name, undepositedReports]);
+  }, [vehicleType, undepositedReports]);
 
   // Helper to get net balance for a deposit (array of report_ids)
   const getDepositNetBalance = (deposit: BankDeposit) => {
@@ -1044,16 +1049,27 @@ export default function BankDepositsPage() {
                   {/* Form Inputs - Left Column */}
                   <div className="lg:col-span-2 space-y-4">
                                           <div className="space-y-2">
-                          <Label htmlFor="bank_name">{t("form.bankName")}</Label>
-                          <Select name="bank_name" value={newDeposit.bank_name} onValueChange={(value) => handleSelectChange("bank_name", value)}>
-                                                             <SelectTrigger>
-                                   <SelectValue placeholder={t("form.selectBank")} />
+                          <Label htmlFor="vehicle_type">{t("form.vehicleType")}</Label>
+                          <Select
+                            name="vehicle_type"
+                            value={vehicleType}
+                            onValueChange={(value) => {
+                              const type = value as "regular" | "agaseke";
+                              setVehicleType(type);
+                              setNewDeposit((prev) => ({ ...prev, bank_name: type === "regular" ? "Caixa Angola" : "Standard Bank" }));
+                            }}
+                          >
+                               <SelectTrigger>
+                                   <SelectValue placeholder={t("form.selectVehicleType")} />
                                </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Caixa Angola">Caixa Angola</SelectItem>
-                                <SelectItem value="BAI">BAI</SelectItem>
+                                <SelectItem value="regular">{t("form.vehicleTypeRegular")}</SelectItem>
+                                <SelectItem value="agaseke">{t("form.vehicleTypeAgaseke")}</SelectItem>
                             </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground">
+                          {t("form.depositsTo", { bank: newDeposit.bank_name })}
+                        </p>
                     </div>
                                           <div className="space-y-2">
                           <Label htmlFor="deposit_date">{t("form.depositDate")}</Label>
@@ -1125,7 +1141,7 @@ export default function BankDepositsPage() {
                     <div className="flex items-center justify-between">
                       <Label>{t("form.availableReports")}</Label>
                       <div className="text-xs text-muted-foreground">
-                        {undepositedReports.length} {t("form.reportsAvailable")}
+                        {getFilteredReports().length} {t("form.reportsAvailable")}
                       </div>
                     </div>
                     <ScrollArea className="flex-1 w-full rounded-md border">
@@ -1203,10 +1219,7 @@ export default function BankDepositsPage() {
                                         const isDepositable = netBalance > 0;
                                                         const isAlreadyDeposited = report.deposit_reports && report.deposit_reports.length > 0;
                                                         const isReportSelected = selectedReports.includes(report.id);
-                                                        const isAgaseke = isAgasekeVehicle(report.vehicles?.plate);
-                                                        // Disable if Caixa Angola and AGASEKE
-                                                        const isCaixaAngola = newDeposit.bank_name === "Caixa Angola";
-                                                        const canSelect = isDepositable && !isAlreadyDeposited && !(isCaixaAngola && isAgaseke);
+                                                        const canSelect = isDepositable && !isAlreadyDeposited;
 
                                         return (
                                                             <div 
@@ -1233,11 +1246,6 @@ export default function BankDepositsPage() {
                                                             />
                                                           </span>
                                                         </TooltipTrigger>
-                                                        {isCaixaAngola && isAgaseke && (
-                                                          <TooltipContent side="right">
-                                                            AGASEKE vehicles cannot be deposited in Caixa Angola. Please use Standard Bank.
-                                                          </TooltipContent>
-                                                        )}
                                                       </Tooltip>
                                                     </TooltipProvider>
                                                                 <div 
@@ -1270,11 +1278,11 @@ export default function BankDepositsPage() {
                                                                             <div className="text-xs text-red-500">{t("form.loss")}</div>
                                                                         )}
                                                                         {isAlreadyDeposited && (
-                                                                            <div className="text-xs text-blue-500">Already deposited</div>
+                                                                            <div className="text-xs text-blue-500">{t("form.alreadyDeposited")}</div>
                                                     )}
                                                                         {!canSelect && (
                                                                             <div className="text-xs text-gray-500">
-                                                                                {isCaixaAngola && isAgaseke ? "Not depositable in Caixa Angola" : (!isDepositable ? "Loss report" : "Already deposited")}
+                                                                                {!isDepositable ? t("form.lossReport") : t("form.alreadyDeposited")}
                                                   </div>
                                                                         )}
                                                                     </div>
@@ -1658,9 +1666,11 @@ export default function BankDepositsPage() {
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
                                     <p>
-                                      {residual > 0
-                                        ? t("slipVerification.residualShort", { amount: formatCurrency(residual) })
-                                        : t("slipVerification.residualExcess", { amount: formatCurrency(Math.abs(residual)) })}
+                                      {(sv.wrongAccountSlipIndexes ?? []).length > 0
+                                        ? t("slipVerification.wrongAccountNote", { count: sv.wrongAccountSlipIndexes.length })
+                                        : residual > 0
+                                          ? t("slipVerification.residualShort", { amount: formatCurrency(residual) })
+                                          : t("slipVerification.residualExcess", { amount: formatCurrency(Math.abs(residual)) })}
                                     </p>
                                   </TooltipContent>
                                 </Tooltip>
@@ -1670,7 +1680,14 @@ export default function BankDepositsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{deposit.bank_name}</Badge>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <Badge variant="secondary">{deposit.bank_name}</Badge>
+                          {deposit.deposit_group && (
+                            <Badge variant="outline" className="text-xs">
+                              {deposit.deposit_group === "agaseke" ? t("form.vehicleTypeAgaseke") : t("form.vehicleTypeRegular")}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{deposit.deposit_reports?.length || 0}</TableCell>
                       <TableCell className="text-right">

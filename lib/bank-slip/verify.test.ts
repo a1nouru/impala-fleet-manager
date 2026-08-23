@@ -156,6 +156,71 @@ describe("verifySlips", () => {
     expect(result.residual).toBe(-100_000);
   });
 
+  it("flags a slip credited to a non-regular account on a regular deposit and forces unverified", () => {
+    const result = verifySlips(
+      [report("r1", "A", "2026-08-18", 100_000)],
+      [slip(100_000, { account_number: "999911112222" })],
+      100_000,
+      [],
+      { expectedGroup: "regular", regularAccounts: ["930508110002", "930508110001"] }
+    );
+
+    expect(result.wrongAccountSlipIndexes).toEqual([0]);
+    expect(result.status).toBe("unverified");
+  });
+
+  it("accepts regular-account slips on a regular deposit, tolerating leading zeros", () => {
+    const result = verifySlips(
+      [report("r1", "A", "2026-08-18", 100_000)],
+      [slip(100_000, { account_number: "000930508110001" })],
+      100_000,
+      [],
+      { expectedGroup: "regular", regularAccounts: ["930508110002", "930508110001"] }
+    );
+
+    expect(result.wrongAccountSlipIndexes).toEqual([]);
+    expect(result.status).toBe("verified");
+  });
+
+  it("flags a regular-account slip on an agaseke deposit", () => {
+    const result = verifySlips(
+      [report("r1", "A", "2026-08-18", 100_000)],
+      [slip(100_000, { account_number: "930508110002" })],
+      100_000,
+      [],
+      { expectedGroup: "agaseke", regularAccounts: ["930508110002", "930508110001"] }
+    );
+
+    expect(result.wrongAccountSlipIndexes).toEqual([0]);
+    expect(result.status).toBe("unverified");
+  });
+
+  it("never flags slips without a readable account number or 'other' documents", () => {
+    const result = verifySlips(
+      [report("r1", "A", "2026-08-18", 100_000)],
+      [slip(100_000, { account_number: null }), slip(50_000, { slip_type: "other", account_number: "930508110002" })],
+      100_000,
+      [],
+      { expectedGroup: "agaseke", regularAccounts: ["930508110002", "930508110001"] }
+    );
+
+    expect(result.wrongAccountSlipIndexes).toEqual([]);
+    expect(result.status).toBe("verified");
+  });
+
+  it("skips account checking entirely when no account numbers are configured", () => {
+    const result = verifySlips(
+      [report("r1", "A", "2026-08-18", 100_000)],
+      [slip(100_000, { account_number: "123456789" })],
+      100_000,
+      [],
+      { expectedGroup: "regular", regularAccounts: ["", ""] }
+    );
+
+    expect(result.wrongAccountSlipIndexes).toEqual([]);
+    expect(result.status).toBe("verified");
+  });
+
   it("tolerates sub-cent OCR rounding noise", () => {
     const result = verifySlips(
       [report("r1", "A", "2026-08-19", 100_000)],

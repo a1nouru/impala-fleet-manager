@@ -83,6 +83,31 @@ export function SlipVerificationPanel({ status, error, slips, verification }: Sl
         )}
       </div>
 
+      {/* Slips credited to the wrong group's account — never acceptable */}
+      {(v.wrongAccountSlipIndexes ?? []).length > 0 && (
+        <div className="space-y-1 rounded-md border border-red-300 bg-white/70 p-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-red-800">
+            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+            {t("slipVerification.wrongAccountSlips", {
+              type: v.expectedGroup === "agaseke" ? t("form.vehicleTypeAgaseke") : t("form.vehicleTypeRegular"),
+            })}
+          </div>
+          {v.wrongAccountSlipIndexes.map((i) => {
+            const s = slips[i];
+            if (!s) return null;
+            return (
+              <div key={i} className="flex items-center justify-between gap-2 text-xs text-red-700">
+                <span className="truncate">
+                  {s.reference || s.source_file}
+                  {s.account_number ? ` · ${t("slipVerification.account")} ${s.account_number}` : ""}
+                </span>
+                <span className="font-mono flex-shrink-0">{formatAOA(s.amount)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Reconciliation waterfall: where the money went, line by line */}
       <div className="space-y-1 rounded-md border bg-white/60 p-2 text-sm">
         <div className="flex items-center justify-between">

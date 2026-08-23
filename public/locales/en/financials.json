@@ -159,7 +159,14 @@
     "enterAmount": "Enter amount",
     "depositableReports": "{{count}} depositable reports",
     "withLosses": "{{count}} with losses",
-    "totalForDate": "Total for date"
+    "totalForDate": "Total for date",
+    "vehicleType": "Vehicle Type",
+    "selectVehicleType": "Select vehicle type",
+    "vehicleTypeRegular": "Regular",
+    "vehicleTypeAgaseke": "Agaseke",
+    "depositsTo": "Deposits to: {{bank}}",
+    "lossReport": "Loss report",
+    "alreadyDeposited": "Already deposited"
   },
   "table": {
     "date": "Date",
@@ -507,6 +514,9 @@
     "badgeMatchedWithExpenses": "Verified + expenses",
     "badgeUnverified": "Unverified",
     "tooltipWithExpenses": "Verified after subtracting {{amount}} of company expenses recorded on the deposit date.",
-    "filesSelected": "{{count}} file(s) selected"
+    "filesSelected": "{{count}} file(s) selected",
+    "wrongAccountSlips": "Slips credited to the wrong account for {{type}} vehicles",
+    "wrongAccountNote": "{{count}} slip(s) were credited to the wrong bank account for this vehicle type.",
+    "account": "Account"
   }
 }

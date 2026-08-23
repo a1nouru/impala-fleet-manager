@@ -159,7 +159,14 @@
     "enterAmount": "Introduza o valor",
     "depositableReports": "{{count}} relatórios depositáveis",
     "withLosses": "{{count}} com prejuízo",
-    "totalForDate": "Total do dia"
+    "totalForDate": "Total do dia",
+    "vehicleType": "Tipo de Veículo",
+    "selectVehicleType": "Selecione o tipo de veículo",
+    "vehicleTypeRegular": "Regular",
+    "vehicleTypeAgaseke": "Agaseke",
+    "depositsTo": "Depósito para: {{bank}}",
+    "lossReport": "Relatório com prejuízo",
+    "alreadyDeposited": "Já depositado"
   },
   "table": {
     "date": "Data",
@@ -528,6 +535,9 @@
     "badgeMatchedWithExpenses": "Verificado + despesas",
     "badgeUnverified": "Não verificado",
     "tooltipWithExpenses": "Verificado após subtrair {{amount}} de despesas da empresa registadas na data do depósito.",
-    "filesSelected": "{{count}} ficheiro(s) selecionado(s)"
+    "filesSelected": "{{count}} ficheiro(s) selecionado(s)",
+    "wrongAccountSlips": "Talões creditados na conta errada para veículos {{type}}",
+    "wrongAccountNote": "{{count}} talão(ões) creditado(s) na conta bancária errada para este tipo de veículo.",
+    "account": "Conta"
   }
 }

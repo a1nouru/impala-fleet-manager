@@ -26,3 +26,25 @@ export const isInterprocencialRoute = (route: string | undefined | null): boolea
   ];
   return interprocencialRoutes.includes(route.toUpperCase());
 };
+// Bank account numbers used by slip verification. Impala's account numbers
+// are not configured yet — empty strings disable the wrong-account check
+// (verification still runs on amounts, it just can't validate accounts).
+export const REGULAR_CASH_ACCOUNT = "";
+export const REGULAR_TPA_ACCOUNT = "";
+export const AGASEKE_ACCOUNT_NUMBER = "";
+
+export type DepositGroup = "regular" | "agaseke" | "mixed" | "unknown";
+
+// Vehicle plates appear with stray whitespace/trailing dots in some records
+// (e.g. "LDA-29-14-AE.."). Normalize before any Agaseke comparison.
+export const normalizePlate = (plate: string): string =>
+  plate.trim().replace(/\.+$/, "").toUpperCase();
+
+// A deposit inherits its group from the vehicles on its linked reports.
+export const classifyDepositGroup = (plates: string[]): DepositGroup => {
+  if (plates.length === 0) return "unknown";
+  const agaseke = plates.filter((p) => isAgasekeVehicle(normalizePlate(p))).length;
+  if (agaseke === 0) return "regular";
+  if (agaseke === plates.length) return "agaseke";
+  return "mixed";
+};

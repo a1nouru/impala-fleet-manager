@@ -37,6 +37,13 @@ export interface CompanyExpenseLine {
 
 export type VerificationStatus = "verified" | "verified_with_expenses" | "unverified";
 
+// Regular and Agaseke vehicles bank into different accounts, so a deposit is
+// scoped to one group and slips must credit that group's account.
+export interface GroupCheckOptions {
+  expectedGroup: "regular" | "agaseke";
+  regularAccounts: string[];
+}
+
 export interface SlipVerification {
   reports: ReportVerdict[];
   unmatchedSlipIndexes: number[];
@@ -47,6 +54,12 @@ export interface SlipVerification {
   selectedTotal: number;
   totalsMatch: boolean;
   allReportsMatched: boolean;
+  // Slips credited to an account that doesn't belong to the deposit's
+  // vehicle group (e.g. a Regular-account slip on an Agaseke deposit).
+  // Any entry here forces the status to "unverified".
+  wrongAccountSlipIndexes: number[];
+  // The vehicle group this verification was scoped to, if any.
+  expectedGroup: "regular" | "agaseke" | null;
   // Second reconciliation pass: slips + D+1 company expenses vs the total.
   status: VerificationStatus;
   d1Expenses: CompanyExpenseLine[]; // the expenses applied (empty when slips alone verify)
@@ -60,11 +73,21 @@ const EPS = 0.005;
 
 const eq = (a: number, b: number) => Math.abs(a - b) <= EPS;
 
+// OCR reads accounts with stray zeros/spaces ("000930508110001"): compare on
+// digits with leading zeros stripped, matching if one ends with the other.
+const sameAccount = (a: string, b: string): boolean => {
+  const na = a.replace(/\D/g, "").replace(/^0+/, "");
+  const nb = b.replace(/\D/g, "").replace(/^0+/, "");
+  if (!na || !nb) return false;
+  return na.endsWith(nb) || nb.endsWith(na);
+};
+
 export function verifySlips(
   reports: ReportLine[],
   slips: ExtractedSlip[],
   selectedTotal: number,
-  d1CompanyExpenses: CompanyExpenseLine[] = []
+  d1CompanyExpenses: CompanyExpenseLine[] = [],
+  groupCheck?: GroupCheckOptions
 ): SlipVerification {
   const used = new Array<boolean>(slips.length).fill(false);
   // Only real bank slips participate: internal vouchers and stray documents
@@ -121,6 +144,21 @@ export function verifySlips(
     appliedExpenses = d1CompanyExpenses;
     appliedTotal = d1Total;
   }
+  // Account ownership check: a slip crediting the wrong group's account can
+  // never verify, even when the amounts add up.
+  const wrongAccountSlipIndexes: number[] = [];
+  // Only check when accounts are actually configured (deployments without
+  // known account numbers skip this rather than flagging everything).
+  const knownAccounts = (groupCheck?.regularAccounts ?? []).filter((a) => a.replace(/\D/g, "").length > 0);
+  if (groupCheck && knownAccounts.length > 0) {
+    slips.forEach((s, i) => {
+      if (s.slip_type === "other" || !s.account_number) return;
+      const isRegularAccount = knownAccounts.some((acc) => sameAccount(s.account_number!, acc));
+      if (groupCheck.expectedGroup === "regular" && !isRegularAccount) wrongAccountSlipIndexes.push(i);
+      if (groupCheck.expectedGroup === "agaseke" && isRegularAccount) wrongAccountSlipIndexes.push(i);
+    });
+  }
+  if (wrongAccountSlipIndexes.length > 0) status = "unverified";
   const residual = status === "unverified" ? selectedTotal - slipsTotal - appliedTotal : 0;
 
   return {
@@ -132,6 +170,8 @@ export function verifySlips(
     totalsMatch,
     allReportsMatched: verdicts.every((v) => v.matched),
     status,
+    wrongAccountSlipIndexes,
+    expectedGroup: groupCheck?.expectedGroup ?? null,
     d1Expenses: appliedExpenses,
     d1ExpensesTotal: appliedTotal,
     residual,

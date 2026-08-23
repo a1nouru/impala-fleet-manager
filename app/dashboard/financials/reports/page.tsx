@@ -596,9 +596,11 @@ export default function AllDailyReportsPage() {
                                                         </TooltipTrigger>
                                                         <TooltipContent className="max-w-xs">
                                                             <p>
-                                                                {residual > 0
-                                                                    ? t("slipVerification.residualShort", { amount: formatCurrency(residual) })
-                                                                    : t("slipVerification.residualExcess", { amount: formatCurrency(Math.abs(residual)) })}
+                                                                {(sv.wrongAccountSlipIndexes ?? []).length > 0
+                                                                    ? t("slipVerification.wrongAccountNote", { count: sv.wrongAccountSlipIndexes.length })
+                                                                    : residual > 0
+                                                                        ? t("slipVerification.residualShort", { amount: formatCurrency(residual) })
+                                                                        : t("slipVerification.residualExcess", { amount: formatCurrency(Math.abs(residual)) })}
                                                             </p>
                                                         </TooltipContent>
                                                     </Tooltip>
