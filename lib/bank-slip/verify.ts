@@ -25,6 +25,18 @@ export interface ReportVerdict extends ReportLine {
   matchedSlipIndexes: number[];
 }
 
+// A company expense recorded on D+1 (the deposit date): cash spent out of the
+// takings before banking, so it legitimately reduces what reaches the bank.
+export interface CompanyExpenseLine {
+  id: string;
+  amount: number;
+  description: string | null;
+  category: string | null;
+  expenseDate: string;
+}
+
+export type VerificationStatus = "verified" | "verified_with_expenses" | "unverified";
+
 export interface SlipVerification {
   reports: ReportVerdict[];
   unmatchedSlipIndexes: number[];
@@ -35,6 +47,11 @@ export interface SlipVerification {
   selectedTotal: number;
   totalsMatch: boolean;
   allReportsMatched: boolean;
+  // Second reconciliation pass: slips + D+1 company expenses vs the total.
+  status: VerificationStatus;
+  d1Expenses: CompanyExpenseLine[]; // the expenses applied (empty when slips alone verify)
+  d1ExpensesTotal: number;
+  residual: number; // selectedTotal − slipsTotal − d1ExpensesTotal; 0 when verified
 }
 
 // Amounts come back from OCR with occasional float noise; a kwanza has 100
@@ -46,7 +63,8 @@ const eq = (a: number, b: number) => Math.abs(a - b) <= EPS;
 export function verifySlips(
   reports: ReportLine[],
   slips: ExtractedSlip[],
-  selectedTotal: number
+  selectedTotal: number,
+  d1CompanyExpenses: CompanyExpenseLine[] = []
 ): SlipVerification {
   const used = new Array<boolean>(slips.length).fill(false);
   // Only real bank slips participate: internal vouchers and stray documents
@@ -82,6 +100,28 @@ export function verifySlips(
   }
 
   const slipsTotal = slips.reduce((sum, s) => (s.slip_type === "other" ? sum : sum + s.amount), 0);
+  const totalsMatch = eq(slipsTotal, selectedTotal);
+
+  // Pass 3 (totals): slips alone, then slips + all D+1 company expenses.
+  // Deterministic system data only — never a knob the accountant can turn.
+  const d1Total = d1CompanyExpenses.reduce((sum, e) => sum + e.amount, 0);
+  let status: VerificationStatus;
+  let appliedExpenses: CompanyExpenseLine[];
+  let appliedTotal: number;
+  if (totalsMatch) {
+    status = "verified";
+    appliedExpenses = [];
+    appliedTotal = 0;
+  } else if (eq(slipsTotal + d1Total, selectedTotal)) {
+    status = "verified_with_expenses";
+    appliedExpenses = d1CompanyExpenses;
+    appliedTotal = d1Total;
+  } else {
+    status = "unverified";
+    appliedExpenses = d1CompanyExpenses;
+    appliedTotal = d1Total;
+  }
+  const residual = status === "unverified" ? selectedTotal - slipsTotal - appliedTotal : 0;
 
   return {
     reports: verdicts,
@@ -89,7 +129,11 @@ export function verifySlips(
     informationalSlipIndexes: slips.map((_, i) => i).filter((i) => !countable(i)),
     slipsTotal,
     selectedTotal,
-    totalsMatch: eq(slipsTotal, selectedTotal),
+    totalsMatch,
     allReportsMatched: verdicts.every((v) => v.matched),
+    status,
+    d1Expenses: appliedExpenses,
+    d1ExpensesTotal: appliedTotal,
+    residual,
   };
 }

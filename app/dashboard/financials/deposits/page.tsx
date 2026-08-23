@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { openStoredFile, signStoredUrls } from "@/lib/storage-url";
 import { extractSlips } from "@/lib/bank-slip/client";
-import { verifySlips, type ExtractedSlip, type ReportLine, type SlipVerification } from "@/lib/bank-slip/verify";
+import { verifySlips, type CompanyExpenseLine, type ExtractedSlip, type ReportLine, type SlipVerification } from "@/lib/bank-slip/verify";
 import { SlipVerificationPanel, type SlipExtractionStatus } from "@/components/slip-verification-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format, isToday, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, isToday, parseISO, isWithinInterval, startOfDay, endOfDay, addDays } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -193,6 +193,9 @@ export default function BankDepositsPage() {
   const [slipError, setSlipError] = useState<string | null>(null);
   const [extractedSlips, setExtractedSlips] = useState<ExtractedSlip[]>([]);
   const slipFilesKeyRef = useRef<string>("");
+  // Company expenses recorded on the deposit date (D+1): cash spent out of
+  // the takings before banking, used in the second reconciliation pass.
+  const [d1Expenses, setD1Expenses] = useState<CompanyExpenseLine[]>([]);
 
   const fetchPageData = async () => {
     try {
@@ -277,6 +280,39 @@ export default function BankDepositsPage() {
     };
   }, [bankSlipFiles]);
 
+  // Load the deposit date's company expenses whenever it changes (only
+  // relevant while slips are being verified).
+  useEffect(() => {
+    if (!newDeposit.deposit_date) {
+      setD1Expenses([]);
+      return;
+    }
+    let cancelled = false;
+    // Deposit date + the day after: cash is banked D+1, so the expenses paid
+    // out of the takings can carry either date depending on convention.
+    const nextDay = format(addDays(parseISO(newDeposit.deposit_date), 1), "yyyy-MM-dd");
+    financialService
+      .getCompanyExpensesForDates([newDeposit.deposit_date, nextDay])
+      .then((expenses) => {
+        if (cancelled) return;
+        setD1Expenses(
+          expenses.map((e) => ({
+            id: e.id,
+            amount: e.amount,
+            description: e.description || null,
+            category: e.category || null,
+            expenseDate: e.expense_date,
+          }))
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setD1Expenses([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [newDeposit.deposit_date]);
+
   // Deterministic comparison of extracted slips vs the selected reports'
   // per-vehicle net balances. Recomputes locally on any selection change —
   // no further extraction calls needed.
@@ -292,8 +328,8 @@ export default function BankDepositsPage() {
         netBalance: calculateNetBalance(report, excludeFilter),
       }];
     });
-    return verifySlips(lines, extractedSlips, newDeposit.amount);
-  }, [slipStatus, extractedSlips, selectedReports, undepositedReports, excludeFilter, newDeposit.amount]);
+    return verifySlips(lines, extractedSlips, newDeposit.amount, d1Expenses);
+  }, [slipStatus, extractedSlips, selectedReports, undepositedReports, excludeFilter, newDeposit.amount, d1Expenses]);
 
   // Auto-set deposit date to latest report date when reports are selected
   useEffect(() => {
@@ -1582,24 +1618,55 @@ export default function BankDepositsPage() {
                             }
                             return null;
                           })()}
-                          {deposit.slip_verification && (
-                            deposit.slip_verification.totalsMatch && deposit.slip_verification.allReportsMatched ? (
-                              <Badge className="text-xs bg-green-100 text-green-800 hover:bg-green-100">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                {t("slipVerification.badgeMatched")}
-                              </Badge>
-                            ) : deposit.slip_verification.totalsMatch ? (
-                              <Badge className="text-xs bg-amber-100 text-amber-800 hover:bg-amber-100">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                {t("slipVerification.badgeTotalsOnly")}
-                              </Badge>
-                            ) : (
-                              <Badge className="text-xs bg-red-100 text-red-800 hover:bg-red-100">
-                                <XCircle className="h-3 w-3 mr-1" />
-                                {t("slipVerification.badgeMismatch")}
-                              </Badge>
-                            )
-                          )}
+                          {deposit.slip_verification && (() => {
+                            const sv = deposit.slip_verification;
+                            const status = sv.status ?? (sv.totalsMatch ? "verified" : "unverified");
+                            if (status === "verified") {
+                              return (
+                                <Badge className="text-xs bg-green-100 text-green-800 hover:bg-green-100">
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  {t("slipVerification.badgeMatched")}
+                                </Badge>
+                              );
+                            }
+                            if (status === "verified_with_expenses") {
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge className="text-xs bg-teal-100 text-teal-800 hover:bg-teal-100 cursor-help">
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        {t("slipVerification.badgeMatchedWithExpenses")}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p>{t("slipVerification.tooltipWithExpenses", { amount: formatCurrency(sv.d1ExpensesTotal ?? 0) })}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            }
+                            const residual = sv.residual ?? (sv.selectedTotal - sv.slipsTotal);
+                            return (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge className="text-xs bg-red-100 text-red-800 hover:bg-red-100 cursor-help">
+                                      <XCircle className="h-3 w-3 mr-1" />
+                                      {t("slipVerification.badgeUnverified")}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p>
+                                      {residual > 0
+                                        ? t("slipVerification.residualShort", { amount: formatCurrency(residual) })
+                                        : t("slipVerification.residualExcess", { amount: formatCurrency(Math.abs(residual)) })}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell>

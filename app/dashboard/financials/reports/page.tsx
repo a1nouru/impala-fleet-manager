@@ -5,7 +5,7 @@ import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, AlertTriangle, Upload, X, Eye } from "lucide-react";
-import { financialService, DailyReport, DailyExpense } from "@/services/financialService";
+import { financialService, DailyReport, DailyExpense, BankDeposit } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import {
   Table,
@@ -93,6 +93,9 @@ export default function AllDailyReportsPage() {
   const { t } = useTranslation('financials');
   const { user } = useAuth();
   const [reports, setReports] = useState<DailyReport[]>([]);
+  // deposit_id → slip verification verdict, so each deposited report can show
+  // its deposit's verification status permanently.
+  const [depositVerifications, setDepositVerifications] = useState<Record<string, BankDeposit["slip_verification"]>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // State for the main edit dialog
@@ -151,8 +154,16 @@ export default function AllDailyReportsPage() {
   const fetchReports = async () => {
     try {
       setIsLoading(true);
-      const reportsData = await financialService.getDailyReports();
+      const [reportsData, depositsData] = await Promise.all([
+        financialService.getDailyReports(),
+        financialService.getBankDeposits().catch(() => [] as BankDeposit[]),
+      ]);
       setReports(reportsData);
+      const verifications: Record<string, BankDeposit["slip_verification"]> = {};
+      for (const deposit of depositsData) {
+        if (deposit.slip_verification) verifications[deposit.id] = deposit.slip_verification;
+      }
+      setDepositVerifications(verifications);
     } catch (error) {
       toast({
         title: "Error",
@@ -553,10 +564,47 @@ export default function AllDailyReportsPage() {
                                     </TableCell>
                                     <TableCell>{formatCurrency(netBalance)}</TableCell>
                                     <TableCell>
-                                        <Badge variant={isDeposited ? "secondary" : "outline"} className="flex items-center gap-1">
-                                            {isDeposited ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                                            {isDeposited ? "Deposited" : "Pending"}
-                                        </Badge>
+                                        {(() => {
+                                            const depositId = report.deposit_reports?.[0]?.deposit_id;
+                                            const sv = depositId ? depositVerifications[depositId] : undefined;
+                                            if (!isDeposited || !sv) {
+                                                return (
+                                                    <Badge variant={isDeposited ? "secondary" : "outline"} className="flex items-center gap-1 w-fit">
+                                                        {isDeposited ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                                                        {isDeposited ? "Deposited" : "Pending"}
+                                                    </Badge>
+                                                );
+                                            }
+                                            const status = sv.status ?? (sv.totalsMatch ? "verified" : "unverified");
+                                            if (status === "verified" || status === "verified_with_expenses") {
+                                                return (
+                                                    <Badge className={`flex items-center gap-1 w-fit text-xs ${status === "verified" ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-teal-100 text-teal-800 hover:bg-teal-100"}`}>
+                                                        <CheckCircle className="h-3 w-3" />
+                                                        {status === "verified" ? t("slipVerification.badgeMatched") : t("slipVerification.badgeMatchedWithExpenses")}
+                                                    </Badge>
+                                                );
+                                            }
+                                            const residual = sv.residual ?? (sv.selectedTotal - sv.slipsTotal);
+                                            return (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Badge className="flex items-center gap-1 w-fit text-xs bg-red-100 text-red-800 hover:bg-red-100 cursor-help">
+                                                                <AlertTriangle className="h-3 w-3" />
+                                                                {t("slipVerification.badgeUnverified")}
+                                                            </Badge>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="max-w-xs">
+                                                            <p>
+                                                                {residual > 0
+                                                                    ? t("slipVerification.residualShort", { amount: formatCurrency(residual) })
+                                                                    : t("slipVerification.residualExcess", { amount: formatCurrency(Math.abs(residual)) })}
+                                                            </p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            );
+                                        })()}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-1">

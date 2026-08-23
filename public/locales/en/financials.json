@@ -476,6 +476,15 @@
     "badgeMatched": "Slips verified",
     "badgeTotalsOnly": "Totals match",
     "badgeMismatch": "Slip mismatch",
-    "otherDocuments": "Other documents (not counted)"
+    "otherDocuments": "Other documents (not counted)",
+    "matchedWithExpenses": "Verified — slips plus D+1 company expenses cover the total",
+    "d1Expenses": "Company expenses (deposit day)",
+    "expense": "Expense",
+    "remainingDifference": "Remaining difference",
+    "residualShort": "{{amount}} of the selected net revenue is not explained by the bank slips or the deposit day's company expenses.",
+    "residualExcess": "The bank slips exceed the selected net revenue by {{amount}} even before company expenses.",
+    "badgeMatchedWithExpenses": "Verified + expenses",
+    "badgeUnverified": "Unverified",
+    "tooltipWithExpenses": "Verified after subtracting {{amount}} of company expenses recorded on the deposit date."
   }
 }

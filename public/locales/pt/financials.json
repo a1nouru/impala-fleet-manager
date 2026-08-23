@@ -497,6 +497,15 @@
     "badgeMatched": "Talões verificados",
     "badgeTotalsOnly": "Totais correspondem",
     "badgeMismatch": "Talões divergentes",
-    "otherDocuments": "Outros documentos (não contabilizados)"
+    "otherDocuments": "Outros documentos (não contabilizados)",
+    "matchedWithExpenses": "Verificado — talões mais despesas da empresa (D+1) cobrem o total",
+    "d1Expenses": "Despesas da empresa (dia do depósito)",
+    "expense": "Despesa",
+    "remainingDifference": "Diferença restante",
+    "residualShort": "{{amount}} da receita líquida selecionada não é explicado pelos talões bancários nem pelas despesas da empresa do dia do depósito.",
+    "residualExcess": "Os talões bancários excedem a receita líquida selecionada em {{amount}}, mesmo antes das despesas da empresa.",
+    "badgeMatchedWithExpenses": "Verificado + despesas",
+    "badgeUnverified": "Não verificado",
+    "tooltipWithExpenses": "Verificado após subtrair {{amount}} de despesas da empresa registadas na data do depósito."
   }
 }

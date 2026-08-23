@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { verifySlips, type ReportLine, type ExtractedSlip } from "./verify";
+import { verifySlips, type ReportLine, type ExtractedSlip, type CompanyExpenseLine } from "./verify";
 
 const report = (id: string, plate: string, date: string, net: number): ReportLine => ({
   reportId: id,
   plate,
   reportDate: date,
   netBalance: net,
+});
+
+const expense = (id: string, amount: number): CompanyExpenseLine => ({
+  id,
+  amount,
+  description: "Materials",
+  category: "Operations",
+  expenseDate: "2026-08-19",
 });
 
 const slip = (amount: number, overrides: Partial<ExtractedSlip> = {}): ExtractedSlip => ({
@@ -98,6 +106,54 @@ describe("verifySlips", () => {
     // The voucher is surfaced for the accountant but never counted or matched.
     expect(result.unmatchedSlipIndexes).toEqual([]);
     expect(result.informationalSlipIndexes).toEqual([1]);
+  });
+
+  it("is 'verified' on an exact slips match, ignoring D+1 expenses", () => {
+    const result = verifySlips(
+      [report("r1", "A", "2026-08-18", 100_000)],
+      [slip(100_000)],
+      100_000,
+      [expense("e1", 40_000)]
+    );
+
+    expect(result.status).toBe("verified");
+    expect(result.d1ExpensesTotal).toBe(0);
+    expect(result.residual).toBe(0);
+  });
+
+  it("is 'verified_with_expenses' when slips plus D+1 company expenses cover the total", () => {
+    const result = verifySlips(
+      [report("r1", "A", "2026-08-18", 1_000_000)],
+      [slip(600_000)],
+      1_000_000,
+      [expense("e1", 250_000), expense("e2", 150_000)]
+    );
+
+    expect(result.status).toBe("verified_with_expenses");
+    expect(result.totalsMatch).toBe(false);
+    expect(result.d1ExpensesTotal).toBe(400_000);
+    expect(result.residual).toBe(0);
+    expect(result.d1Expenses).toHaveLength(2);
+  });
+
+  it("is 'unverified' with the remaining residual when even D+1 expenses cannot explain the gap", () => {
+    const result = verifySlips(
+      [report("r1", "A", "2026-08-18", 1_000_000)],
+      [slip(600_000)],
+      1_000_000,
+      [expense("e1", 250_000)]
+    );
+
+    expect(result.status).toBe("unverified");
+    expect(result.d1ExpensesTotal).toBe(250_000);
+    expect(result.residual).toBe(150_000);
+  });
+
+  it("is 'unverified' with a negative residual when slips exceed the selected total", () => {
+    const result = verifySlips([report("r1", "A", "2026-08-18", 500_000)], [slip(600_000)], 500_000, []);
+
+    expect(result.status).toBe("unverified");
+    expect(result.residual).toBe(-100_000);
   });
 
   it("tolerates sub-cent OCR rounding noise", () => {

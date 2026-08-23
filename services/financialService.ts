@@ -1162,6 +1162,27 @@ export const financialService = {
   // --- Company Expense Functions ---
 
   /**
+   * Fetches company expenses recorded on any of the given dates. Used by slip
+   * verification: cash spent out of the takings on banking day legitimately
+   * reduces what reaches the bank. Callers pass [deposit_date, deposit_date+1]
+   * to cover both date conventions (deposit_date = ops day or banking day).
+   */
+  async getCompanyExpensesForDates(dates: string[]): Promise<CompanyExpense[]> {
+    const { data, error } = await supabase
+      .from('company_expenses')
+      .select('*')
+      .in('expense_date', dates)
+      .order('expense_date', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching company expenses for dates:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  /**
    * Fetches all company expenses with their receipts
    */
   async getCompanyExpenses(): Promise<CompanyExpense[]> {
