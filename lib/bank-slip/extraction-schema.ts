@@ -1,4 +1,7 @@
-import { z } from "zod";
+// zod/v4 subpath (shipped inside zod 3.25+): the Anthropic SDK's
+// zodOutputFormat serializes via the v4 `_zod` internals and throws on
+// classic zod-3 schemas. The rest of the app stays on zod 3.
+import { z } from "zod/v4";
 import type { ExtractedSlip, SlipType } from "./verify";
 
 // Wire schema handed to Claude via zodOutputFormat — must stay free of
