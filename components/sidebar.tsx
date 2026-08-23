@@ -15,7 +15,8 @@ import {
   DollarSign,
   Users,
   Bell,
-  FolderOpen
+  FolderOpen,
+  HandCoins
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -72,6 +73,12 @@ export function Sidebar({ userName, onLogout }: SidebarProps) {
       icon: DollarSign,
       label: t("financials:title"),
       active: !!pathname?.startsWith("/dashboard/financials")
+    },
+    {
+      href: "/dashboard/loans",
+      icon: HandCoins,
+      label: t("navigation.loans"),
+      active: !!pathname?.startsWith("/dashboard/loans")
     },
     {
       href: "/dashboard/hr",

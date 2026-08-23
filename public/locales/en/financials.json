@@ -7,7 +7,8 @@
     "bankDeposits": "Bank Deposits",
     "rental": "Rental",
     "analytics": "Financial Analytics",
-    "bankVerification": "Bank Verification"
+    "bankVerification": "Bank Verification",
+    "busStations": "Bus Station Revenue"
   },
   "allDailyReports": {
     "title": "All Daily Reports",
@@ -518,5 +519,155 @@
     "wrongAccountSlips": "Slips credited to the wrong account for {{type}} vehicles",
     "wrongAccountNote": "{{count}} slip(s) were credited to the wrong bank account for this vehicle type.",
     "account": "Account"
+  },
+  "loans": {
+    "title": "Loans",
+    "subtitle": "Loans the company has issued and who received them.",
+    "register": "Loan register",
+    "newLoan": "New loan",
+    "lock": "Lock",
+    "empty": "No loans recorded yet.",
+    "searchPlaceholder": "Search borrower...",
+    "password": {
+      "title": "Protected page",
+      "description": "Enter the password to view the loans register.",
+      "label": "Password",
+      "unlock": "Unlock",
+      "required": "Please enter the password.",
+      "incorrect": "Incorrect password.",
+      "verifyFailed": "Could not verify the password. Try again."
+    },
+    "summary": {
+      "issued": "Total issued",
+      "outstanding": "Outstanding",
+      "repaid": "Repaid",
+      "openLoans": "Open loans"
+    },
+    "filters": {
+      "allAccounts": "All accounts",
+      "allStatuses": "All statuses"
+    },
+    "status": {
+      "open": "Open",
+      "closed": "Closed"
+    },
+    "table": {
+      "borrower": "Issued to",
+      "amount": "Amount",
+      "account": "Issued from",
+      "issueDate": "Issued on",
+      "dueDate": "Due",
+      "status": "Status",
+      "slip": "Bank slip",
+      "actions": "Actions",
+      "viewSlip": "View",
+      "repaid": "Repaid"
+    },
+    "actions": {
+      "close": "Close loan",
+      "reopen": "Reopen",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "form": {
+      "createTitle": "Record a loan",
+      "editTitle": "Edit loan",
+      "description": "Capture who received the loan and how much.",
+      "borrower": "Issued to",
+      "borrowerPlaceholder": "Name of person or company",
+      "contact": "Contact",
+      "contactPlaceholder": "Phone or email",
+      "amount": "Amount (Kz)",
+      "account": "Issuing account",
+      "accountHint": "Which company account the money came out of.",
+      "issueDate": "Issued on",
+      "dueDate": "Due date",
+      "purpose": "Purpose",
+      "notes": "Notes"
+    },
+    "close": {
+      "title": "Close loan",
+      "description": "Attach the bank slip confirming this loan was paid back.",
+      "repaymentDate": "Repayment date",
+      "repaidAmount": "Amount repaid (Kz)",
+      "slip": "Bank slip",
+      "existingSlip": "A slip is already on file; upload a new one to replace it.",
+      "confirm": "Mark as paid"
+    },
+    "delete": {
+      "title": "Delete this loan?",
+      "description": "This removes the loan and its bank slip permanently."
+    },
+    "messages": {
+      "loadFailed": "Could not load loans.",
+      "saveFailed": "Could not save the loan.",
+      "created": "Loan recorded",
+      "updated": "Loan updated",
+      "closed": "Loan closed",
+      "closeFailed": "Could not close the loan.",
+      "reopened": "Loan reopened",
+      "reopenFailed": "Could not reopen the loan.",
+      "deleted": "Loan deleted",
+      "deleteFailed": "Could not delete the loan.",
+      "borrowerRequired": "Borrower is required",
+      "amountRequired": "Enter a valid amount",
+      "slipRequired": "Bank slip required",
+      "slipRequiredDesc": "Attach the bank slip confirming the loan was paid back.",
+      "borrowerRequiredDesc": "Enter the name of the person or company receiving the loan.",
+      "amountRequiredDesc": "The loan amount must be greater than zero.",
+      "createdDesc": "The loan was added to the register.",
+      "updatedDesc": "The loan details were saved.",
+      "closedDesc": "The loan is now marked as paid.",
+      "reopenedDesc": "The loan is open again.",
+      "deletedDesc": "The loan was removed from the register."
+    }
+  },
+  "busStations": {
+    "title": "Bus Station Revenue",
+    "newEntry": "New Entry",
+    "editEntry": "Edit Entry",
+    "busStation": "Bus Station",
+    "allStations": "All Stations",
+    "vehicle": "Vehicle",
+    "selectVehicle": "Select vehicle",
+    "dateRange": "Date Range",
+    "period": "Period",
+    "revenue": "Revenue",
+    "passengers": "Passengers",
+    "passengersPlaceholder": "Passengers",
+    "cargo": "Cargo",
+    "total": "Total",
+    "totalRevenue": "Total Revenue",
+    "totalDeposited": "Total Deposited",
+    "deposited": "Deposited",
+    "variance": "Variance",
+    "forSelectedPeriod": "For the selected period",
+    "addRow": "Add row",
+    "bankSlips": "Bank slip deposits",
+    "addSlip": "Add slip",
+    "noSlips": "No bank slips attached yet.",
+    "viewSlip": "View slip",
+    "amount": "Amount",
+    "notes": "Notes",
+    "vehicles": "Vehicles",
+    "actions": "Actions",
+    "noEntries": "No bus station revenue recorded for this period.",
+    "saved": "Bus station revenue saved",
+    "savedBody": "The entry, its vehicle rows, and its bank slips have been stored.",
+    "deleted": "Entry deleted",
+    "deletedBody": "The entry and everything attached to it has been removed.",
+    "confirmDelete": "Delete this entry?",
+    "confirmDeleteBody": "This permanently removes the entry, its vehicle rows, and its bank slips.",
+    "errors": {
+      "title": "Could not save",
+      "noRows": "Add at least one vehicle row.",
+      "missingDates": "Every row needs a start and end date.",
+      "badDateOrder": "A row's end date cannot be before its start date.",
+      "duplicateVehicle": "Each vehicle may appear only once in an entry.",
+      "saveFailed": "Something went wrong saving this entry.",
+      "loadFailed": "Could not load bus station revenue.",
+      "deleteFailed": "Could not delete this entry.",
+      "noSlip": "Attach at least one bank slip."
+    }
   }
 }

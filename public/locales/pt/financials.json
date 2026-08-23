@@ -7,7 +7,8 @@
     "bankDeposits": "Depósitos Bancários",
     "rental": "Aluguer",
     "analytics": "Análise Financeira",
-    "bankVerification": "Verificação Bancária"
+    "bankVerification": "Verificação Bancária",
+    "busStations": "Receita das Estações"
   },
   "allDailyReports": {
     "title": "Todos os Relatórios Diários",
@@ -539,5 +540,155 @@
     "wrongAccountSlips": "Talões creditados na conta errada para veículos {{type}}",
     "wrongAccountNote": "{{count}} talão(ões) creditado(s) na conta bancária errada para este tipo de veículo.",
     "account": "Conta"
+  },
+  "loans": {
+    "title": "Empréstimos",
+    "subtitle": "Empréstimos concedidos pela empresa e a quem foram concedidos.",
+    "register": "Registo de empréstimos",
+    "newLoan": "Novo empréstimo",
+    "lock": "Bloquear",
+    "empty": "Ainda não há empréstimos registados.",
+    "searchPlaceholder": "Pesquisar beneficiário...",
+    "password": {
+      "title": "Página protegida",
+      "description": "Introduza a palavra-passe para ver o registo de empréstimos.",
+      "label": "Palavra-passe",
+      "unlock": "Desbloquear",
+      "required": "Por favor introduza a palavra-passe.",
+      "incorrect": "Palavra-passe incorreta.",
+      "verifyFailed": "Não foi possível verificar a palavra-passe. Tente novamente."
+    },
+    "summary": {
+      "issued": "Total concedido",
+      "outstanding": "Em dívida",
+      "repaid": "Reembolsado",
+      "openLoans": "Empréstimos em aberto"
+    },
+    "filters": {
+      "allAccounts": "Todas as contas",
+      "allStatuses": "Todos os estados"
+    },
+    "status": {
+      "open": "Em aberto",
+      "closed": "Fechado"
+    },
+    "table": {
+      "borrower": "Concedido a",
+      "amount": "Valor",
+      "account": "Conta de origem",
+      "issueDate": "Data de concessão",
+      "dueDate": "Vencimento",
+      "status": "Estado",
+      "slip": "Comprovativo bancário",
+      "actions": "Ações",
+      "viewSlip": "Ver",
+      "repaid": "Reembolsado"
+    },
+    "actions": {
+      "close": "Fechar empréstimo",
+      "reopen": "Reabrir",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "form": {
+      "createTitle": "Registar empréstimo",
+      "editTitle": "Editar empréstimo",
+      "description": "Registe quem recebeu o empréstimo e o respetivo valor.",
+      "borrower": "Concedido a",
+      "borrowerPlaceholder": "Nome da pessoa ou empresa",
+      "contact": "Contacto",
+      "contactPlaceholder": "Telefone ou email",
+      "amount": "Valor (Kz)",
+      "account": "Conta emissora",
+      "accountHint": "De que conta da empresa saiu o dinheiro.",
+      "issueDate": "Data de concessão",
+      "dueDate": "Data de vencimento",
+      "purpose": "Finalidade",
+      "notes": "Notas"
+    },
+    "close": {
+      "title": "Fechar empréstimo",
+      "description": "Anexe o comprovativo bancário que confirma o reembolso do empréstimo.",
+      "repaymentDate": "Data de reembolso",
+      "repaidAmount": "Valor reembolsado (Kz)",
+      "slip": "Comprovativo bancário",
+      "existingSlip": "Já existe um comprovativo; carregue um novo para o substituir.",
+      "confirm": "Marcar como pago"
+    },
+    "delete": {
+      "title": "Eliminar este empréstimo?",
+      "description": "Isto remove permanentemente o empréstimo e o respetivo comprovativo."
+    },
+    "messages": {
+      "loadFailed": "Não foi possível carregar os empréstimos.",
+      "saveFailed": "Não foi possível guardar o empréstimo.",
+      "created": "Empréstimo registado",
+      "updated": "Empréstimo atualizado",
+      "closed": "Empréstimo fechado",
+      "closeFailed": "Não foi possível fechar o empréstimo.",
+      "reopened": "Empréstimo reaberto",
+      "reopenFailed": "Não foi possível reabrir o empréstimo.",
+      "deleted": "Empréstimo eliminado",
+      "deleteFailed": "Não foi possível eliminar o empréstimo.",
+      "borrowerRequired": "O beneficiário é obrigatório",
+      "amountRequired": "Introduza um valor válido",
+      "slipRequired": "Comprovativo bancário obrigatório",
+      "slipRequiredDesc": "Anexe o comprovativo bancário que confirma o reembolso.",
+      "borrowerRequiredDesc": "Introduza o nome da pessoa ou empresa que recebeu o empréstimo.",
+      "amountRequiredDesc": "O valor do empréstimo tem de ser superior a zero.",
+      "createdDesc": "O empréstimo foi adicionado ao registo.",
+      "updatedDesc": "Os dados do empréstimo foram guardados.",
+      "closedDesc": "O empréstimo está agora marcado como pago.",
+      "reopenedDesc": "O empréstimo está novamente em aberto.",
+      "deletedDesc": "O empréstimo foi removido do registo."
+    }
+  },
+  "busStations": {
+    "title": "Receita das Estações Rodoviárias",
+    "newEntry": "Novo Registo",
+    "editEntry": "Editar Registo",
+    "busStation": "Estação Rodoviária",
+    "allStations": "Todas as Estações",
+    "vehicle": "Veículo",
+    "selectVehicle": "Selecionar veículo",
+    "dateRange": "Período",
+    "period": "Período",
+    "revenue": "Receita",
+    "passengers": "Passageiros",
+    "passengersPlaceholder": "Passageiros",
+    "cargo": "Carga",
+    "total": "Total",
+    "totalRevenue": "Receita Total",
+    "totalDeposited": "Total Depositado",
+    "deposited": "Depositado",
+    "variance": "Diferença",
+    "forSelectedPeriod": "Para o período selecionado",
+    "addRow": "Adicionar linha",
+    "bankSlips": "Comprovativos de depósito",
+    "addSlip": "Adicionar comprovativo",
+    "noSlips": "Ainda não há comprovativos anexados.",
+    "viewSlip": "Ver comprovativo",
+    "amount": "Valor",
+    "notes": "Observações",
+    "vehicles": "Veículos",
+    "actions": "Ações",
+    "noEntries": "Sem receita de estações registada neste período.",
+    "saved": "Receita da estação guardada",
+    "savedBody": "O registo, as linhas de veículos e os comprovativos foram guardados.",
+    "deleted": "Registo eliminado",
+    "deletedBody": "O registo e tudo o que lhe estava associado foi removido.",
+    "confirmDelete": "Eliminar este registo?",
+    "confirmDeleteBody": "Isto remove permanentemente o registo, as linhas de veículos e os comprovativos.",
+    "errors": {
+      "title": "Não foi possível guardar",
+      "noRows": "Adicione pelo menos uma linha de veículo.",
+      "missingDates": "Cada linha precisa de data de início e fim.",
+      "badDateOrder": "A data de fim não pode ser anterior à data de início.",
+      "duplicateVehicle": "Cada veículo só pode aparecer uma vez por registo.",
+      "saveFailed": "Ocorreu um erro ao guardar este registo.",
+      "loadFailed": "Não foi possível carregar a receita das estações.",
+      "deleteFailed": "Não foi possível eliminar este registo.",
+      "noSlip": "Anexe pelo menos um comprovativo de depósito."
+    }
   }
 }

@@ -31,6 +31,10 @@ export default function FinancialsLayout({
       href: "/dashboard/financials/rental",
     },
     {
+      name: t("navigation.busStations"),
+      href: "/dashboard/financials/bus-stations",
+    },
+    {
       name: t("navigation.analytics"),
       href: "/dashboard/financials/analytics",
     },

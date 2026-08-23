@@ -5,7 +5,8 @@
     "vehicles": "Veículos",
     "notifications": "Notificações",
     "reports": "Relatórios",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "loans": "Empréstimos"
   },
   "buttons": {
     "add": "Adicionar",
@@ -88,4 +89,4 @@
     "name": "Impala Express Gestor de Frota",
     "tagline": "Gestão Profissional de Veículos"
   }
-} 
+}
