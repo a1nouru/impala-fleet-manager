@@ -40,7 +40,6 @@ import {
   passengerRevenue,
   rowTotal,
   selectableVehicles,
-  slipsTotal,
 } from "@/lib/bus-stations/revenue";
 import {
   busStationService,
@@ -58,8 +57,11 @@ interface DraftRow extends RowInput {
   key: string;
 }
 
-interface DraftSlip extends SlipInput {
-  key: string;
+/** An already-stored slip being kept or removed while editing. */
+interface ExistingSlip {
+  id: string;
+  slip_url: string;
+  file_name?: string;
 }
 
 function blankRow(): DraftRow {
@@ -91,7 +93,8 @@ export function BusStationEntryDialog({
   const [station, setStation] = useState<BusStationId>("mbanza_congo");
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<DraftRow[]>([blankRow()]);
-  const [slips, setSlips] = useState<DraftSlip[]>([]);
+  const [existingSlips, setExistingSlips] = useState<ExistingSlip[]>([]);
+  const [slipFiles, setSlipFiles] = useState<File[]>([]);
   const [removedSlipIds, setRemovedSlipIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -111,6 +114,7 @@ export function BusStationEntryDialog({
   useEffect(() => {
     if (!open) return;
     setRemovedSlipIds([]);
+    setSlipFiles([]);
     if (entry) {
       setStation(entry.station);
       setNotes(entry.notes || "");
@@ -124,28 +128,22 @@ export function BusStationEntryDialog({
           cargo_amount: Number(r.cargo_amount) || 0,
         }))
       );
-      setSlips(
+      setExistingSlips(
         (entry.bus_station_revenue_slips || []).map((s) => ({
-          key: s.id,
           id: s.id,
           slip_url: s.slip_url,
           file_name: s.file_name || undefined,
-          file_size: s.file_size || undefined,
-          amount: s.amount,
-          deposit_date: s.deposit_date,
         }))
       );
     } else {
       setStation("mbanza_congo");
       setNotes("");
       setRows([blankRow()]);
-      setSlips([]);
+      setExistingSlips([]);
     }
   }, [open, entry]);
 
   const totals = useMemo(() => entryTotals(rows), [rows]);
-  const deposited = useMemo(() => slipsTotal(slips), [slips]);
-  const variance = deposited - totals.total;
 
   const usedVehicleIds = useMemo(
     () => new Set(rows.map((r) => r.vehicle_id).filter(Boolean)),
@@ -155,16 +153,13 @@ export function BusStationEntryDialog({
   const updateRow = (key: string, patch: Partial<DraftRow>) =>
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
-  const updateSlip = (key: string, patch: Partial<DraftSlip>) =>
-    setSlips((prev) => prev.map((s) => (s.key === key ? { ...s, ...patch } : s)));
-
-  const removeSlip = (slip: DraftSlip) => {
-    if (slip.id) setRemovedSlipIds((prev) => [...prev, slip.id as string]);
-    setSlips((prev) => prev.filter((s) => s.key !== slip.key));
-  };
-
   const removeRow = (key: string) =>
     setRows((prev) => prev.filter((r) => r.key !== key));
+
+  const removeExistingSlip = (slip: ExistingSlip) => {
+    setRemovedSlipIds((prev) => [...prev, slip.id]);
+    setExistingSlips((prev) => prev.filter((s) => s.id !== slip.id));
+  };
 
   const validate = (): string | null => {
     const filled = rows.filter((r) => r.vehicle_id);
@@ -175,6 +170,9 @@ export function BusStationEntryDialog({
     }
     const ids = filled.map((r) => r.vehicle_id);
     if (new Set(ids).size !== ids.length) return t("busStations.errors.duplicateVehicle");
+    // A bank slip is mandatory: at least one new file or one kept existing slip.
+    if (slipFiles.length === 0 && existingSlips.length === 0)
+      return t("busStations.errors.noSlip");
     return null;
   };
 
@@ -199,7 +197,16 @@ export function BusStationEntryDialog({
           cargo_amount: Number(row.cargo_amount) || 0,
         }));
 
-      const payloadSlips: SlipInput[] = slips.map(({ key, ...slip }) => slip);
+      const payloadSlips: SlipInput[] = [
+        // Kept existing slips pass through untouched (attachSlips skips id'd ones).
+        ...existingSlips.map((s) => ({
+          id: s.id,
+          slip_url: s.slip_url,
+          amount: null,
+          deposit_date: null,
+        })),
+        ...slipFiles.map((file) => ({ file, amount: null, deposit_date: null })),
+      ];
 
       if (entry) {
         await busStationService.updateEntryComplete(
@@ -256,24 +263,6 @@ export function BusStationEntryDialog({
     </Select>
   );
 
-  const dateRangeInputs = (row: DraftRow) => (
-    <div className="flex items-center gap-1 min-w-0">
-      <Input
-        type="date"
-        className="min-w-0 flex-1 px-1.5"
-        value={row.start_date}
-        onChange={(e) => updateRow(row.key, { start_date: e.target.value })}
-      />
-      <span className="text-muted-foreground shrink-0">–</span>
-      <Input
-        type="date"
-        className="min-w-0 flex-1 px-1.5"
-        value={row.end_date}
-        onChange={(e) => updateRow(row.key, { end_date: e.target.value })}
-      />
-    </div>
-  );
-
   const passengerInput = (row: DraftRow) => (
     <Input
       type="number"
@@ -302,7 +291,9 @@ export function BusStationEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1rem)] max-w-6xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
+      {/* The base DialogContent carries sm:max-w-lg — the wide override MUST use
+          the same sm: variant or it silently loses and the dialog stays 512px. */}
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-6xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
             {entry ? t("busStations.editEntry") : t("busStations.newEntry")}
@@ -329,8 +320,6 @@ export function BusStationEntryDialog({
         <div className="space-y-3">
           <h4 className="font-medium">{t("busStations.vehicles")}</h4>
 
-          {/* md+: the table, with the black totals footer. Compact cells so it
-              fits the dialog without any horizontal scrolling. */}
           {/* table-fixed + percentage columns: the table can never grow wider
               than the dialog, so nothing is ever clipped or scrolled. */}
           <div className="hidden md:block rounded-md border">
@@ -343,7 +332,7 @@ export function BusStationEntryDialog({
                   <TableHead className="p-2 w-[28%]">
                     {t("busStations.dateRange")}
                   </TableHead>
-                  <TableHead className="p-2 w-[20%]">
+                  <TableHead className="p-2 w-[20%] whitespace-nowrap">
                     {t("busStations.revenue")} ({t("busStations.passengers")})
                   </TableHead>
                   <TableHead className="p-2 w-[13%]">
@@ -442,7 +431,21 @@ export function BusStationEntryDialog({
                   <Label className="text-xs text-muted-foreground">
                     {t("busStations.dateRange")}
                   </Label>
-                  {dateRangeInputs(row)}
+                  <div className="flex items-center gap-1 min-w-0">
+                    <Input
+                      type="date"
+                      className="min-w-0 flex-1 px-1.5"
+                      value={row.start_date}
+                      onChange={(e) => updateRow(row.key, { start_date: e.target.value })}
+                    />
+                    <span className="text-muted-foreground shrink-0">–</span>
+                    <Input
+                      type="date"
+                      className="min-w-0 flex-1 px-1.5"
+                      value={row.end_date}
+                      onChange={(e) => updateRow(row.key, { end_date: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="grid gap-1.5">
@@ -506,88 +509,41 @@ export function BusStationEntryDialog({
           </Button>
         </div>
 
-        {/* Bank slips sit BELOW all vehicle entry. */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium">{t("busStations.bankSlips")}</h4>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setSlips((prev) => [
-                  ...prev,
-                  { key: newKey(), amount: null, deposit_date: null },
-                ])
-              }
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              {t("busStations.addSlip")}
-            </Button>
-          </div>
-
-          {slips.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("busStations.noSlips")}</p>
-          ) : (
-            <div className="space-y-2">
-              {slips.map((slip) => (
+        {/* Bank slips: one plain upload field, like the expense dialog's
+            "Upload Receipt". No amount, no date — and a slip is REQUIRED. */}
+        <div className="grid gap-2">
+          <Label className="font-medium">{t("busStations.bankSlips")}</Label>
+          <Input
+            type="file"
+            multiple
+            accept="image/*,application/pdf"
+            className="w-full"
+            onChange={(e) => setSlipFiles(Array.from(e.target.files || []))}
+          />
+          {existingSlips.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {existingSlips.map((slip) => (
                 <div
-                  key={slip.key}
-                  className="flex flex-col gap-2 border rounded-md p-2 sm:flex-row sm:flex-wrap sm:items-center"
+                  key={slip.id}
+                  className="flex items-center gap-1 rounded-md border px-1"
                 >
-                  {slip.id ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full sm:w-auto"
-                      onClick={() => openStoredFile(slip.slip_url as string)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      {slip.file_name || t("busStations.viewSlip")}
-                    </Button>
-                  ) : (
-                    <Input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      className="w-full sm:max-w-[220px]"
-                      onChange={(e) =>
-                        updateSlip(slip.key, { file: e.target.files?.[0] })
-                      }
-                    />
-                  )}
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    className="w-full sm:max-w-[140px]"
-                    placeholder={t("busStations.amount")}
-                    value={slip.amount ?? ""}
-                    onChange={(e) =>
-                      updateSlip(slip.key, {
-                        amount: e.target.value === "" ? null : Number(e.target.value),
-                      })
-                    }
-                  />
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="date"
-                      className="w-full sm:max-w-[170px]"
-                      value={slip.deposit_date ?? ""}
-                      onChange={(e) =>
-                        updateSlip(slip.key, { deposit_date: e.target.value || null })
-                      }
-                    />
-                    <Button variant="ghost" size="icon" onClick={() => removeSlip(slip)}>
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openStoredFile(slip.slip_url)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    {slip.file_name || t("busStations.viewSlip")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeExistingSlip(slip)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
                 </div>
               ))}
-              <p className="text-sm text-muted-foreground">
-                {t("busStations.deposited")} {formatCurrency(deposited)} ·{" "}
-                <span className={variance < 0 ? "text-red-600" : "text-green-600"}>
-                  {t("busStations.variance")} {formatCurrency(variance)}
-                </span>
-              </p>
             </div>
           )}
         </div>

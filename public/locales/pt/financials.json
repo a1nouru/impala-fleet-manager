@@ -629,7 +629,8 @@
       "duplicateVehicle": "Cada veículo só pode aparecer uma vez por registo.",
       "saveFailed": "Ocorreu um erro ao guardar este registo.",
       "loadFailed": "Não foi possível carregar a receita das estações.",
-      "deleteFailed": "Não foi possível eliminar este registo."
+      "deleteFailed": "Não foi possível eliminar este registo.",
+      "noSlip": "Anexe pelo menos um comprovativo de depósito."
     }
   }
 }

@@ -608,7 +608,8 @@
       "duplicateVehicle": "Each vehicle may appear only once in an entry.",
       "saveFailed": "Something went wrong saving this entry.",
       "loadFailed": "Could not load bus station revenue.",
-      "deleteFailed": "Could not delete this entry."
+      "deleteFailed": "Could not delete this entry.",
+      "noSlip": "Attach at least one bank slip."
     }
   }
 }
