@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const files = formData.getAll("files").filter((f): f is File => f instanceof File);
+    // FormDataEntryValue is string | File; avoid `instanceof File` — the
+    // global File class doesn't exist on Node 18 (Railway's runtime).
+    const files = formData.getAll("files").filter((f): f is File => typeof f !== "string");
 
     if (files.length === 0) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
