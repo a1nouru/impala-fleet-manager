@@ -194,7 +194,74 @@ export default function BusStationsPage() {
               {t("busStations.noEntries")}
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile: stacked cards — the 8-column table cannot fit a phone. */}
+            <div className="space-y-3 md:hidden">
+              {entries.map((entry) => {
+                const totals = entryTotals(entry.bus_station_revenue_rows || []);
+                const deposited = slipsTotal(entry.bus_station_revenue_slips || []);
+                return (
+                  <div key={entry.id} className="rounded-md border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="outline">{busStationLabel(entry.station)}</Badge>
+                      <div className="flex items-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setEditing(entry);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleting(entry)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {entryPeriod(entry)} ·{" "}
+                      {(entry.bus_station_revenue_rows || []).length}{" "}
+                      {t("busStations.vehicles").toLowerCase()}
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                      <span className="text-muted-foreground">
+                        {t("busStations.passengers")}
+                      </span>
+                      <span className="text-right">
+                        {formatCurrency(totals.passengerRevenue)}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {t("busStations.cargo")}
+                      </span>
+                      <span className="text-right">
+                        {formatCurrency(totals.cargoRevenue)}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {t("busStations.deposited")}
+                      </span>
+                      <span className="text-right">{formatCurrency(deposited)}</span>
+                      <span className="font-medium">{t("busStations.total")}</span>
+                      <span className="text-right font-bold">
+                        {formatCurrency(totals.total)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="rounded-md border bg-muted/50 p-3 flex items-center justify-between text-sm">
+                <span className="font-medium">{t("busStations.total")}</span>
+                <span className="font-bold">{formatCurrency(grand.total)}</span>
+              </div>
+            </div>
+
+            {/* Desktop: full table. */}
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -278,6 +345,7 @@ export default function BusStationsPage() {
                 </TableFooter>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>

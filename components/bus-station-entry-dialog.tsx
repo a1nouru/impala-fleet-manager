@@ -19,15 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Loader2, Plus, Trash2, Eye } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -233,15 +224,15 @@ export function BusStationEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-6xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
             {entry ? t("busStations.editEntry") : t("busStations.newEntry")}
           </DialogTitle>
         </DialogHeader>
 
-        {/* Station selection sits ABOVE the vehicle table: an entry is per station. */}
-        <div className="grid gap-2 max-w-sm">
+        {/* Station selection sits ABOVE the vehicle rows: an entry is per station. */}
+        <div className="grid gap-2 w-full sm:max-w-sm">
           <Label>{t("busStations.busStation")}</Label>
           <Select value={station} onValueChange={(v) => setStation(v as BusStationId)}>
             <SelectTrigger>
@@ -257,131 +248,154 @@ export function BusStationEntryDialog({
           </Select>
         </div>
 
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[150px]">{t("busStations.vehicle")}</TableHead>
-                <TableHead className="min-w-[240px]">{t("busStations.dateRange")}</TableHead>
-                <TableHead className="min-w-[210px]">{t("busStations.revenue")}</TableHead>
-                <TableHead className="min-w-[130px]">{t("busStations.cargo")}</TableHead>
-                <TableHead className="text-right">{t("busStations.total")}</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.key}>
-                  <TableCell>
-                    <Select
-                      value={row.vehicle_id}
-                      onValueChange={(v) => updateRow(row.key, { vehicle_id: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("busStations.selectVehicle")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vehicles.map((v) => (
-                          <SelectItem
-                            key={v.id}
-                            value={v.id}
-                            disabled={usedVehicleIds.has(v.id) && v.id !== row.vehicle_id}
-                          >
-                            {v.plate}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="date"
-                        value={row.start_date}
-                        onChange={(e) => updateRow(row.key, { start_date: e.target.value })}
-                      />
-                      <span className="text-muted-foreground">–</span>
-                      <Input
-                        type="date"
-                        value={row.end_date}
-                        onChange={(e) => updateRow(row.key, { end_date: e.target.value })}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {/* Passenger COUNT only — the Kwanza figure is derived. */}
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={1}
-                        className="w-24"
-                        placeholder={t("busStations.passengersPlaceholder")}
-                        value={row.passenger_count || ""}
-                        onChange={(e) =>
-                          updateRow(row.key, {
-                            passenger_count: Number(e.target.value) || 0,
-                          })
-                        }
-                      />
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">
-                        = {formatCurrency(passengerRevenue(row.passenger_count))}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      placeholder="0"
-                      value={row.cargo_amount || ""}
-                      onChange={(e) =>
-                        updateRow(row.key, { cargo_amount: Number(e.target.value) || 0 })
-                      }
-                    />
-                  </TableCell>
-                  <TableCell className="text-right font-medium whitespace-nowrap">
+        {/* Vehicle rows: responsive cards, never a horizontally scrolling table. */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium">{t("busStations.vehicles")}</h4>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRows((p) => [...p, blankRow()])}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {t("busStations.addRow")}
+            </Button>
+          </div>
+
+          {rows.map((row) => (
+            <div
+              key={row.key}
+              className="rounded-md border p-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(140px,1.1fr)_minmax(220px,1.5fr)_minmax(200px,1.3fr)_minmax(110px,0.9fr)_minmax(150px,auto)] xl:items-end"
+            >
+              <div className="grid gap-1.5 min-w-0">
+                <Label className="text-xs text-muted-foreground">
+                  {t("busStations.vehicle")}
+                </Label>
+                <Select
+                  value={row.vehicle_id}
+                  onValueChange={(v) => updateRow(row.key, { vehicle_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("busStations.selectVehicle")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vehicles.map((v) => (
+                      <SelectItem
+                        key={v.id}
+                        value={v.id}
+                        disabled={usedVehicleIds.has(v.id) && v.id !== row.vehicle_id}
+                      >
+                        {v.plate}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-1.5 min-w-0">
+                <Label className="text-xs text-muted-foreground">
+                  {t("busStations.dateRange")}
+                </Label>
+                <div className="flex items-center gap-1 min-w-0">
+                  <Input
+                    type="date"
+                    className="min-w-0 flex-1"
+                    value={row.start_date}
+                    onChange={(e) => updateRow(row.key, { start_date: e.target.value })}
+                  />
+                  <span className="text-muted-foreground shrink-0">–</span>
+                  <Input
+                    type="date"
+                    className="min-w-0 flex-1"
+                    value={row.end_date}
+                    onChange={(e) => updateRow(row.key, { end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-1.5 min-w-0">
+                <Label className="text-xs text-muted-foreground">
+                  {t("busStations.revenue")} ({t("busStations.passengers")})
+                </Label>
+                {/* Passenger COUNT only — the Kwanza figure is derived. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    className="w-24"
+                    placeholder={t("busStations.passengersPlaceholder")}
+                    value={row.passenger_count || ""}
+                    onChange={(e) =>
+                      updateRow(row.key, {
+                        passenger_count: Number(e.target.value) || 0,
+                      })
+                    }
+                  />
+                  <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                    = {formatCurrency(passengerRevenue(row.passenger_count))}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5 min-w-0">
+                <Label className="text-xs text-muted-foreground">
+                  {t("busStations.cargo")}
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0"
+                  value={row.cargo_amount || ""}
+                  onChange={(e) =>
+                    updateRow(row.key, { cargo_amount: Number(e.target.value) || 0 })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2 border-t pt-2 sm:col-span-2 xl:col-span-1 xl:border-t-0 xl:pt-0 xl:justify-end">
+                <span className="text-xs text-muted-foreground xl:hidden">
+                  {t("busStations.total")}
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold whitespace-nowrap">
                     {formatCurrency(rowTotal(row))}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
-                      disabled={rows.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={2}>
+                  </span>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setRows((p) => [...p, blankRow()])}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
+                    disabled={rows.length === 1}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
-                    {t("busStations.addRow")}
+                    <Trash2 className="h-4 w-4 text-red-600" />
                   </Button>
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatCurrency(totals.passengerRevenue)}
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatCurrency(totals.cargoRevenue)}
-                </TableCell>
-                <TableCell className="text-right font-bold whitespace-nowrap">
-                  {formatCurrency(totals.total)}
-                </TableCell>
-                <TableCell />
-              </TableRow>
-            </TableFooter>
-          </Table>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Grand totals for the entry. */}
+          <div className="rounded-md border bg-muted/50 p-3 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
+            <span className="text-muted-foreground">
+              {t("busStations.passengers")}:{" "}
+              <span className="font-medium text-foreground">
+                {formatCurrency(totals.passengerRevenue)}
+              </span>
+            </span>
+            <span className="text-muted-foreground">
+              {t("busStations.cargo")}:{" "}
+              <span className="font-medium text-foreground">
+                {formatCurrency(totals.cargoRevenue)}
+              </span>
+            </span>
+            <span className="text-muted-foreground">
+              {t("busStations.total")}:{" "}
+              <span className="font-bold text-foreground">
+                {formatCurrency(totals.total)}
+              </span>
+            </span>
+          </div>
         </div>
 
         {/* Bank slips sit BELOW all vehicle entry. */}
@@ -410,12 +424,13 @@ export function BusStationEntryDialog({
               {slips.map((slip) => (
                 <div
                   key={slip.key}
-                  className="flex flex-wrap items-center gap-2 border rounded-md p-2"
+                  className="flex flex-col gap-2 border rounded-md p-2 sm:flex-row sm:flex-wrap sm:items-center"
                 >
                   {slip.id ? (
                     <Button
                       variant="outline"
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => openStoredFile(slip.slip_url as string)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
@@ -425,7 +440,7 @@ export function BusStationEntryDialog({
                     <Input
                       type="file"
                       accept="image/*,application/pdf"
-                      className="max-w-[220px]"
+                      className="w-full sm:max-w-[220px]"
                       onChange={(e) =>
                         updateSlip(slip.key, { file: e.target.files?.[0] })
                       }
@@ -435,7 +450,7 @@ export function BusStationEntryDialog({
                     type="number"
                     min={0}
                     step="0.01"
-                    className="max-w-[140px]"
+                    className="w-full sm:max-w-[140px]"
                     placeholder={t("busStations.amount")}
                     value={slip.amount ?? ""}
                     onChange={(e) =>
@@ -444,17 +459,19 @@ export function BusStationEntryDialog({
                       })
                     }
                   />
-                  <Input
-                    type="date"
-                    className="max-w-[170px]"
-                    value={slip.deposit_date ?? ""}
-                    onChange={(e) =>
-                      updateSlip(slip.key, { deposit_date: e.target.value || null })
-                    }
-                  />
-                  <Button variant="ghost" size="icon" onClick={() => removeSlip(slip)}>
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="date"
+                      className="w-full sm:max-w-[170px]"
+                      value={slip.deposit_date ?? ""}
+                      onChange={(e) =>
+                        updateSlip(slip.key, { deposit_date: e.target.value || null })
+                      }
+                    />
+                    <Button variant="ghost" size="icon" onClick={() => removeSlip(slip)}>
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </div>
                 </div>
               ))}
               <p className="text-sm text-muted-foreground">
