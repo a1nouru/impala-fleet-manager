@@ -43,9 +43,9 @@
     "addExpense": "Adicionar Despesa",
     "addExpenseTitle": "Adicionar Nova Despesa da Empresa",
     "addExpenseDescription": "Registar uma nova despesa da empresa com recibo ou nota se não há recibo disponível.",
-          "noExpensesFound": "Ainda sem despesas da empresa",
-      "noExpensesSubtext": "Comece a rastrear as despesas da sua empresa adicionando a sua primeira despesa. Carregue recibos e categorize despesas para manter as suas finanças organizadas.",
-      "addFirstExpense": "Adicionar Primeira Despesa",
+    "noExpensesFound": "Ainda sem despesas da empresa",
+    "noExpensesSubtext": "Comece a rastrear as despesas da sua empresa adicionando a sua primeira despesa. Carregue recibos e categorize despesas para manter as suas finanças organizadas.",
+    "addFirstExpense": "Adicionar Primeira Despesa",
     "expenseCount": "{{count}} despesas",
     "totalAmount": "Valor Total",
     "groupedByDate": "Agrupado por Data",
@@ -55,7 +55,7 @@
     "noReceipt": "Sem Recibo",
     "receiptRequired": "Recibo Obrigatório",
     "uploadReceipt": "Carregar Recibo",
-          "receiptAttached": "Ver Recibo",
+    "receiptAttached": "Ver Recibo",
     "category": "Categoria",
     "description": "Descrição",
     "amount": "Valor",
@@ -448,7 +448,6 @@
     "reviewConfirm": "Rever e Confirmar",
     "back": "Voltar",
     "next": "Próximo",
-    "vehicle": "Veículo",
     "vehicles": "veículos",
     "days": "dias",
     "day": "dia",
@@ -482,5 +481,21 @@
       "receipts": "Recibos",
       "actions": "Ações"
     }
+  },
+  "slipVerification": {
+    "reading": "A ler os talões anexados…",
+    "failed": "Não foi possível verificar os talões automaticamente",
+    "matched": "Os talões correspondem aos relatórios selecionados",
+    "totalsOnly": "Os totais correspondem, mas não foi possível associar todos os talões a cada veículo",
+    "mismatch": "Os talões NÃO correspondem ao valor selecionado",
+    "slipsTotal": "Total dos talões",
+    "selectedTotal": "Total dos relatórios selecionados",
+    "difference": "Diferença",
+    "unmatchedSlips": "Talões não associados",
+    "slipCount": "{{count}} talão(ões) lido(s)",
+    "readOnlyNote": "Os valores são lidos dos talões e não podem ser editados. Se um talão foi mal lido, carregue uma cópia mais nítida.",
+    "badgeMatched": "Talões verificados",
+    "badgeTotalsOnly": "Totais correspondem",
+    "badgeMismatch": "Talões divergentes"
   }
 }

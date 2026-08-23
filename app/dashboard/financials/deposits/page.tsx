@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { openStoredFile, signStoredUrls } from "@/lib/storage-url";
+import { extractSlips } from "@/lib/bank-slip/client";
+import { verifySlips, type ExtractedSlip, type ReportLine, type SlipVerification } from "@/lib/bank-slip/verify";
+import { SlipVerificationPanel, type SlipExtractionStatus } from "@/components/slip-verification-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Banknote, Paperclip, Eye, Trash2, ChevronDown, ChevronRight, Edit3 } from "lucide-react";
+import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Banknote, Paperclip, Eye, Trash2, ChevronDown, ChevronRight, Edit3, CheckCircle2, XCircle } from "lucide-react";
 import { financialService, BankDeposit, DailyReport } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -184,6 +187,13 @@ export default function BankDepositsPage() {
   // Add state for all reports
   const [allReports, setAllReports] = useState<DailyReport[]>([]);
 
+  // Slip OCR verification state (read-only — the accountant can see the
+  // extracted amounts but never edit them)
+  const [slipStatus, setSlipStatus] = useState<SlipExtractionStatus>("idle");
+  const [slipError, setSlipError] = useState<string | null>(null);
+  const [extractedSlips, setExtractedSlips] = useState<ExtractedSlip[]>([]);
+  const slipFilesKeyRef = useRef<string>("");
+
   const fetchPageData = async () => {
     try {
       setIsLoading(true);
@@ -229,6 +239,61 @@ export default function BankDepositsPage() {
     }, 0);
     setNewDeposit((prev) => ({ ...prev, amount: total }));
   }, [selectedReports, undepositedReports, excludeFilter]);
+
+  // Read attached slips with the extraction service whenever the file set
+  // changes. Keyed by name+size so re-renders don't re-trigger calls; debounced
+  // so attaching several files in a row costs one extraction.
+  useEffect(() => {
+    const key = bankSlipFiles.map((f) => `${f.name}:${f.size}`).join("|");
+    if (key === slipFilesKeyRef.current) return;
+    slipFilesKeyRef.current = key;
+
+    if (bankSlipFiles.length === 0) {
+      setSlipStatus("idle");
+      setSlipError(null);
+      setExtractedSlips([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setSlipStatus("extracting");
+      setSlipError(null);
+      try {
+        const slips = await extractSlips(bankSlipFiles, controller.signal);
+        setExtractedSlips(slips);
+        setSlipStatus("done");
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setExtractedSlips([]);
+        setSlipStatus("error");
+        setSlipError(error instanceof Error ? error.message : String(error));
+      }
+    }, 1200);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [bankSlipFiles]);
+
+  // Deterministic comparison of extracted slips vs the selected reports'
+  // per-vehicle net balances. Recomputes locally on any selection change —
+  // no further extraction calls needed.
+  const slipVerification: SlipVerification | null = useMemo(() => {
+    if (slipStatus !== "done" || selectedReports.length === 0) return null;
+    const lines: ReportLine[] = selectedReports.flatMap((reportId) => {
+      const report = undepositedReports.find((r) => r.id === reportId);
+      if (!report) return [];
+      return [{
+        reportId,
+        plate: report.vehicles?.plate || reportId.slice(0, 8),
+        reportDate: format(parseISO(report.report_date), "yyyy-MM-dd"),
+        netBalance: calculateNetBalance(report, excludeFilter),
+      }];
+    });
+    return verifySlips(lines, extractedSlips, newDeposit.amount);
+  }, [slipStatus, extractedSlips, selectedReports, undepositedReports, excludeFilter, newDeposit.amount]);
 
   // Auto-set deposit date to latest report date when reports are selected
   useEffect(() => {
@@ -465,7 +530,8 @@ export default function BankDepositsPage() {
       await financialService.createBankDepositWithFile(
         depositData,
         selectedReports,
-        bankSlipFiles
+        bankSlipFiles,
+        slipVerification
       );
 
       toast({
@@ -499,6 +565,10 @@ export default function BankDepositsPage() {
     setSelectedDates([]);
     setExpandedDates([]);
     setBankSlipFiles([]);
+    setSlipStatus("idle");
+    setSlipError(null);
+    setExtractedSlips([]);
+    slipFilesKeyRef.current = "";
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1005,6 +1075,12 @@ export default function BankDepositsPage() {
                             ))}
                           </div>
                         )}
+                        <SlipVerificationPanel
+                          status={slipStatus}
+                          error={slipError}
+                          slips={extractedSlips}
+                          verification={slipVerification}
+                        />
                       </div>
                     </div>
                   </div>
@@ -1506,6 +1582,24 @@ export default function BankDepositsPage() {
                             }
                             return null;
                           })()}
+                          {deposit.slip_verification && (
+                            deposit.slip_verification.totalsMatch && deposit.slip_verification.allReportsMatched ? (
+                              <Badge className="text-xs bg-green-100 text-green-800 hover:bg-green-100">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                {t("slipVerification.badgeMatched")}
+                              </Badge>
+                            ) : deposit.slip_verification.totalsMatch ? (
+                              <Badge className="text-xs bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                {t("slipVerification.badgeTotalsOnly")}
+                              </Badge>
+                            ) : (
+                              <Badge className="text-xs bg-red-100 text-red-800 hover:bg-red-100">
+                                <XCircle className="h-3 w-3 mr-1" />
+                                {t("slipVerification.badgeMismatch")}
+                              </Badge>
+                            )
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>

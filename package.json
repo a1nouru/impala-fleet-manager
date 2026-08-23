@@ -19,9 +19,11 @@
     "migrate:import": "./scripts/import-backup.sh",
     "migrate:storage": "npx dotenv -e .env.migration -- node scripts/migrate-supabase.js",
     "migrate:help": "cat SUPABASE_MIGRATION_GUIDE.md",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-accordion": "^1.2.10",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -78,6 +80,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tar": "^7.4.3",
     "tw-animate-css": "^1.2.8",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "vitest": "^4.1.11"
   }
 }

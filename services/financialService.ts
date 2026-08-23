@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import type { SlipVerification } from '@/lib/bank-slip/verify';
 
 const supabase = createClient();
 
@@ -82,6 +83,9 @@ export interface BankDeposit {
     deposit_reports?: { report_id: string }[];
     // New multiple slips support
     bank_deposit_slips?: BankDepositSlip[];
+    // Read-only OCR verdict captured when the deposit was logged (null for
+    // deposits logged before slip verification existed)
+    slip_verification?: SlipVerification | null;
 }
 
 export interface CompanyExpenseReceipt {
@@ -464,7 +468,8 @@ export const financialService = {
   async createBankDepositWithFile(
     depositData: Omit<BankDeposit, 'id' | 'created_at' | 'updated_at'>,
     reportIds: string[],
-    bankSlipFiles?: File[]
+    bankSlipFiles?: File[],
+    slipVerification?: SlipVerification | null
   ): Promise<BankDeposit> {
     // First create the deposit to get the ID using the new function
     const { data: depositId, error } = await supabase.rpc('create_bank_deposit_with_multiple_reports', {
@@ -477,6 +482,19 @@ export const financialService = {
     if (error) {
       console.error('Error creating bank deposit:', error);
       throw error;
+    }
+
+    // Persist the read-only slip OCR verdict alongside the deposit so a
+    // mismatch stays visible to the accountant after logging.
+    if (slipVerification) {
+      const { error: verificationError } = await supabase
+        .from('bank_deposits')
+        .update({ slip_verification: slipVerification })
+        .eq('id', depositId);
+      if (verificationError) {
+        // Deposit itself was created; don't fail the whole flow over the verdict.
+        console.error('Error saving slip verification:', verificationError);
+      }
     }
 
     // Upload multiple files if provided

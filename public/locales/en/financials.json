@@ -43,9 +43,9 @@
     "addExpense": "Add Expense",
     "addExpenseTitle": "Add New Company Expense",
     "addExpenseDescription": "Record a new company expense with receipt or note if no receipt available.",
-          "noExpensesFound": "No company expenses yet",
-      "noExpensesSubtext": "Start tracking your company expenses by adding your first expense. Upload receipts and categorize expenses to keep your finances organized.",
-      "addFirstExpense": "Add Your First Expense",
+    "noExpensesFound": "No company expenses yet",
+    "noExpensesSubtext": "Start tracking your company expenses by adding your first expense. Upload receipts and categorize expenses to keep your finances organized.",
+    "addFirstExpense": "Add Your First Expense",
     "expenseCount": "{{count}} expenses",
     "totalAmount": "Total Amount",
     "groupedByDate": "Grouped by Date",
@@ -55,7 +55,7 @@
     "noReceipt": "No Receipt",
     "receiptRequired": "Receipt Required",
     "uploadReceipt": "Upload Receipt",
-          "receiptAttached": "View Receipt",
+    "receiptAttached": "View Receipt",
     "category": "Category",
     "description": "Description",
     "amount": "Amount",
@@ -460,5 +460,21 @@
       "receipts": "Receipts",
       "actions": "Actions"
     }
+  },
+  "slipVerification": {
+    "reading": "Reading attached slips…",
+    "failed": "Could not verify the slips automatically",
+    "matched": "Slips match the selected reports",
+    "totalsOnly": "Totals match, but slips could not be paired to every vehicle",
+    "mismatch": "Slips do NOT match the selected amount",
+    "slipsTotal": "Slips total",
+    "selectedTotal": "Selected reports total",
+    "difference": "Difference",
+    "unmatchedSlips": "Unmatched slips",
+    "slipCount": "{{count}} slip(s) read",
+    "readOnlyNote": "Amounts are read from the slips and cannot be edited. If a slip was misread, upload a clearer copy.",
+    "badgeMatched": "Slips verified",
+    "badgeTotalsOnly": "Totals match",
+    "badgeMismatch": "Slip mismatch"
   }
 }
