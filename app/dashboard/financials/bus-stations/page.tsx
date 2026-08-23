@@ -254,7 +254,7 @@ export default function BusStationsPage() {
                   </div>
                 );
               })}
-              <div className="rounded-md border bg-muted/50 p-3 flex items-center justify-between text-sm">
+              <div className="rounded-md bg-primary text-primary-foreground p-3 flex items-center justify-between text-sm">
                 <span className="font-medium">{t("busStations.total")}</span>
                 <span className="font-bold">{formatCurrency(grand.total)}</span>
               </div>
