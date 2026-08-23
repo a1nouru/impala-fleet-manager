@@ -43,7 +43,7 @@ import {
   busStationLabel,
   type BusStationId,
 } from "@/lib/bus-stations/stations";
-import { entryTotals, slipsTotal } from "@/lib/bus-stations/revenue";
+import { entryTotals } from "@/lib/bus-stations/revenue";
 import {
   busStationService,
   type BusStationEntry,
@@ -117,10 +117,9 @@ export default function BusStationsPage() {
           acc.passenger += totals.passengerRevenue;
           acc.cargo += totals.cargoRevenue;
           acc.total += totals.total;
-          acc.deposited += slipsTotal(entry.bus_station_revenue_slips || []);
           return acc;
         },
-        { passenger: 0, cargo: 0, total: 0, deposited: 0 }
+        { passenger: 0, cargo: 0, total: 0 }
       ),
     [entries]
   );
@@ -199,7 +198,6 @@ export default function BusStationsPage() {
             <div className="space-y-3 md:hidden">
               {entries.map((entry) => {
                 const totals = entryTotals(entry.bus_station_revenue_rows || []);
-                const deposited = slipsTotal(entry.bus_station_revenue_slips || []);
                 return (
                   <div key={entry.id} className="rounded-md border p-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
@@ -242,10 +240,6 @@ export default function BusStationsPage() {
                       <span className="text-right">
                         {formatCurrency(totals.cargoRevenue)}
                       </span>
-                      <span className="text-muted-foreground">
-                        {t("busStations.deposited")}
-                      </span>
-                      <span className="text-right">{formatCurrency(deposited)}</span>
                       <span className="font-medium">{t("busStations.total")}</span>
                       <span className="text-right font-bold">
                         {formatCurrency(totals.total)}
@@ -271,14 +265,12 @@ export default function BusStationsPage() {
                     <TableHead className="text-right">{t("busStations.passengers")}</TableHead>
                     <TableHead className="text-right">{t("busStations.cargo")}</TableHead>
                     <TableHead className="text-right">{t("busStations.total")}</TableHead>
-                    <TableHead className="text-right">{t("busStations.deposited")}</TableHead>
                     <TableHead className="text-right">{t("busStations.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {entries.map((entry) => {
                     const totals = entryTotals(entry.bus_station_revenue_rows || []);
-                    const deposited = slipsTotal(entry.bus_station_revenue_slips || []);
                     return (
                       <TableRow key={entry.id}>
                         <TableCell>
@@ -298,9 +290,6 @@ export default function BusStationsPage() {
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(totals.total)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(deposited)}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           <Button
@@ -336,9 +325,6 @@ export default function BusStationsPage() {
                     </TableCell>
                     <TableCell className="text-right font-bold">
                       {formatCurrency(grand.total)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(grand.deposited)}
                     </TableCell>
                     <TableCell />
                   </TableRow>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Building2, Landmark, Loader2 } from "lucide-react";
+import { DollarSign, Building2, Loader2 } from "lucide-react";
 import { BUS_STATIONS } from "@/lib/bus-stations/stations";
 import type { BusStationOverview } from "@/services/busStationService";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -55,14 +55,13 @@ export function BusStationOverviewPanels({
 }) {
   const { t } = useTranslation("financials");
   const o = overview;
-  const variance = (o?.deposited || 0) - (o?.total || 0);
 
   const breakdown = `${t("busStations.passengers")} ${formatCurrency(
     o?.passenger || 0
   )} · ${t("busStations.cargo")} ${formatCurrency(o?.cargo || 0)}`;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-3">
       <Panel
         title={t("busStations.totalRevenue")}
         value={o?.total || 0}
@@ -80,14 +79,6 @@ export function BusStationOverviewPanels({
           isLoading={isLoading}
         />
       ))}
-      <Panel
-        title={t("busStations.totalDeposited")}
-        value={o?.deposited || 0}
-        sub={`${t("busStations.variance")} ${formatCurrency(variance)}`}
-        Icon={Landmark}
-        isLoading={isLoading}
-        tone={variance < 0 ? "negative" : "positive"}
-      />
     </div>
   );
 }
