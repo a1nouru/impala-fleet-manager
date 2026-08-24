@@ -5,6 +5,7 @@ import { openStoredFile, signStoredUrls } from "@/lib/storage-url";
 import { extractSlips } from "@/lib/bank-slip/client";
 import { verifySlips, type CompanyExpenseLine, type ExtractedSlip, type ReportLine, type SlipVerification } from "@/lib/bank-slip/verify";
 import { SlipVerificationPanel, type SlipExtractionStatus } from "@/components/slip-verification-panel";
+import { SlipVerificationDetail, type DetailReport } from "@/components/slip-verification-detail";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Banknote, Paperclip, Eye, Trash2, ChevronDown, ChevronRight, Edit3, CheckCircle2, XCircle } from "lucide-react";
@@ -196,9 +197,12 @@ export default function BankDepositsPage() {
   const [slipError, setSlipError] = useState<string | null>(null);
   const [extractedSlips, setExtractedSlips] = useState<ExtractedSlip[]>([]);
   const slipFilesKeyRef = useRef<string>("");
-  // Company expenses recorded on the deposit date (D+1): cash spent out of
-  // the takings before banking, used in the second reconciliation pass.
+  // Company expenses recorded around the deposit date: candidates the
+  // accountant may explicitly tick to explain a gap (never auto-applied).
   const [d1Expenses, setD1Expenses] = useState<CompanyExpenseLine[]>([]);
+  const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
+  // Right-pane focus view on the selected reports once verification ran
+  const [focusSelected, setFocusSelected] = useState(false);
 
   const fetchPageData = async () => {
     try {
@@ -286,6 +290,7 @@ export default function BankDepositsPage() {
   // Load the deposit date's company expenses whenever it changes (only
   // relevant while slips are being verified).
   useEffect(() => {
+    setSelectedExpenseIds([]);
     if (!newDeposit.deposit_date) {
       setD1Expenses([]);
       return;
@@ -331,11 +336,41 @@ export default function BankDepositsPage() {
         netBalance: calculateNetBalance(report, excludeFilter),
       }];
     });
-    return verifySlips(lines, extractedSlips, newDeposit.amount, d1Expenses, {
+    const chosenExpenses = d1Expenses.filter((e) => selectedExpenseIds.includes(e.id));
+    return verifySlips(lines, extractedSlips, newDeposit.amount, chosenExpenses, {
       expectedGroup: vehicleType,
       regularAccounts: [REGULAR_CASH_ACCOUNT, REGULAR_TPA_ACCOUNT],
     });
-  }, [slipStatus, extractedSlips, selectedReports, undepositedReports, excludeFilter, newDeposit.amount, d1Expenses, vehicleType]);
+  }, [slipStatus, extractedSlips, selectedReports, undepositedReports, excludeFilter, newDeposit.amount, d1Expenses, selectedExpenseIds, vehicleType]);
+
+  // Selected reports flattened for the right-pane focus view.
+  const selectedReportDetails: DetailReport[] = useMemo(() => {
+    return selectedReports.flatMap((reportId) => {
+      const report = undepositedReports.find((r) => r.id === reportId);
+      if (!report) return [];
+      const split = report as DailyReport & { cash_revenue?: number; tpa_revenue?: number };
+      return [{
+        reportId,
+        plate: report.vehicles?.plate || reportId.slice(0, 8),
+        reportDate: format(parseISO(report.report_date), "yyyy-MM-dd"),
+        ticketRevenue: report.ticket_revenue || 0,
+        cashRevenue: typeof split.cash_revenue === "number" ? split.cash_revenue : null,
+        tpaRevenue: typeof split.tpa_revenue === "number" ? split.tpa_revenue : null,
+        otherRevenue: (report.baggage_revenue || 0) + (report.cargo_revenue || 0),
+        expenses: (report.daily_expenses || [])
+          .filter((e) => !excludeFilter.includes(e.category))
+          .reduce((sum, e) => sum + e.amount, 0),
+        netBalance: calculateNetBalance(report, excludeFilter),
+      }];
+    });
+  }, [selectedReports, undepositedReports, excludeFilter]);
+
+  // Jump to the focus view as soon as a verification verdict lands; drop
+  // back to the list when the selection empties.
+  useEffect(() => {
+    if (slipStatus === "done" && selectedReports.length > 0) setFocusSelected(true);
+    if (selectedReports.length === 0) setFocusSelected(false);
+  }, [slipStatus, selectedReports.length]);
 
   // Auto-set deposit date to latest report date when reports are selected
   useEffect(() => {
@@ -613,6 +648,8 @@ export default function BankDepositsPage() {
     setSlipStatus("idle");
     setSlipError(null);
     setExtractedSlips([]);
+    setSelectedExpenseIds([]);
+    setFocusSelected(false);
     slipFilesKeyRef.current = "";
   };
 
@@ -1132,6 +1169,13 @@ export default function BankDepositsPage() {
                           error={slipError}
                           slips={extractedSlips}
                           verification={slipVerification}
+                          candidateExpenses={d1Expenses}
+                          selectedExpenseIds={selectedExpenseIds}
+                          onToggleExpense={(id) =>
+                            setSelectedExpenseIds((prev) =>
+                              prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                            )
+                          }
                         />
                       </div>
                     </div>
@@ -1139,11 +1183,34 @@ export default function BankDepositsPage() {
                   {/* Available Reports - Right Column */}
                   <div className="lg:col-span-3 space-y-2 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between">
-                      <Label>{t("form.availableReports")}</Label>
-                      <div className="text-xs text-muted-foreground">
-                        {getFilteredReports().length} {t("form.reportsAvailable")}
+                      <Label>{focusSelected ? t("slipVerification.selectedReportsDetail") : t("form.availableReports")}</Label>
+                      <div className="flex items-center gap-2">
+                        {selectedReports.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setFocusSelected((v) => !v)}
+                          >
+                            {focusSelected
+                              ? t("slipVerification.backToList")
+                              : t("slipVerification.viewSelectedDetail", { count: selectedReports.length })}
+                          </Button>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          {getFilteredReports().length} {t("form.reportsAvailable")}
+                        </div>
                       </div>
                     </div>
+                    {focusSelected && selectedReports.length > 0 ? (
+                      <ScrollArea className="flex-1 w-full rounded-md border">
+                        <SlipVerificationDetail
+                          reports={selectedReportDetails}
+                          slips={extractedSlips}
+                          verification={slipVerification}
+                        />
+                      </ScrollArea>
+                    ) : (
                     <ScrollArea className="flex-1 w-full rounded-md border">
                         <div className="p-2 sm:p-4">
                             {groupReportsByDate(getFilteredReports(), excludeFilter).length > 0 ? (
@@ -1305,6 +1372,7 @@ export default function BankDepositsPage() {
                                 )}
                         </div>
                     </ScrollArea>
+                    )}
                                           {selectedReports.length > 0 && (
                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
@@ -1326,7 +1394,7 @@ export default function BankDepositsPage() {
                         </Button>
                         <Button 
                             onClick={handleSubmit} 
-                            disabled={isSubmitting || selectedReports.length === 0 || bankSlipFiles.length === 0} 
+                            disabled={isSubmitting || selectedReports.length === 0 || bankSlipFiles.length === 0 || slipStatus === "extracting" || (slipVerification !== null && slipVerification.status === "unverified")} 
                             className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto"
                         >
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

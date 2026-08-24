@@ -2,9 +2,10 @@
 
 import { CheckCircle2, Loader2, XCircle, AlertTriangle, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
-import type { ExtractedSlip, SlipVerification } from "@/lib/bank-slip/verify";
+import type { CompanyExpenseLine, ExtractedSlip, SlipVerification } from "@/lib/bank-slip/verify";
 
 export type SlipExtractionStatus = "idle" | "extracting" | "done" | "error";
 
@@ -13,6 +14,12 @@ interface SlipVerificationPanelProps {
   error?: string | null;
   slips: ExtractedSlip[];
   verification: SlipVerification | null;
+  // Company expenses on/around the deposit date the accountant may tick to
+  // explain a gap. Never applied automatically — explaining a mismatch is an
+  // explicit human decision over deterministic system records.
+  candidateExpenses?: CompanyExpenseLine[];
+  selectedExpenseIds?: string[];
+  onToggleExpense?: (id: string) => void;
 }
 
 const formatAOA = (value: number) =>
@@ -20,7 +27,15 @@ const formatAOA = (value: number) =>
 
 // Read-only reconciliation verdict. Deliberately offers no way to edit the
 // extracted amounts — if a slip was misread, re-upload a clearer copy.
-export function SlipVerificationPanel({ status, error, slips, verification }: SlipVerificationPanelProps) {
+export function SlipVerificationPanel({
+  status,
+  error,
+  slips,
+  verification,
+  candidateExpenses = [],
+  selectedExpenseIds = [],
+  onToggleExpense,
+}: SlipVerificationPanelProps) {
   const { t } = useTranslation("financials");
 
   if (status === "idle") return null;
@@ -162,6 +177,29 @@ export function SlipVerificationPanel({ status, error, slips, verification }: Sl
         </div>
       </div>
 
+      {/* Opt-in expense explanations: the accountant decides which recorded
+          company expenses account for cash that never reached the bank */}
+      {verification && !verification.totalsMatch && candidateExpenses.length > 0 && onToggleExpense && (
+        <div className="space-y-1.5 rounded-md border bg-white/60 p-2">
+          <div className="text-xs font-medium">{t("slipVerification.explainWithExpenses")}</div>
+          {candidateExpenses.map((e) => (
+            <label key={e.id} className="flex cursor-pointer items-center justify-between gap-2 text-xs">
+              <span className="flex items-center gap-2 truncate">
+                <Checkbox
+                  checked={selectedExpenseIds.includes(e.id)}
+                  onCheckedChange={() => onToggleExpense(e.id)}
+                />
+                <span className="truncate">
+                  {e.description || e.category || t("slipVerification.expense")}
+                  <span className="ml-1 text-muted-foreground">({e.expenseDate})</span>
+                </span>
+              </span>
+              <span className="font-mono flex-shrink-0">{formatAOA(e.amount)}</span>
+            </label>
+          ))}
+        </div>
+      )}
+
       {/* Where the mismatch is: direction of the residual, in plain words */}
       {verdict === "unverified" && (
         <div className="flex items-start gap-2 rounded-md border border-red-200 bg-white/60 p-2 text-xs text-red-800">
@@ -169,7 +207,8 @@ export function SlipVerificationPanel({ status, error, slips, verification }: Sl
           <span>
             {v.residual > 0
               ? t("slipVerification.residualShort", { amount: formatAOA(v.residual) })
-              : t("slipVerification.residualExcess", { amount: formatAOA(Math.abs(v.residual)) })}
+              : t("slipVerification.residualExcess", { amount: formatAOA(Math.abs(v.residual)) })}{" "}
+            <span className="font-semibold">{t("slipVerification.saveBlocked")}</span>
           </span>
         </div>
       )}
