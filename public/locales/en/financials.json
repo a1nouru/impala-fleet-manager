@@ -537,7 +537,9 @@
     "typeOther": "Other document",
     "wrongAccountShort": "Wrong account",
     "notCounted": "Not counted",
-    "unmatchedShort": "Unmatched"
+    "unmatchedShort": "Unmatched",
+    "slipsAwaitSelection": "{{count}} slip(s) read. Now select the reports to verify them against.",
+    "noSlipsRead": "No slips could be read from the attachments. Upload clearer copies (PDF scans or sharp photos)."
   },
   "loans": {
     "title": "Loans",

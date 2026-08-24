@@ -558,7 +558,9 @@
     "typeOther": "Outro documento",
     "wrongAccountShort": "Conta errada",
     "notCounted": "Não contabilizado",
-    "unmatchedShort": "Sem correspondência"
+    "unmatchedShort": "Sem correspondência",
+    "slipsAwaitSelection": "{{count}} talão(ões) lido(s). Agora selecione os relatórios para os verificar.",
+    "noSlipsRead": "Não foi possível ler nenhum talão dos anexos. Carregue cópias mais nítidas (digitalizações PDF ou fotos nítidas)."
   },
   "loans": {
     "title": "Empréstimos",

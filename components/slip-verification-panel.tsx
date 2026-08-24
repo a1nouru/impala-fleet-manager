@@ -61,7 +61,27 @@ export function SlipVerificationPanel({
     );
   }
 
-  if (!verification) return null;
+  if (!verification) {
+    // Extraction finished but there is nothing to compare against yet —
+    // never go blank, or the accountant thinks the reader hung.
+    if (status === "done") {
+      if (slips.length === 0) {
+        return (
+          <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            {t("slipVerification.noSlipsRead")}
+          </div>
+        );
+      }
+      return (
+        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+          <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+          {t("slipVerification.slipsAwaitSelection", { count: slips.length })}
+        </div>
+      );
+    }
+    return null;
+  }
 
   const v = verification;
   const verdict = v.status;
