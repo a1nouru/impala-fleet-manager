@@ -1360,49 +1360,6 @@ export const financialService = {
   },
 
   /**
-   * Deletes a company expense and its associated receipts
-   */
-  async deleteCompanyExpense(expenseId: string): Promise<void> {
-    // First delete all receipts (files and records)
-    const { data: receipts } = await supabase
-      .from('company_expense_receipts')
-      .select('receipt_url, id')
-      .eq('expense_id', expenseId);
-
-    if (receipts) {
-      for (const receipt of receipts) {
-        try {
-          // Delete from storage
-          const urlParts = receipt.receipt_url.split('/');
-          const fileName = urlParts[urlParts.length - 1];
-          await supabase.storage
-            .from('company-expense-receipts')
-            .remove([fileName]);
-        } catch (error) {
-          console.warn('Error deleting receipt file:', error);
-        }
-      }
-
-      // Delete receipt records
-      await supabase
-        .from('company_expense_receipts')
-        .delete()
-        .eq('expense_id', expenseId);
-    }
-
-    // Delete the expense
-    const { error } = await supabase
-      .from('company_expenses')
-      .delete()
-      .eq('id', expenseId);
-
-    if (error) {
-      console.error('Error deleting company expense:', error);
-      throw error;
-    }
-  },
-
-  /**
    * Adds receipt files to an existing company expense
    */
   async addReceiptsToExpense(expenseId: string, receiptFiles: File[]): Promise<void> {

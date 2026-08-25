@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Plus, PlusCircle, Filter, CalendarIcon, Receipt, Edit, Trash2, ChevronLeft, ChevronRight, Paperclip, Search, X } from "lucide-react";
+import { Loader2, Plus, PlusCircle, Filter, CalendarIcon, Receipt, Edit, ChevronLeft, ChevronRight, Paperclip, Search, X } from "lucide-react";
 import { financialService, CompanyExpense } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -30,16 +30,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -73,7 +63,6 @@ export default function CompanyExpensesPage() {
   // Dialog states
   const [addExpenseDialogOpen, setAddExpenseDialogOpen] = useState(false);
   const [editExpenseDialogOpen, setEditExpenseDialogOpen] = useState(false);
-  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<CompanyExpense | null>(null);
   const [selectedReceipts, setSelectedReceipts] = useState<any[]>([]);
@@ -482,34 +471,6 @@ export default function CompanyExpensesPage() {
       toast({
         title: "❌ Error",
         description: "Failed to update expense. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteExpense = (expense: CompanyExpense) => {
-    setSelectedExpense(expense);
-    setDeleteConfirmationOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!selectedExpense) return;
-
-    setIsSubmitting(true);
-    try {
-      await financialService.deleteCompanyExpense(selectedExpense.id);
-      toast({
-        title: "✅ Success",
-        description: "Expense deleted successfully.",
-      });
-      setDeleteConfirmationOpen(false);
-      fetchExpenses();
-    } catch (error) {
-      toast({
-        title: "❌ Error",
-        description: "Failed to delete expense.",
         variant: "destructive",
       });
     } finally {
@@ -959,15 +920,6 @@ export default function CompanyExpensesPage() {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteExpense(expense)}
-                              className="h-8 w-8 p-0 hover:bg-red-50"
-                              title="Delete expense"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1209,31 +1161,6 @@ export default function CompanyExpensesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmationOpen} onOpenChange={setDeleteConfirmationOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedExpense && (
-                `This action cannot be undone. This will permanently delete the expense "${selectedExpense.category}" of ${formatCurrency(selectedExpense.amount)} from ${format(parseISO(selectedExpense.expense_date), "PPP")}.`
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("buttons.cancel")}</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmDelete} 
-              disabled={isSubmitting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("buttons.delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Receipt Viewing Modal */}
       <Dialog open={receiptModalOpen} onOpenChange={setReceiptModalOpen}>
