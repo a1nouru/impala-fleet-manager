@@ -143,6 +143,33 @@ export function SlipVerificationPanel({
         </div>
       )}
 
+      {/* Opt-in expense explanations — the FIRST thing to resolve on a
+          mismatch, so it sits directly under the verdict, never below the
+          fold. Only ticked expenses enter the math. */}
+      {verification && !verification.totalsMatch && candidateExpenses.length > 0 && onToggleExpense && (
+        <div className="space-y-1.5 rounded-md border-2 border-amber-300 bg-amber-50 p-2.5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-900">
+            <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
+            {t("slipVerification.explainWithExpenses")}
+          </div>
+          {candidateExpenses.map((e) => (
+            <label key={e.id} className="flex cursor-pointer items-center justify-between gap-2 rounded bg-white/70 p-1.5 text-xs">
+              <span className="flex items-center gap-2 truncate">
+                <Checkbox
+                  checked={selectedExpenseIds.includes(e.id)}
+                  onCheckedChange={() => onToggleExpense(e.id)}
+                />
+                <span className="truncate">
+                  {e.description || e.category || t("slipVerification.expense")}
+                  <span className="ml-1 text-muted-foreground">({e.expenseDate})</span>
+                </span>
+              </span>
+              <span className="font-mono flex-shrink-0 font-medium">{formatAOA(e.amount)}</span>
+            </label>
+          ))}
+        </div>
+      )}
+
       {/* Reconciliation waterfall: where the money went, line by line */}
       <div className="space-y-1 rounded-md border bg-white/60 p-2 text-sm">
         <div className="flex items-center justify-between">
@@ -196,29 +223,6 @@ export function SlipVerificationPanel({
           </span>
         </div>
       </div>
-
-      {/* Opt-in expense explanations: the accountant decides which recorded
-          company expenses account for cash that never reached the bank */}
-      {verification && !verification.totalsMatch && candidateExpenses.length > 0 && onToggleExpense && (
-        <div className="space-y-1.5 rounded-md border bg-white/60 p-2">
-          <div className="text-xs font-medium">{t("slipVerification.explainWithExpenses")}</div>
-          {candidateExpenses.map((e) => (
-            <label key={e.id} className="flex cursor-pointer items-center justify-between gap-2 text-xs">
-              <span className="flex items-center gap-2 truncate">
-                <Checkbox
-                  checked={selectedExpenseIds.includes(e.id)}
-                  onCheckedChange={() => onToggleExpense(e.id)}
-                />
-                <span className="truncate">
-                  {e.description || e.category || t("slipVerification.expense")}
-                  <span className="ml-1 text-muted-foreground">({e.expenseDate})</span>
-                </span>
-              </span>
-              <span className="font-mono flex-shrink-0">{formatAOA(e.amount)}</span>
-            </label>
-          ))}
-        </div>
-      )}
 
       {/* Where the mismatch is: direction of the residual, in plain words */}
       {verdict === "unverified" && (
