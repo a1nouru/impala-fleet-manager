@@ -856,35 +856,44 @@ export default function AllDailyReportsPage() {
           : "";
 
   const renderDateDepositBadge = (st: DateDepositStatus) => {
-    const badge =
+    const icon =
       st.kind === "verified" ? (
-        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-xs cursor-help">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          {t("depositBadge.verified")}
-        </Badge>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-700 cursor-help">
+          <CheckCircle className="h-4 w-4" />
+        </span>
       ) : st.kind === "verified_with_expenses" ? (
-        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs cursor-help">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          {t("depositBadge.withExpenses")}
-        </Badge>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-700 cursor-help">
+          <CheckCircle className="h-4 w-4" />
+        </span>
       ) : st.kind === "unverified" ? (
-        <Badge className="bg-red-100 text-red-800 hover:bg-red-100 text-xs cursor-help">
-          <AlertTriangle className="h-3 w-3 mr-1" />
-          {t("depositBadge.notMatched")}
-        </Badge>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-700 cursor-help">
+          <AlertTriangle className="h-4 w-4" />
+        </span>
       ) : st.kind === "no_verification" ? (
-        <Badge variant="secondary" className="text-xs cursor-help">
-          {t("depositBadge.noVerification")}
-        </Badge>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-gray-500 cursor-help">
+          <CheckCircle className="h-4 w-4" />
+        </span>
       ) : st.kind === "partial" ? (
-        <Badge variant="outline" className="text-xs text-amber-700 border-amber-300 cursor-help">
-          {t("depositBadge.partial")}
-        </Badge>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-50 border border-amber-300 text-amber-600 cursor-help">
+          <Clock className="h-4 w-4" />
+        </span>
       ) : (
-        <Badge variant="outline" className="text-xs text-muted-foreground cursor-help">
-          {t("depositBadge.none")}
-        </Badge>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 text-gray-400 cursor-help">
+          <Clock className="h-4 w-4" />
+        </span>
       );
+    const label =
+      st.kind === "verified"
+        ? t("depositBadge.verified")
+        : st.kind === "verified_with_expenses"
+          ? t("depositBadge.withExpenses")
+          : st.kind === "unverified"
+            ? t("depositBadge.notMatched")
+            : st.kind === "no_verification"
+              ? t("depositBadge.noVerification")
+              : st.kind === "partial"
+                ? t("depositBadge.partial")
+                : t("depositBadge.none");
     const message =
       st.kind === "verified"
         ? t("depositBadge.tooltipVerified")
@@ -901,9 +910,10 @@ export default function AllDailyReportsPage() {
       <TooltipProvider>
         <Tooltip delayDuration={150}>
           <TooltipTrigger asChild>
-            <span className="inline-flex">{badge}</span>
+            <span className="inline-flex">{icon}</span>
           </TooltipTrigger>
           <TooltipContent className="max-w-xs">
+            <p className="font-semibold">{label}</p>
             <p>{message}</p>
           </TooltipContent>
         </Tooltip>
