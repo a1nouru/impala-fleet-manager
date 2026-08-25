@@ -5,7 +5,7 @@ import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle, Upload, X, Eye, ChevronDown, Shield, ShieldCheck } from "lucide-react";
-import { financialService, DailyReport, DailyExpense, DateAudit } from "@/services/financialService";
+import { financialService, DailyReport, DailyExpense, DateAudit, BankDeposit } from "@/services/financialService";
 import { vehicleService } from "@/services/vehicleService";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -211,6 +211,9 @@ export default function AllDailyReportsPage() {
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [dateAudits, setDateAudits] = useState<DateAudit[]>([]);
+  // Bank deposits (with slip verification verdicts) so each date row can show
+  // whether its money was confirmed banked.
+  const [deposits, setDeposits] = useState<BankDeposit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -322,12 +325,14 @@ export default function AllDailyReportsPage() {
   const fetchReports = async () => {
     try {
       setIsLoading(true);
-      const [reportsData, vehiclesData] = await Promise.all([
+      const [reportsData, vehiclesData, depositsData] = await Promise.all([
         financialService.getDailyReports(),
         vehicleService.getVehicles(),
+        financialService.getBankDeposits().catch(() => [] as BankDeposit[]),
       ]);
       setReports(reportsData);
       setVehicles(vehiclesData || []);
+      setDeposits(depositsData || []);
       
       // Fetch date audits separately with error handling
       try {
@@ -798,6 +803,112 @@ export default function AllDailyReportsPage() {
         variant: "destructive",
       });
     }
+  };
+
+  // --- Deposit-verification status per date row -------------------------
+  // Every report id -> the deposit that covers it.
+  const depositByReport = new Map<string, BankDeposit>();
+  for (const d of deposits) {
+    for (const dr of d.deposit_reports || []) depositByReport.set(dr.report_id, d);
+  }
+
+  type DateDepositStatus =
+    | { kind: "verified" }
+    | { kind: "verified_with_expenses"; expensesTotal: number }
+    | { kind: "unverified"; residual: number }
+    | { kind: "no_verification" }
+    | { kind: "partial"; missing: number }
+    | { kind: "none" };
+
+  const getDateDepositStatus = (groupReports: DailyReport[]): DateDepositStatus => {
+    const linked = groupReports.map((r) => depositByReport.get(r.id));
+    const covering = [...new Set(linked.filter(Boolean))] as BankDeposit[];
+    if (covering.length === 0) return { kind: "none" };
+    const missing = linked.filter((d) => !d).length;
+    if (missing > 0) return { kind: "partial", missing };
+    const statuses = covering.map((d) =>
+      d.slip_verification
+        ? d.slip_verification.status ?? (d.slip_verification.totalsMatch ? "verified" : "unverified")
+        : "no_verification"
+    );
+    if (statuses.includes("unverified")) {
+      const bad = covering.find((d) => {
+        const sv = d.slip_verification;
+        return sv && (sv.status ?? (sv.totalsMatch ? "verified" : "unverified")) === "unverified";
+      })!.slip_verification!;
+      return { kind: "unverified", residual: bad.residual ?? bad.selectedTotal - bad.slipsTotal };
+    }
+    if (statuses.includes("no_verification")) return { kind: "no_verification" };
+    if (statuses.every((st) => st === "verified")) return { kind: "verified" };
+    const expensesTotal = covering.reduce((sum, d) => sum + (d.slip_verification?.d1ExpensesTotal || 0), 0);
+    return { kind: "verified_with_expenses", expensesTotal };
+  };
+
+  // Row tint: green = perfect slips match, yellow = needed expense
+  // explanations, red = a deposit's slips never matched.
+  const dateDepositRowClass = (st: DateDepositStatus): string =>
+    st.kind === "verified"
+      ? "bg-green-50/60"
+      : st.kind === "verified_with_expenses"
+        ? "bg-amber-50/70"
+        : st.kind === "unverified"
+          ? "bg-red-50/50"
+          : "";
+
+  const renderDateDepositBadge = (st: DateDepositStatus) => {
+    const badge =
+      st.kind === "verified" ? (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-xs cursor-help">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          {t("depositBadge.verified")}
+        </Badge>
+      ) : st.kind === "verified_with_expenses" ? (
+        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs cursor-help">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          {t("depositBadge.withExpenses")}
+        </Badge>
+      ) : st.kind === "unverified" ? (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-100 text-xs cursor-help">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          {t("depositBadge.notMatched")}
+        </Badge>
+      ) : st.kind === "no_verification" ? (
+        <Badge variant="secondary" className="text-xs cursor-help">
+          {t("depositBadge.noVerification")}
+        </Badge>
+      ) : st.kind === "partial" ? (
+        <Badge variant="outline" className="text-xs text-amber-700 border-amber-300 cursor-help">
+          {t("depositBadge.partial")}
+        </Badge>
+      ) : (
+        <Badge variant="outline" className="text-xs text-muted-foreground cursor-help">
+          {t("depositBadge.none")}
+        </Badge>
+      );
+    const message =
+      st.kind === "verified"
+        ? t("depositBadge.tooltipVerified")
+        : st.kind === "verified_with_expenses"
+          ? t("depositBadge.tooltipWithExpenses", { amount: formatCurrency(st.expensesTotal) })
+          : st.kind === "unverified"
+            ? t("depositBadge.tooltipUnverified", { amount: formatCurrency(Math.abs(st.residual)) })
+            : st.kind === "no_verification"
+              ? t("depositBadge.tooltipNoVerification")
+              : st.kind === "partial"
+                ? t("depositBadge.tooltipPartial", { count: st.missing })
+                : t("depositBadge.tooltipNone");
+    return (
+      <TooltipProvider>
+        <Tooltip delayDuration={150}>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">{badge}</span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">
+            <p>{message}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   // Helper function to check if a date is audited
@@ -1312,19 +1423,15 @@ export default function AllDailyReportsPage() {
             <div className="md:hidden space-y-3">
               {displayData.map((group) => {
                 const dateAudited = isDateAudited(group.date);
+                const depositStatus = getDateDepositStatus(group.reports);
                 const agasekeCount = group.reports.filter(r => isAgasekeVehicle(r.vehicles?.plate)).length;
                 const regularCount = group.vehicleCount - agasekeCount;
                 return (
-                  <Card key={group.date} className="overflow-hidden">
+                  <Card key={group.date} className={cn("overflow-hidden", dateDepositRowClass(depositStatus))}>
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium break-words">{format(parseISO(group.date), "MMMM do, yyyy")}</span>
-                        {dateAudited && (
-                          <span className="flex items-center gap-1 text-green-600 text-xs flex-shrink-0">
-                            <CheckCircle className="h-4 w-4" />
-                            Audited
-                          </span>
-                        )}
+                        <span className="flex-shrink-0">{renderDateDepositBadge(depositStatus)}</span>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -1432,25 +1539,12 @@ export default function AllDailyReportsPage() {
                 {displayData.map((group) => {
                   const dateAudited = isDateAudited(group.date);
                   const auditInfo = getDateAuditInfo(group.date);
-                  
+                  const depositStatus = getDateDepositStatus(group.reports);
+
                   return (
-                    <TableRow key={group.date}>
+                    <TableRow key={group.date} className={dateDepositRowClass(depositStatus)}>
                       <TableCell className="text-center">
-                        {dateAudited && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div>
-                                  <p>Audited by {auditInfo?.audited_by}</p>
-                                  <p className="text-xs">{auditInfo?.audited_at && format(parseISO(auditInfo.audited_at), "PPp")}</p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
+                        {renderDateDepositBadge(depositStatus)}
                       </TableCell>
                       <TableCell>{format(parseISO(group.date), "MMMM do, yyyy")}</TableCell>
                       <TableCell>

@@ -690,5 +690,19 @@
       "deleteFailed": "Could not delete this entry.",
       "noSlip": "Attach at least one bank slip."
     }
+  },
+  "depositBadge": {
+    "verified": "Deposit verified",
+    "withExpenses": "Verified + expenses",
+    "notMatched": "Not matched",
+    "noVerification": "Deposited (unverified)",
+    "partial": "Partially deposited",
+    "none": "No deposit",
+    "tooltipVerified": "Bank slips match this date's net revenue exactly.",
+    "tooltipWithExpenses": "Slips matched after subtracting {{amount}} of recorded company expenses.",
+    "tooltipUnverified": "The deposit's slips never matched — {{amount}} remains unexplained.",
+    "tooltipNoVerification": "A deposit was logged before slip verification existed, so it was never checked.",
+    "tooltipPartial": "{{count}} report(s) of this date are not covered by any deposit yet.",
+    "tooltipNone": "No deposit has been logged for this date's reports yet."
   }
 }

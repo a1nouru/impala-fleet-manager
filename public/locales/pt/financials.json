@@ -711,5 +711,19 @@
       "deleteFailed": "Não foi possível eliminar este registo.",
       "noSlip": "Anexe pelo menos um comprovativo de depósito."
     }
+  },
+  "depositBadge": {
+    "verified": "Depósito verificado",
+    "withExpenses": "Verificado + despesas",
+    "notMatched": "Sem correspondência",
+    "noVerification": "Depositado (não verificado)",
+    "partial": "Parcialmente depositado",
+    "none": "Sem depósito",
+    "tooltipVerified": "Os talões bancários correspondem exatamente à receita líquida deste dia.",
+    "tooltipWithExpenses": "Os talões corresponderam após subtrair {{amount}} de despesas da empresa registadas.",
+    "tooltipUnverified": "Os talões do depósito nunca corresponderam — {{amount}} permanece por explicar.",
+    "tooltipNoVerification": "Foi registado um depósito antes de existir a verificação de talões, pelo que nunca foi verificado.",
+    "tooltipPartial": "{{count}} relatório(s) deste dia ainda não estão cobertos por nenhum depósito.",
+    "tooltipNone": "Ainda não foi registado nenhum depósito para os relatórios deste dia."
   }
 }
