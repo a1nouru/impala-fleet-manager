@@ -237,6 +237,20 @@ export const financialService = {
       throw new Error(`Failed to create daily report: ${error.message || JSON.stringify(error)}`);
     }
 
+    // Adopt any standalone expenses already logged for this vehicle+date so
+    // they appear on the new report instead of staying orphaned.
+    if (data) {
+      const { error: adoptError } = await supabase
+        .from('daily_expenses')
+        .update({ report_id: data.id })
+        .is('report_id', null)
+        .eq('vehicle_id', data.vehicle_id)
+        .eq('expense_date', data.report_date);
+      if (adoptError) {
+        console.error('Error adopting standalone expenses into new report:', adoptError);
+      }
+    }
+
     return data;
   },
 
@@ -274,9 +288,24 @@ export const financialService = {
       if (normalizedCategory.trim().toLowerCase() === 'fuel') normalizedCategory = 'Fuel';
       else if (normalizedCategory.trim().toLowerCase() === 'subsidy') normalizedCategory = 'Subsidy';
     }
+
+    // A standalone expense must still surface on the vehicle's daily report:
+    // if a report already exists for this vehicle+date, attach to it
+    // (daily_reports is UNIQUE(vehicle_id, report_date), so at most one match).
+    let reportId = expenseData.report_id ?? null;
+    if (!reportId && expenseData.vehicle_id && expenseData.expense_date) {
+      const { data: matchingReport } = await supabase
+        .from('daily_reports')
+        .select('id')
+        .eq('vehicle_id', expenseData.vehicle_id)
+        .eq('report_date', expenseData.expense_date)
+        .maybeSingle();
+      if (matchingReport) reportId = matchingReport.id;
+    }
+
     const { data, error } = await supabase
       .from('daily_expenses')
-      .insert([{ ...expenseData, category: normalizedCategory }])
+      .insert([{ ...expenseData, report_id: reportId, category: normalizedCategory }])
       .select('*')
       .single();
 
