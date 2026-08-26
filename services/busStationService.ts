@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
-import { passengerRevenue } from '@/lib/bus-stations/revenue';
+import { expensesTotal, passengerRevenue } from '@/lib/bus-stations/revenue';
 import type { BusStationId } from '@/lib/bus-stations/stations';
 
 const supabase = createClient();
@@ -30,6 +30,14 @@ export interface BusStationSlip {
   deposit_date: string | null;
 }
 
+export interface BusStationExpense {
+  id: string;
+  entry_id: string;
+  name: string;
+  reason: string | null;
+  amount: number;
+}
+
 export interface BusStationEntry {
   id: string;
   station: BusStationId;
@@ -39,13 +47,18 @@ export interface BusStationEntry {
   updated_at: string;
   bus_station_revenue_rows: BusStationRow[];
   bus_station_revenue_slips: BusStationSlip[];
+  bus_station_expenses: BusStationExpense[];
 }
 
 export interface BusStationOverview {
+  /** Gross takings (passengers + cargo) before park expenses. */
   total: number;
   passenger: number;
   cargo: number;
-  deposited: number;
+  expenses: number;
+  /** total − expenses: what the stations actually hand over. */
+  net: number;
+  /** Per-station NET revenue. */
   byStation: Record<string, number>;
 }
 
@@ -69,10 +82,18 @@ export interface SlipInput {
   deposit_date: string | null;
 }
 
+/** One park expense as the form holds it, before it is persisted. */
+export interface ExpenseInput {
+  name: string;
+  reason: string | null;
+  amount: number;
+}
+
 const SELECT = `
   *,
   bus_station_revenue_rows ( *, vehicles ( plate ) ),
-  bus_station_revenue_slips ( * )
+  bus_station_revenue_slips ( * ),
+  bus_station_expenses ( * )
 `;
 
 /**
@@ -180,6 +201,22 @@ export const busStationService = {
     if (error) throw error;
   },
 
+  async replaceExpenses(entryId: string, expenses: ExpenseInput[]): Promise<void> {
+    await supabase.from('bus_station_expenses').delete().eq('entry_id', entryId);
+
+    if (!expenses.length) return;
+
+    const payload = expenses.map((expense) => ({
+      entry_id: entryId,
+      name: expense.name,
+      reason: expense.reason,
+      amount: expense.amount,
+    }));
+
+    const { error } = await supabase.from('bus_station_expenses').insert(payload);
+    if (error) throw error;
+  },
+
   async attachSlips(entryId: string, slips: SlipInput[]): Promise<void> {
     for (const slip of slips) {
       if (slip.id) continue; // already stored, untouched
@@ -208,16 +245,16 @@ export const busStationService = {
   },
 
   async createEntryComplete(
-    entry: { station: BusStationId; notes?: string | null; created_by?: string | null },
+    entry: { station: BusStationId; created_by?: string | null },
     rows: RowInput[],
-    slips: SlipInput[]
+    slips: SlipInput[],
+    expenses: ExpenseInput[]
   ): Promise<string> {
     const { data: created, error } = await supabase
       .from('bus_station_revenues')
       .insert([
         {
           station: entry.station,
-          notes: entry.notes ?? null,
           created_by: entry.created_by ?? null,
         },
       ])
@@ -228,6 +265,7 @@ export const busStationService = {
 
     try {
       await this.replaceRows(created.id, rows);
+      await this.replaceExpenses(created.id, expenses);
       await this.attachSlips(created.id, slips);
     } catch (err) {
       // Never leave a half-written entry behind.
@@ -240,16 +278,16 @@ export const busStationService = {
 
   async updateEntryComplete(
     entryId: string,
-    entry: { station: BusStationId; notes?: string | null },
+    entry: { station: BusStationId },
     rows: RowInput[],
     slips: SlipInput[],
+    expenses: ExpenseInput[],
     removedSlipIds: string[]
   ): Promise<void> {
     const { error } = await supabase
       .from('bus_station_revenues')
       .update({
         station: entry.station,
-        notes: entry.notes ?? null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', entryId);
@@ -267,6 +305,7 @@ export const busStationService = {
     }
 
     await this.replaceRows(entryId, rows);
+    await this.replaceExpenses(entryId, expenses);
     await this.attachSlips(entryId, slips);
   },
 
@@ -289,30 +328,38 @@ export const busStationService = {
       total: 0,
       passenger: 0,
       cargo: 0,
-      deposited: 0,
+      expenses: 0,
+      net: 0,
       byStation: { mbanza_congo: 0, nosso_centro: 0 },
     };
 
     for (const entry of entries) {
+      // Expenses carry no date of their own; they count when their entry has
+      // at least one vehicle row inside the selected period.
+      let entryInRange = false;
       for (const row of entry.bus_station_revenue_rows || []) {
         if (row.start_date < from || row.start_date > to) continue;
+        entryInRange = true;
         const total = Number(row.total_revenue) || 0;
         acc.passenger += Number(row.passenger_revenue) || 0;
         acc.cargo += Number(row.cargo_amount) || 0;
         acc.total += total;
         acc.byStation[entry.station] = (acc.byStation[entry.station] || 0) + total;
       }
-      for (const slip of entry.bus_station_revenue_slips || []) {
-        if (!slip.deposit_date || slip.deposit_date < from || slip.deposit_date > to) continue;
-        acc.deposited += Number(slip.amount) || 0;
+      if (entryInRange) {
+        const spent = expensesTotal(entry.bus_station_expenses || []);
+        acc.expenses += spent;
+        acc.byStation[entry.station] = (acc.byStation[entry.station] || 0) - spent;
       }
     }
 
+    acc.net = acc.total - acc.expenses;
     return acc;
   },
 
+  /** NET of park expenses — this is what feeds Financial Analytics. */
   async getBusStationRevenueTotal(from: string, to: string): Promise<number> {
     const overview = await this.getOverview(from, to);
-    return overview.total;
+    return overview.net;
   },
 };

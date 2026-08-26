@@ -64,6 +64,20 @@ export function slipsTotal(slips: SlipLike[]): number {
   return (slips || []).reduce((sum, slip) => sum + num(slip.amount), 0);
 }
 
+export interface ExpenseLike {
+  amount?: number | null;
+}
+
+/** Park-side spend (subsidies, casual labour) recorded alongside the takings. */
+export function expensesTotal(expenses: ExpenseLike[]): number {
+  return (expenses || []).reduce((sum, expense) => sum + num(expense.amount), 0);
+}
+
+/** What the station actually hands over: revenue minus park expenses. */
+export function netRevenue(rows: RevenueRowLike[], expenses: ExpenseLike[]): number {
+  return entryTotals(rows).total - expensesTotal(expenses);
+}
+
 /** Deposited minus earned. Negative means the station banked less than it took. */
 export function depositVariance(rows: RevenueRowLike[], slips: SlipLike[]): number {
   return slipsTotal(slips) - entryTotals(rows).total;

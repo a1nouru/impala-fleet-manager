@@ -43,7 +43,7 @@ import {
   busStationLabel,
   type BusStationId,
 } from "@/lib/bus-stations/stations";
-import { entryTotals } from "@/lib/bus-stations/revenue";
+import { entryTotals, expensesTotal } from "@/lib/bus-stations/revenue";
 import {
   busStationService,
   type BusStationEntry,
@@ -114,12 +114,14 @@ export default function BusStationsPage() {
       entries.reduce(
         (acc, entry) => {
           const totals = entryTotals(entry.bus_station_revenue_rows || []);
+          const spent = expensesTotal(entry.bus_station_expenses || []);
           acc.passenger += totals.passengerRevenue;
           acc.cargo += totals.cargoRevenue;
-          acc.total += totals.total;
+          acc.expenses += spent;
+          acc.net += totals.total - spent;
           return acc;
         },
-        { passenger: 0, cargo: 0, total: 0 }
+        { passenger: 0, cargo: 0, expenses: 0, net: 0 }
       ),
     [entries]
   );
@@ -198,6 +200,7 @@ export default function BusStationsPage() {
             <div className="space-y-3 md:hidden">
               {entries.map((entry) => {
                 const totals = entryTotals(entry.bus_station_revenue_rows || []);
+                const spent = expensesTotal(entry.bus_station_expenses || []);
                 return (
                   <div key={entry.id} className="rounded-md border p-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
@@ -240,9 +243,19 @@ export default function BusStationsPage() {
                       <span className="text-right">
                         {formatCurrency(totals.cargoRevenue)}
                       </span>
+                      {spent > 0 && (
+                        <>
+                          <span className="text-muted-foreground">
+                            {t("busStations.expensesTitle")}
+                          </span>
+                          <span className="text-right text-red-600">
+                            − {formatCurrency(spent)}
+                          </span>
+                        </>
+                      )}
                       <span className="font-medium">{t("busStations.total")}</span>
                       <span className="text-right font-bold">
-                        {formatCurrency(totals.total)}
+                        {formatCurrency(totals.total - spent)}
                       </span>
                     </div>
                   </div>
@@ -250,7 +263,7 @@ export default function BusStationsPage() {
               })}
               <div className="rounded-md bg-primary text-primary-foreground p-3 flex items-center justify-between text-sm">
                 <span className="font-medium">{t("busStations.total")}</span>
-                <span className="font-bold">{formatCurrency(grand.total)}</span>
+                <span className="font-bold">{formatCurrency(grand.net)}</span>
               </div>
             </div>
 
@@ -264,6 +277,7 @@ export default function BusStationsPage() {
                     <TableHead className="text-right">{t("busStations.vehicles")}</TableHead>
                     <TableHead className="text-right">{t("busStations.passengers")}</TableHead>
                     <TableHead className="text-right">{t("busStations.cargo")}</TableHead>
+                    <TableHead className="text-right">{t("busStations.expensesTitle")}</TableHead>
                     <TableHead className="text-right">{t("busStations.total")}</TableHead>
                     <TableHead className="text-right">{t("busStations.actions")}</TableHead>
                   </TableRow>
@@ -271,6 +285,7 @@ export default function BusStationsPage() {
                 <TableBody>
                   {entries.map((entry) => {
                     const totals = entryTotals(entry.bus_station_revenue_rows || []);
+                    const spent = expensesTotal(entry.bus_station_expenses || []);
                     return (
                       <TableRow key={entry.id}>
                         <TableCell>
@@ -288,8 +303,11 @@ export default function BusStationsPage() {
                         <TableCell className="text-right">
                           {formatCurrency(totals.cargoRevenue)}
                         </TableCell>
+                        <TableCell className="text-right text-red-600">
+                          {spent > 0 ? `− ${formatCurrency(spent)}` : "—"}
+                        </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(totals.total)}
+                          {formatCurrency(totals.total - spent)}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           <Button
@@ -323,8 +341,11 @@ export default function BusStationsPage() {
                     <TableCell className="text-right">
                       {formatCurrency(grand.cargo)}
                     </TableCell>
+                    <TableCell className="text-right">
+                      {grand.expenses > 0 ? `− ${formatCurrency(grand.expenses)}` : "—"}
+                    </TableCell>
                     <TableCell className="text-right font-bold">
-                      {formatCurrency(grand.total)}
+                      {formatCurrency(grand.net)}
                     </TableCell>
                     <TableCell />
                   </TableRow>

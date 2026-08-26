@@ -56,15 +56,21 @@ export function BusStationOverviewPanels({
   const { t } = useTranslation("financials");
   const o = overview;
 
-  const breakdown = `${t("busStations.passengers")} ${formatCurrency(
-    o?.passenger || 0
-  )} · ${t("busStations.cargo")} ${formatCurrency(o?.cargo || 0)}`;
+  // The headline figure is NET: gross takings minus park expenses.
+  const breakdown =
+    (o?.expenses || 0) > 0
+      ? `${t("busStations.revenue")} ${formatCurrency(o?.total || 0)} · ${t(
+          "busStations.expensesTitle"
+        )} − ${formatCurrency(o?.expenses || 0)}`
+      : `${t("busStations.passengers")} ${formatCurrency(
+          o?.passenger || 0
+        )} · ${t("busStations.cargo")} ${formatCurrency(o?.cargo || 0)}`;
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <Panel
         title={t("busStations.totalRevenue")}
-        value={o?.total || 0}
+        value={o?.net || 0}
         sub={breakdown}
         Icon={DollarSign}
         isLoading={isLoading}

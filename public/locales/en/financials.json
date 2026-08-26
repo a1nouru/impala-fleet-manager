@@ -688,8 +688,15 @@
       "saveFailed": "Something went wrong saving this entry.",
       "loadFailed": "Could not load bus station revenue.",
       "deleteFailed": "Could not delete this entry.",
-      "noSlip": "Attach at least one bank slip."
-    }
+      "noSlip": "Attach at least one bank slip.",
+      "badExpense": "Every expense needs a name and an amount greater than zero."
+    },
+    "expensesTitle": "Park Expenses",
+    "expensesHint": "Spent at the station and deducted from this entry's revenue.",
+    "expenseName": "Name",
+    "expenseReason": "Reason (optional)",
+    "addExpense": "Add expense",
+    "netRevenue": "Net Revenue"
   },
   "depositBadge": {
     "verified": "Deposit verified",

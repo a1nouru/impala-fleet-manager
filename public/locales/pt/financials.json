@@ -709,8 +709,15 @@
       "saveFailed": "Ocorreu um erro ao guardar este registo.",
       "loadFailed": "Não foi possível carregar a receita das estações.",
       "deleteFailed": "Não foi possível eliminar este registo.",
-      "noSlip": "Anexe pelo menos um comprovativo de depósito."
-    }
+      "noSlip": "Anexe pelo menos um comprovativo de depósito.",
+      "badExpense": "Cada despesa precisa de um nome e de um valor superior a zero."
+    },
+    "expensesTitle": "Despesas do Terminal",
+    "expensesHint": "Gastas no terminal e deduzidas da receita deste registo.",
+    "expenseName": "Nome",
+    "expenseReason": "Motivo (opcional)",
+    "addExpense": "Adicionar despesa",
+    "netRevenue": "Receita Líquida"
   },
   "depositBadge": {
     "verified": "Depósito verificado",

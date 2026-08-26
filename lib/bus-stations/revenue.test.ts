@@ -6,6 +6,8 @@ import {
   entryTotals,
   slipsTotal,
   depositVariance,
+  expensesTotal,
+  netRevenue,
   selectableVehicles,
   PASSENGER_FARE_AOA,
 } from './revenue.ts';
@@ -61,6 +63,20 @@ test('depositVariance reports deposited minus earned', () => {
   const rows = [{ passenger_count: 20, cargo_amount: 5000 }];
   assert.equal(depositVariance(rows, [{ amount: 30000 }]), 5000);
   assert.equal(depositVariance(rows, [{ amount: 20000 }]), -5000);
+});
+
+test('expensesTotal sums park expenses, ignoring blank or negative amounts', () => {
+  assert.equal(
+    expensesTotal([{ amount: 4000 }, { amount: 5000 }, { amount: null }, {}, { amount: -100 }]),
+    9000
+  );
+  assert.equal(expensesTotal([]), 0);
+});
+
+test('netRevenue subtracts park expenses from the entry total', () => {
+  const rows = [{ passenger_count: 20, cargo_amount: 5000 }];
+  assert.equal(netRevenue(rows, [{ amount: 4000 }, { amount: 5000 }]), 16000);
+  assert.equal(netRevenue(rows, []), 25000);
 });
 
 test('selectableVehicles drops quarantined ghost plates only', () => {

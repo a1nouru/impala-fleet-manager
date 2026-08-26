@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +36,7 @@ import { openStoredFile } from "@/lib/storage-url";
 import { BUS_STATIONS, type BusStationId } from "@/lib/bus-stations/stations";
 import {
   entryTotals,
+  expensesTotal,
   passengerRevenue,
   rowTotal,
   selectableVehicles,
@@ -44,6 +44,7 @@ import {
 import {
   busStationService,
   type BusStationEntry,
+  type ExpenseInput,
   type RowInput,
   type SlipInput,
 } from "@/services/busStationService";
@@ -55,6 +56,14 @@ const newKey = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 interface DraftRow extends RowInput {
   key: string;
+}
+
+/** One park expense as the form holds it, before it is persisted. */
+interface DraftExpense {
+  key: string;
+  name: string;
+  reason: string;
+  amount: number;
 }
 
 /** An already-stored slip being kept or removed while editing. */
@@ -75,6 +84,10 @@ function blankRow(): DraftRow {
   };
 }
 
+function blankExpense(): DraftExpense {
+  return { key: newKey(), name: "", reason: "", amount: 0 };
+}
+
 export function BusStationEntryDialog({
   open,
   onOpenChange,
@@ -91,8 +104,8 @@ export function BusStationEntryDialog({
 
   const [vehicles, setVehicles] = useState<{ id: string; plate: string }[]>([]);
   const [station, setStation] = useState<BusStationId>("mbanza_congo");
-  const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<DraftRow[]>([blankRow()]);
+  const [expenses, setExpenses] = useState<DraftExpense[]>([]);
   const [existingSlips, setExistingSlips] = useState<ExistingSlip[]>([]);
   const [slipFiles, setSlipFiles] = useState<File[]>([]);
   const [removedSlipIds, setRemovedSlipIds] = useState<string[]>([]);
@@ -117,7 +130,6 @@ export function BusStationEntryDialog({
     setSlipFiles([]);
     if (entry) {
       setStation(entry.station);
-      setNotes(entry.notes || "");
       setRows(
         (entry.bus_station_revenue_rows || []).map((r) => ({
           key: r.id,
@@ -126,6 +138,14 @@ export function BusStationEntryDialog({
           end_date: r.end_date,
           passenger_count: Number(r.passenger_count) || 0,
           cargo_amount: Number(r.cargo_amount) || 0,
+        }))
+      );
+      setExpenses(
+        (entry.bus_station_expenses || []).map((e) => ({
+          key: e.id,
+          name: e.name || "",
+          reason: e.reason || "",
+          amount: Number(e.amount) || 0,
         }))
       );
       setExistingSlips(
@@ -137,13 +157,15 @@ export function BusStationEntryDialog({
       );
     } else {
       setStation("mbanza_congo");
-      setNotes("");
       setRows([blankRow()]);
+      setExpenses([]);
       setExistingSlips([]);
     }
   }, [open, entry]);
 
   const totals = useMemo(() => entryTotals(rows), [rows]);
+  const expenseSum = useMemo(() => expensesTotal(expenses), [expenses]);
+  const netTotal = totals.total - expenseSum;
 
   const usedVehicleIds = useMemo(
     () => new Set(rows.map((r) => r.vehicle_id).filter(Boolean)),
@@ -155,6 +177,12 @@ export function BusStationEntryDialog({
 
   const removeRow = (key: string) =>
     setRows((prev) => prev.filter((r) => r.key !== key));
+
+  const updateExpense = (key: string, patch: Partial<DraftExpense>) =>
+    setExpenses((prev) => prev.map((e) => (e.key === key ? { ...e, ...patch } : e)));
+
+  const removeExpense = (key: string) =>
+    setExpenses((prev) => prev.filter((e) => e.key !== key));
 
   const removeExistingSlip = (slip: ExistingSlip) => {
     setRemovedSlipIds((prev) => [...prev, slip.id]);
@@ -170,6 +198,12 @@ export function BusStationEntryDialog({
     }
     const ids = filled.map((r) => r.vehicle_id);
     if (new Set(ids).size !== ids.length) return t("busStations.errors.duplicateVehicle");
+    // Fully blank expense lines are simply dropped; a half-filled one is a mistake.
+    for (const expense of expenses) {
+      const touched = expense.name.trim() || expense.reason.trim() || expense.amount > 0;
+      if (touched && (!expense.name.trim() || !(expense.amount > 0)))
+        return t("busStations.errors.badExpense");
+    }
     // A bank slip is mandatory: at least one new file or one kept existing slip.
     if (slipFiles.length === 0 && existingSlips.length === 0)
       return t("busStations.errors.noSlip");
@@ -197,6 +231,14 @@ export function BusStationEntryDialog({
           cargo_amount: Number(row.cargo_amount) || 0,
         }));
 
+      const payloadExpenses: ExpenseInput[] = expenses
+        .filter((e) => e.name.trim() && e.amount > 0)
+        .map((e) => ({
+          name: e.name.trim(),
+          reason: e.reason.trim() || null,
+          amount: Number(e.amount) || 0,
+        }));
+
       const payloadSlips: SlipInput[] = [
         // Kept existing slips pass through untouched (attachSlips skips id'd ones).
         ...existingSlips.map((s) => ({
@@ -211,16 +253,18 @@ export function BusStationEntryDialog({
       if (entry) {
         await busStationService.updateEntryComplete(
           entry.id,
-          { station, notes },
+          { station },
           payloadRows,
           payloadSlips,
+          payloadExpenses,
           removedSlipIds
         );
       } else {
         await busStationService.createEntryComplete(
-          { station, notes, created_by: user?.email ?? null },
+          { station, created_by: user?.email ?? null },
           payloadRows,
-          payloadSlips
+          payloadSlips,
+          payloadExpenses
         );
       }
 
@@ -509,6 +553,112 @@ export function BusStationEntryDialog({
           </Button>
         </div>
 
+        {/* Park expenses — the DESPESAS half of the paper sheet. Deducted from
+            the entry's revenue everywhere it is displayed. */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <h4 className="font-medium">{t("busStations.expensesTitle")}</h4>
+              <p className="text-xs text-muted-foreground">
+                {t("busStations.expensesHint")}
+              </p>
+            </div>
+            {expenseSum > 0 && (
+              <span className="text-sm font-semibold text-red-600 whitespace-nowrap">
+                − {formatCurrency(expenseSum)}
+              </span>
+            )}
+          </div>
+
+          {expenses.length > 0 && (
+            <div className="space-y-2">
+              {expenses.map((expense) => (
+                <div
+                  key={expense.key}
+                  className="grid gap-2 rounded-md border p-2 sm:grid-cols-[1.1fr_1.1fr_150px_2.25rem] sm:items-center"
+                >
+                  <Input
+                    placeholder={t("busStations.expenseName")}
+                    value={expense.name}
+                    onChange={(e) => updateExpense(expense.key, { name: e.target.value })}
+                  />
+                  <Input
+                    placeholder={t("busStations.expenseReason")}
+                    value={expense.reason}
+                    onChange={(e) =>
+                      updateExpense(expense.key, { reason: e.target.value })
+                    }
+                  />
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      className="flex-1"
+                      placeholder={t("busStations.amount")}
+                      value={expense.amount || ""}
+                      onChange={(e) =>
+                        updateExpense(expense.key, {
+                          amount: Number(e.target.value) || 0,
+                        })
+                      }
+                    />
+                    {/* On phones the trash shares the amount line. */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="sm:hidden shrink-0"
+                      onClick={() => removeExpense(expense.key)}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden sm:inline-flex"
+                    onClick={() => removeExpense(expense.key)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setExpenses((p) => [...p, blankExpense()])}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            {t("busStations.addExpense")}
+          </Button>
+
+          {/* Net strip only earns its place once an expense exists — before
+              that the vehicle table's black footer already IS the net. */}
+          {expenseSum > 0 && (
+            <div className="rounded-md bg-primary text-primary-foreground p-3 grid grid-cols-3 gap-2 text-sm">
+              <div>
+                <p className="text-xs opacity-70">{t("busStations.revenue")}</p>
+                <p className="font-semibold whitespace-nowrap">
+                  {formatCurrency(totals.total)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs opacity-70">{t("busStations.expensesTitle")}</p>
+                <p className="font-semibold whitespace-nowrap">
+                  − {formatCurrency(expenseSum)}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs opacity-70">{t("busStations.netRevenue")}</p>
+                <p className="font-bold whitespace-nowrap">{formatCurrency(netTotal)}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Bank slips: one plain upload field, like the expense dialog's
             "Upload Receipt". No amount, no date — and a slip is REQUIRED. */}
         <div className="grid gap-2">
@@ -546,11 +696,6 @@ export function BusStationEntryDialog({
               ))}
             </div>
           )}
-        </div>
-
-        <div className="grid gap-2">
-          <Label>{t("busStations.notes")}</Label>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </div>
 
         <DialogFooter>
