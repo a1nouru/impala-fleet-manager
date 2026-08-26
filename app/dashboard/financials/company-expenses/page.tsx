@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Plus, PlusCircle, Filter, CalendarIcon, Receipt, Edit, ChevronLeft, ChevronRight, Paperclip, Search, X } from "lucide-react";
+import { Loader2, Plus, PlusCircle, Filter, CalendarIcon, Receipt, Edit, Lock, ChevronLeft, ChevronRight, Paperclip, Search, X } from "lucide-react";
 import { financialService, CompanyExpense } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -49,6 +49,11 @@ const formatCurrency = (value: number) => {
     currency: "AOA",
   });
 };
+
+// Expenses are only editable on the day they were logged; older records are
+// locked (also enforced by the database update policy).
+const isEditableToday = (expense: CompanyExpense) =>
+  format(parseISO(expense.created_at), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 
 
 
@@ -411,6 +416,14 @@ export default function CompanyExpensesPage() {
   };
 
   const handleEditExpense = (expense: CompanyExpense) => {
+    if (!isEditableToday(expense)) {
+      toast({
+        title: "🔒 Locked",
+        description: "Expenses can only be edited on the day they were logged.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSelectedExpense(expense);
     setExpenseFormData({
       expense_date: expense.expense_date,
@@ -911,15 +924,24 @@ export default function CompanyExpensesPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditExpense(expense)}
-                              className="h-8 w-8 p-0"
-                              title="Edit expense"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            {isEditableToday(expense) ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditExpense(expense)}
+                                className="h-8 w-8 p-0"
+                                title="Edit expense"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <span
+                                className="flex h-8 w-8 items-center justify-center text-gray-300"
+                                title="Locked — expenses can only be edited on the day they were logged"
+                              >
+                                <Lock className="h-4 w-4" />
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
