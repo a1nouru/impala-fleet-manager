@@ -717,7 +717,10 @@
     "expenseName": "Nome",
     "expenseReason": "Motivo (opcional)",
     "addExpense": "Adicionar despesa",
-    "netRevenue": "Receita Líquida"
+    "netRevenue": "Receita Líquida",
+    "subtitle": "Registe as receitas do terminal, as despesas e o comprovativo de depósito.",
+    "vehiclesHint": "Uma linha por veículo. Passageiros em número — a tarifa é aplicada automaticamente.",
+    "slipsHint": "É necessário pelo menos um comprovativo do depósito bancário."
   },
   "depositBadge": {
     "verified": "Depósito verificado",

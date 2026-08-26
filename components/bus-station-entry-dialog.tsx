@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -326,7 +327,7 @@ export function BusStationEntryDialog({
       type="number"
       min={0}
       step="0.01"
-      className="w-full min-w-[80px] px-1.5"
+      className="w-full min-w-[80px] px-1.5 text-right tabular-nums"
       placeholder="0"
       value={row.cargo_amount || ""}
       onChange={(e) => updateRow(row.key, { cargo_amount: Number(e.target.value) || 0 })}
@@ -342,8 +343,10 @@ export function BusStationEntryDialog({
           <DialogTitle>
             {entry ? t("busStations.editEntry") : t("busStations.newEntry")}
           </DialogTitle>
+          <DialogDescription>{t("busStations.subtitle")}</DialogDescription>
         </DialogHeader>
 
+        <div className="space-y-6">
         {/* Station selection sits ABOVE the vehicle rows: an entry is per station. */}
         <div className="grid gap-2 w-full sm:max-w-sm">
           <Label>{t("busStations.busStation")}</Label>
@@ -362,7 +365,12 @@ export function BusStationEntryDialog({
         </div>
 
         <div className="space-y-3">
-          <h4 className="font-medium">{t("busStations.vehicles")}</h4>
+          <div>
+            <h4 className="font-medium">{t("busStations.vehicles")}</h4>
+            <p className="text-xs text-muted-foreground">
+              {t("busStations.vehiclesHint")}
+            </p>
+          </div>
 
           {/* table-fixed + percentage columns: the table can never grow wider
               than the dialog, so nothing is ever clipped or scrolled. */}
@@ -419,13 +427,13 @@ export function BusStationEntryDialog({
                       {/* Passenger COUNT only — the Kwanza figure is derived. */}
                       <div className="grid gap-0.5 justify-items-start">
                         {passengerInput(row)}
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
                           = {formatCurrency(passengerRevenue(row.passenger_count))}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="p-2 align-middle">{cargoInput(row)}</TableCell>
-                    <TableCell className="p-2 align-middle text-right font-medium whitespace-nowrap">
+                    <TableCell className="p-2 align-middle text-right font-medium whitespace-nowrap tabular-nums">
                       {formatCurrency(rowTotal(row))}
                     </TableCell>
                     <TableCell className="p-1 align-middle">
@@ -442,7 +450,7 @@ export function BusStationEntryDialog({
                 ))}
               </TableBody>
               <TableFooter>
-                <TableRow>
+                <TableRow className="tabular-nums">
                   <TableCell className="p-2" colSpan={2}>
                     {t("busStations.total")}
                   </TableCell>
@@ -497,7 +505,7 @@ export function BusStationEntryDialog({
                       {t("busStations.passengers")}
                     </Label>
                     {passengerInput(row)}
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground tabular-nums">
                       = {formatCurrency(passengerRevenue(row.passenger_count))}
                     </span>
                   </div>
@@ -513,7 +521,7 @@ export function BusStationEntryDialog({
                     {t("busStations.total")}
                   </span>
                   <div className="flex items-center gap-1">
-                    <span className="font-semibold">{formatCurrency(rowTotal(row))}</span>
+                    <span className="font-semibold tabular-nums">{formatCurrency(rowTotal(row))}</span>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -526,7 +534,7 @@ export function BusStationEntryDialog({
                 </div>
               </div>
             ))}
-            <div className="rounded-md bg-primary text-primary-foreground p-3 text-sm space-y-1">
+            <div className="rounded-md bg-primary text-primary-foreground p-3 text-sm space-y-1 tabular-nums">
               <div className="flex justify-between gap-4">
                 <span>{t("busStations.passengers")}</span>
                 <span>{formatCurrency(totals.passengerRevenue)}</span>
@@ -564,18 +572,26 @@ export function BusStationEntryDialog({
               </p>
             </div>
             {expenseSum > 0 && (
-              <span className="text-sm font-semibold text-red-600 whitespace-nowrap">
+              <span className="ml-auto text-sm font-semibold text-red-600 whitespace-nowrap">
                 − {formatCurrency(expenseSum)}
               </span>
             )}
           </div>
 
           {expenses.length > 0 && (
-            <div className="space-y-2">
+            // One calm container, not a stack of bordered cards: rows share a
+            // border and are separated by hairlines, mirroring the table above.
+            <div className="rounded-md border divide-y">
+              <div className="hidden sm:grid grid-cols-[1.1fr_1.1fr_150px_2.25rem] gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                <span>{t("busStations.expenseName")}</span>
+                <span>{t("busStations.expenseReason")}</span>
+                <span className="text-right">{t("busStations.amount")}</span>
+                <span />
+              </div>
               {expenses.map((expense) => (
                 <div
                   key={expense.key}
-                  className="grid gap-2 rounded-md border p-2 sm:grid-cols-[1.1fr_1.1fr_150px_2.25rem] sm:items-center"
+                  className="grid gap-2 p-3 sm:p-2 sm:grid-cols-[1.1fr_1.1fr_150px_2.25rem] sm:items-center"
                 >
                   <Input
                     placeholder={t("busStations.expenseName")}
@@ -594,8 +610,8 @@ export function BusStationEntryDialog({
                       type="number"
                       min={0}
                       step="0.01"
-                      className="flex-1"
-                      placeholder={t("busStations.amount")}
+                      className="flex-1 text-right tabular-nums"
+                      placeholder="0"
                       value={expense.amount || ""}
                       onChange={(e) =>
                         updateExpense(expense.key, {
@@ -638,20 +654,20 @@ export function BusStationEntryDialog({
           {/* Net strip only earns its place once an expense exists — before
               that the vehicle table's black footer already IS the net. */}
           {expenseSum > 0 && (
-            <div className="rounded-md bg-primary text-primary-foreground p-3 grid grid-cols-3 gap-2 text-sm">
-              <div>
+            <div className="rounded-md bg-primary text-primary-foreground p-3 text-sm tabular-nums space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-2">
+              <div className="flex justify-between gap-4 sm:block">
                 <p className="text-xs opacity-70">{t("busStations.revenue")}</p>
                 <p className="font-semibold whitespace-nowrap">
                   {formatCurrency(totals.total)}
                 </p>
               </div>
-              <div>
+              <div className="flex justify-between gap-4 sm:block">
                 <p className="text-xs opacity-70">{t("busStations.expensesTitle")}</p>
                 <p className="font-semibold whitespace-nowrap">
                   − {formatCurrency(expenseSum)}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="flex justify-between gap-4 font-bold sm:block sm:font-normal sm:text-right">
                 <p className="text-xs opacity-70">{t("busStations.netRevenue")}</p>
                 <p className="font-bold whitespace-nowrap">{formatCurrency(netTotal)}</p>
               </div>
@@ -662,7 +678,12 @@ export function BusStationEntryDialog({
         {/* Bank slips: one plain upload field, like the expense dialog's
             "Upload Receipt". No amount, no date — and a slip is REQUIRED. */}
         <div className="grid gap-2">
-          <Label className="font-medium">{t("busStations.bankSlips")}</Label>
+          <div>
+            <h4 className="font-medium">{t("busStations.bankSlips")}</h4>
+            <p className="text-xs text-muted-foreground">
+              {t("busStations.slipsHint")}
+            </p>
+          </div>
           <Input
             type="file"
             multiple
@@ -697,8 +718,21 @@ export function BusStationEntryDialog({
             </div>
           )}
         </div>
+        </div>
 
         <DialogFooter>
+          {/* The figure being committed, restated at the moment of decision so
+              the clerk can check it against the paper sheet before saving. */}
+          <div className="hidden sm:flex items-center gap-1.5 mr-auto text-sm text-muted-foreground">
+            <span>
+              {expenseSum > 0
+                ? t("busStations.netRevenue")
+                : t("busStations.totalRevenue")}
+            </span>
+            <span className="font-semibold text-foreground tabular-nums">
+              {formatCurrency(netTotal)}
+            </span>
+          </div>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             {t("buttons.cancel")}
           </Button>
