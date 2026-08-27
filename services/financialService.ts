@@ -718,6 +718,25 @@ export const financialService = {
   },
 
   /**
+   * Sums company (general & administrative) expenses over a date range.
+   * The summary RPC only covers vehicle daily_expenses, so overheads are
+   * fetched separately and folded into displayed totals.
+   */
+  async getCompanyExpensesTotal(startDate: string, endDate: string): Promise<number> {
+    const { data, error } = await supabase
+      .from('company_expenses')
+      .select('amount')
+      .gte('expense_date', startDate)
+      .lte('expense_date', endDate);
+
+    if (error) {
+      console.error('Error fetching company expenses total:', error);
+      return 0;
+    }
+    return (data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  },
+
+  /**
    * Fetches data aggregated by month for the overview chart.
    * @param startDate - The start of the date range.
    * @param endDate - The end of the date range.

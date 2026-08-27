@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { financialService } from "@/services/financialService";
 import { Loader2 } from "lucide-react";
@@ -67,25 +66,20 @@ export function RecentDeposits() {
       </CardHeader>
       <CardContent>
         {deposits.length > 0 ? (
-          <div className="space-y-8">
-            {deposits.map((deposit) => (
-              <div key={deposit.id} className="flex items-center">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback>
-                    {deposit.created_by?.substring(0, 2).toUpperCase() || '??'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="ml-4 space-y-1">
+          <div className="divide-y">
+            {deposits.slice(0, 5).map((deposit) => (
+              <div key={deposit.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div>
                   <p className="text-sm font-medium leading-none">
-                    {deposit.created_by || "Unknown User"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
                     {new Date(deposit.created_at).toLocaleDateString()}
                   </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {deposit.created_by?.split("@")[0] || "Unknown user"}
+                  </p>
                 </div>
-                <div className="ml-auto font-medium">
+                <span className="text-sm font-semibold">
                   +{formatCurrency(deposit.amount)}
-                </div>
+                </span>
               </div>
             ))}
           </div>

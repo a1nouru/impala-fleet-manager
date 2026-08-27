@@ -9,7 +9,6 @@ import { subDays, format } from "date-fns";
 import { financialService } from "@/services/financialService";
 import { busStationService } from "@/services/busStationService";
 import { toast } from "@/components/ui/use-toast";
-import { AgasekeReport } from "@/components/agaseke-report";
 import { RecentDeposits } from "@/components/recent-deposits";
 import { OverviewChart } from "@/components/overview-chart";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -40,6 +39,9 @@ export default function AnalyticsPage() {
   // the shared get_financial_summary RPC.
   const [busStationRevenue, setBusStationRevenue] = useState(0);
 
+  // Company overheads live in company_expenses, outside the summary RPC.
+  const [companyExpenses, setCompanyExpenses] = useState(0);
+
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -51,13 +53,15 @@ export default function AnalyticsPage() {
         const from = format(dateRange.from, "yyyy-MM-dd");
         const to = format(dateRange.to, "yyyy-MM-dd");
 
-        const [summaryData, stationRevenue] = await Promise.all([
+        const [summaryData, stationRevenue, companyTotal] = await Promise.all([
           financialService.getFinancialSummary(from, to),
           busStationService.getBusStationRevenueTotal(from, to),
+          financialService.getCompanyExpensesTotal(from, to),
         ]);
 
         setSummary(summaryData);
         setBusStationRevenue(stationRevenue);
+        setCompanyExpenses(companyTotal);
       } catch (error) {
         toast({
           title: "Error",
@@ -66,6 +70,7 @@ export default function AnalyticsPage() {
         });
         setSummary(null);
         setBusStationRevenue(0);
+        setCompanyExpenses(0);
       } finally {
         setIsLoading(false);
       }
@@ -74,7 +79,12 @@ export default function AnalyticsPage() {
     fetchAnalyticsData();
   }, [dateRange]);
   
-  const renderSummaryCard = (title: string, value: number | undefined, Icon: React.ElementType) => (
+  const renderSummaryCard = (
+    title: string,
+    value: number | undefined,
+    Icon: React.ElementType,
+    sub?: React.ReactNode
+  ) => (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -86,9 +96,11 @@ export default function AnalyticsPage() {
         ) : (
           <>
             <div className="text-2xl font-bold">{formatCurrency(value || 0)}</div>
-            <p className="text-xs text-muted-foreground">
-              {t("analytics.forSelectedPeriod")}
-            </p>
+            {sub ?? (
+              <p className="text-xs text-muted-foreground">
+                {t("analytics.forSelectedPeriod")}
+              </p>
+            )}
           </>
         )}
       </CardContent>
@@ -109,10 +121,24 @@ export default function AnalyticsPage() {
           DollarSign
         )}
         {renderSummaryCard(t("busStations.title"), busStationRevenue, Bus)}
-        {renderSummaryCard(t("analytics.totalExpenses"), summary?.total_expenses, TrendingDown)}
+        {renderSummaryCard(
+          t("analytics.totalExpenses"),
+          (summary?.total_expenses || 0) + companyExpenses,
+          TrendingDown,
+          <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+            <div className="flex justify-between gap-2">
+              <span>{t("analytics.operatingExpenses")}</span>
+              <span>{formatCurrency(summary?.total_expenses || 0)}</span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span>{t("analytics.generalAdminExpenses")}</span>
+              <span>{formatCurrency(companyExpenses)}</span>
+            </div>
+          </div>
+        )}
         {renderSummaryCard(
           t("analytics.netBalance"),
-          (summary?.net_balance || 0) + busStationRevenue,
+          (summary?.net_balance || 0) + busStationRevenue - companyExpenses,
           TrendingUp
         )}
       </div>
@@ -128,10 +154,6 @@ export default function AnalyticsPage() {
         </Card>
         <RecentDeposits />
       </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        <AgasekeReport dateRange={dateRange} />
-      </div>
     </div>
   );
-} 
+}

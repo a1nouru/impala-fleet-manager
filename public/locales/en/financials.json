@@ -111,6 +111,8 @@
     "totalRevenue": "Total Revenue",
     "totalExpenses": "Total Expenses",
     "netBalance": "Net Balance",
+    "operatingExpenses": "Operating",
+    "generalAdminExpenses": "General & Admin",
     "forSelectedPeriod": "For the selected period",
     "overview": "Overview",
     "recentDeposits": "Recent Deposits",

@@ -111,6 +111,7 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
   const [revenueComposition, setRevenueComposition] = useState<any[]>([]);
   const [monthlyComparison, setMonthlyComparison] = useState<any[]>([]);
   const [kpiMetrics, setKpiMetrics] = useState<any>({});
+  const [companyExpensesTotal, setCompanyExpensesTotal] = useState(0);
 
   // Handle client-side mounting
   useEffect(() => {
@@ -134,18 +135,21 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
           vehicleData,
           compositionData,
           comparisonData,
-          kpiData
+          kpiData,
+          companyTotal
         ] = await Promise.all([
           financialService.getRevenueTrend(startDate, endDate),
           financialService.getExpenseBreakdown(startDate, endDate),
           financialService.getVehiclePerformance(startDate, endDate),
           financialService.getRevenueComposition(startDate, endDate),
           financialService.getMonthlyComparison(currentYear),
-          financialService.getKPIMetrics(startDate, endDate)
+          financialService.getKPIMetrics(startDate, endDate),
+          financialService.getCompanyExpensesTotal(startDate, endDate)
         ]);
 
         setRevenueTrend(trendData);
         setExpenseBreakdown(expenseData);
+        setCompanyExpensesTotal(companyTotal);
         setVehiclePerformance(vehicleData);
         setRevenueComposition(compositionData);
         setMonthlyComparison(comparisonData);
@@ -186,6 +190,28 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
       </div>
     );
   }
+
+  // Collapse the long free-text category list into top 6 + Other, and fold
+  // company overheads (company_expenses) in as a single G&A slice.
+  const operatingCategories = expenseBreakdown.filter((c) => c.category !== "No Expenses");
+  const otherAmount = operatingCategories
+    .slice(6)
+    .reduce((sum, c) => sum + Number(c.amount), 0);
+  const groupedExpenses = [
+    ...operatingCategories.slice(0, 6).map((c) => ({ category: c.category, amount: Number(c.amount) })),
+    ...(otherAmount > 0
+      ? [{ category: `Other (${operatingCategories.length - 6} categories)`, amount: otherAmount }]
+      : []),
+    ...(companyExpensesTotal > 0
+      ? [{ category: "General & Administrative", amount: companyExpensesTotal }]
+      : []),
+  ];
+  const groupedExpensesTotal = groupedExpenses.reduce((sum, c) => sum + c.amount, 0);
+  const expenseChartData = groupedExpenses.map((c, i) => ({
+    ...c,
+    percentage: groupedExpensesTotal ? ((c.amount / groupedExpensesTotal) * 100).toFixed(1) : "0.0",
+    color: CHART_COLORS[i % CHART_COLORS.length],
+  }));
 
   return (
     <Card className="w-full">
@@ -296,7 +322,7 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-medium">Expense Categories</h3>
               <Badge variant="outline">
-                Total: {formatCurrency(kpiMetrics.total_expenses || 0)}
+                Total: {formatCurrency(groupedExpensesTotal)}
               </Badge>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -304,16 +330,16 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={expenseBreakdown}
+                      data={expenseChartData}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
-                      label={({ name, percentage }) => `${name}: ${percentage}%`}
+                      innerRadius={70}
                       outerRadius={120}
-                      fill="#8884d8"
+                      paddingAngle={2}
                       dataKey="amount"
+                      nameKey="category"
                     >
-                      {expenseBreakdown.map((entry, index) => (
+                      {expenseChartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -323,11 +349,11 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
               </div>
               <div className="space-y-3">
                 <h4 className="font-medium text-sm text-gray-600">Category Breakdown</h4>
-                {expenseBreakdown.map((category, index) => (
+                {expenseChartData.map((category, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <div 
-                        className="w-4 h-4 rounded-full" 
+                      <div
+                        className="w-4 h-4 rounded-full"
                         style={{ backgroundColor: category.color }}
                       />
                       <span className="font-medium text-sm">{category.category}</span>

@@ -111,6 +111,8 @@
     "totalRevenue": "Receita Total",
     "totalExpenses": "Despesas Totais",
     "netBalance": "Saldo Líquido",
+    "operatingExpenses": "Operacionais",
+    "generalAdminExpenses": "Gerais e Administrativas",
     "forSelectedPeriod": "Para o período selecionado",
     "overview": "Resumo",
     "recentDeposits": "Depósitos Recentes",
