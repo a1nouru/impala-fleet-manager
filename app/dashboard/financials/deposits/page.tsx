@@ -60,7 +60,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { AGASEKE_PLATES, isAgasekeVehicle, normalizePlate, REGULAR_CASH_ACCOUNT, REGULAR_TPA_ACCOUNT } from "@/lib/constants";
+import { REGULAR_CASH_ACCOUNT, REGULAR_TPA_ACCOUNT } from "@/lib/constants";
 
 // Common expense categories for exclude filter
 const EXPENSE_CATEGORIES = [
@@ -179,9 +179,6 @@ export default function BankDepositsPage() {
   // State for creating new deposits
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false);
   const [bankSlipFiles, setBankSlipFiles] = useState<File[]>([]);
-  // Regular and Agaseke vehicles bank into different accounts, so a deposit
-  // is scoped to one vehicle type; the bank is derived from it.
-  const [vehicleType, setVehicleType] = useState<"regular" | "agaseke">("regular");
   const [newDeposit, setNewDeposit] = useState({
     bank_name: "Caixa Angola" as "Caixa Angola" | "BAI" | "Standard Bank",
     deposit_date: format(new Date(), "yyyy-MM-dd"),
@@ -338,10 +335,10 @@ export default function BankDepositsPage() {
     });
     const chosenExpenses = d1Expenses.filter((e) => selectedExpenseIds.includes(e.id));
     return verifySlips(lines, extractedSlips, newDeposit.amount, chosenExpenses, {
-      expectedGroup: vehicleType,
+      expectedGroup: "regular",
       regularAccounts: [REGULAR_CASH_ACCOUNT, REGULAR_TPA_ACCOUNT],
     });
-  }, [slipStatus, extractedSlips, selectedReports, undepositedReports, excludeFilter, newDeposit.amount, d1Expenses, selectedExpenseIds, vehicleType]);
+  }, [slipStatus, extractedSlips, selectedReports, undepositedReports, excludeFilter, newDeposit.amount, d1Expenses, selectedExpenseIds]);
 
   // Selected reports flattened for the right-pane focus view.
   const selectedReportDetails: DetailReport[] = useMemo(() => {
@@ -480,7 +477,7 @@ export default function BankDepositsPage() {
     
     setSelectedDates(newSelectedDates);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedReports, undepositedReports, excludeFilter, vehicleType]);
+  }, [selectedReports, undepositedReports, excludeFilter]);
   
   // --- Handlers for the Edit functionality (Refactored) ---
 
@@ -610,7 +607,7 @@ export default function BankDepositsPage() {
         selectedReports,
         bankSlipFiles,
         slipVerification,
-        vehicleType
+        "regular"
       );
 
       toast({
@@ -1012,24 +1009,7 @@ export default function BankDepositsPage() {
     }
   };
 
-  // A report belongs to the Agaseke or Regular group by its vehicle's plate.
-  const reportGroup = (report: DailyReport): "regular" | "agaseke" =>
-    isAgasekeVehicle(normalizePlate(report.vehicles?.plate || "")) ? "agaseke" : "regular";
-
-  // The dialog only ever lists reports of the selected vehicle type — the
-  // two groups bank into different accounts and are deposited separately.
-  const getFilteredReports = () => undepositedReports.filter((report) => reportGroup(report) === vehicleType);
-
-  // Drop any selections from the other group when the vehicle type changes.
-  useEffect(() => {
-    setSelectedReports((prev) =>
-      prev.filter((reportId) => {
-        const report = undepositedReports.find((r) => r.id === reportId);
-        return report && reportGroup(report) === vehicleType;
-      })
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vehicleType, undepositedReports]);
+  const getFilteredReports = () => undepositedReports;
 
   // Helper to get net balance for a deposit (array of report_ids)
   const getDepositNetBalance = (deposit: BankDeposit) => {
@@ -1085,29 +1065,6 @@ export default function BankDepositsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 py-4 flex-1 overflow-hidden">
                   {/* Form Inputs - Left Column */}
                   <div className="lg:col-span-2 space-y-4">
-                                          <div className="space-y-2">
-                          <Label htmlFor="vehicle_type">{t("form.vehicleType")}</Label>
-                          <Select
-                            name="vehicle_type"
-                            value={vehicleType}
-                            onValueChange={(value) => {
-                              const type = value as "regular" | "agaseke";
-                              setVehicleType(type);
-                              setNewDeposit((prev) => ({ ...prev, bank_name: type === "regular" ? "Caixa Angola" : "Standard Bank" }));
-                            }}
-                          >
-                               <SelectTrigger>
-                                   <SelectValue placeholder={t("form.selectVehicleType")} />
-                               </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="regular">{t("form.vehicleTypeRegular")}</SelectItem>
-                                <SelectItem value="agaseke">{t("form.vehicleTypeAgaseke")}</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          {t("form.depositsTo", { bank: newDeposit.bank_name })}
-                        </p>
-                    </div>
                                           <div className="space-y-2">
                           <Label htmlFor="deposit_date">{t("form.depositDate")}</Label>
                           <Input 
@@ -1750,11 +1707,6 @@ export default function BankDepositsPage() {
                       <TableCell>
                         <div className="flex items-center gap-1 flex-wrap">
                           <Badge variant="secondary">{deposit.bank_name}</Badge>
-                          {deposit.deposit_group && (
-                            <Badge variant="outline" className="text-xs">
-                              {deposit.deposit_group === "agaseke" ? t("form.vehicleTypeAgaseke") : t("form.vehicleTypeRegular")}
-                            </Badge>
-                          )}
                         </div>
                       </TableCell>
                       <TableCell>{deposit.deposit_reports?.length || 0}</TableCell>

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client'
 
 const supabaseClient = createClient()
 
-export const LOAN_ACCOUNTS = ['Caixa Angola', 'Agaseke'] as const
+export const LOAN_ACCOUNTS = ['Caixa Angola'] as const
 export type LoanAccount = (typeof LOAN_ACCOUNTS)[number]
 
 export interface Loan {

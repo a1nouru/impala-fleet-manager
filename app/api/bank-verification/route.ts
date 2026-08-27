@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 
 interface VerificationResult {
   dateRange: string;
@@ -94,37 +93,18 @@ export async function POST(request: NextRequest) {
       // Debug logging for each report
       console.log(`🔍 Report ${report.id} (${report.report_date}): Vehicle plate: "${vehiclePlate}"`);
       
-      // Check if this vehicle should be included based on bank selection
-      let includeVehicle = true;
-      if (bank === "Caixa Angola") {
-        // Caixa Angola: exclude Agaseke vehicles
-        includeVehicle = !isAgasekeVehicle(vehiclePlate);
-        console.log(`🏦 Caixa Angola - Vehicle ${vehiclePlate}: isAgaseke=${isAgasekeVehicle(vehiclePlate)}, includeVehicle=${includeVehicle}`);
-      } else {
-        console.log(`🏦 BAI - Vehicle ${vehiclePlate}: includeVehicle=${includeVehicle} (all vehicles included)`);
-      }
+      // Add revenue from this vehicle
+      const vehicleRevenue = (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
+      totalGrossRevenue += vehicleRevenue;
+      validReportsCount += 1;
+      console.log(`✅ Including vehicle ${vehiclePlate}: Revenue=${vehicleRevenue.toLocaleString()} AOA`);
 
-      if (includeVehicle) {
-        // Add revenue from this vehicle
-        const vehicleRevenue = (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
-        totalGrossRevenue += vehicleRevenue;
-        validReportsCount += 1;
-        console.log(`✅ Including vehicle ${vehiclePlate}: Revenue=${vehicleRevenue.toLocaleString()} AOA`);
-
-        // Add expenses only for included vehicles (exclude agaseke vehicle expenses for Caixa Angola)
-        if (Array.isArray(report.daily_expenses) && report.daily_expenses.length > 0) {
-          const reportExpenses = report.daily_expenses.reduce((sum: number, expense: any) => sum + (expense.amount || 0), 0);
-          totalExpenses += reportExpenses;
-          console.log(`💸 Including expenses for ${vehiclePlate}: ${reportExpenses.toLocaleString()} AOA`);
-        } else {
-          datesWithMissingExpenses += 1;
-        }
+      if (Array.isArray(report.daily_expenses) && report.daily_expenses.length > 0) {
+        const reportExpenses = report.daily_expenses.reduce((sum: number, expense: any) => sum + (expense.amount || 0), 0);
+        totalExpenses += reportExpenses;
+        console.log(`💸 Including expenses for ${vehiclePlate}: ${reportExpenses.toLocaleString()} AOA`);
       } else {
-        const excludedRevenue = (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0);
-        const excludedExpenses = Array.isArray(report.daily_expenses) 
-          ? report.daily_expenses.reduce((sum: number, expense: any) => sum + (expense.amount || 0), 0)
-          : 0;
-        console.log(`❌ Excluding Agaseke vehicle ${vehiclePlate}: Revenue=${excludedRevenue.toLocaleString()}, Expenses=${excludedExpenses.toLocaleString()} AOA`);
+        datesWithMissingExpenses += 1;
       }
     }
 
@@ -139,23 +119,6 @@ export async function POST(request: NextRequest) {
     console.log(`🚗 Valid reports included: ${validReportsCount}`);
     console.log(`📊 Total reports processed: ${reports?.length || 0}`);
     
-    if (bank === "Caixa Angola") {
-      const agasekeReports = reports?.filter(report => {
-        let vehiclePlate = "";
-        if (Array.isArray(report.vehicles) && report.vehicles.length > 0) {
-          vehiclePlate = report.vehicles[0].plate || "";
-        } else if (report.vehicles && typeof report.vehicles === 'object' && 'plate' in report.vehicles) {
-          vehiclePlate = (report.vehicles as { plate: string }).plate || "";
-        }
-        return isAgasekeVehicle(vehiclePlate);
-      });
-      console.log(`🚫 Agaseke reports excluded: ${agasekeReports?.length || 0}`);
-      if (agasekeReports && agasekeReports.length > 0) {
-        const excludedRevenue = agasekeReports.reduce((sum, report) => 
-          sum + (report.ticket_revenue || 0) + (report.baggage_revenue || 0) + (report.cargo_revenue || 0), 0);
-        console.log(`🚫 Total Agaseke revenue excluded: ${excludedRevenue.toLocaleString()} AOA`);
-      }
-    }
     
     if (datesWithMissingExpenses > 0) {
       console.log(`⚠️ ${datesWithMissingExpenses} reports missing expense data`);

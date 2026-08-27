@@ -39,7 +39,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { AGASEKE_PLATES, isAgasekeVehicle, isUrubanoRoute, isInterprocencialRoute } from "@/lib/constants";
+import { isUrubanoRoute, isInterprocencialRoute } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionDropdown } from "@/components/ui/action-dropdown";
 
@@ -1434,8 +1434,6 @@ export default function AllDailyReportsPage() {
               {displayData.map((group) => {
                 const dateAudited = isDateAudited(group.date);
                 const depositStatus = getDateDepositStatus(group.reports);
-                const agasekeCount = group.reports.filter(r => isAgasekeVehicle(r.vehicles?.plate)).length;
-                const regularCount = group.vehicleCount - agasekeCount;
                 return (
                   <Card key={group.date} className={cn("overflow-hidden", dateDepositRowClass(depositStatus))}>
                     <CardContent className="p-4 space-y-3">
@@ -1446,16 +1444,6 @@ export default function AllDailyReportsPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm">{t("allDailyReports.vehicleCount", { count: group.vehicleCount })}</span>
-                          {agasekeCount > 0 && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                              {t("allDailyReports.agasekeCount", { count: agasekeCount })}
-                            </Badge>
-                          )}
-                          {regularCount > 0 && (
-                            <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
-                              {t("allDailyReports.regularCount", { count: regularCount })}
-                            </Badge>
-                          )}
                         </div>
                         <p className="text-xs text-muted-foreground break-words">
                           {group.reports.map(r => r.vehicles?.plate).join(', ')}
@@ -1561,24 +1549,6 @@ export default function AllDailyReportsPage() {
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span>{t("allDailyReports.vehicleCount", { count: group.vehicleCount })}</span>
-                          {(() => {
-                            const agasekeCount = group.reports.filter(r => isAgasekeVehicle(r.vehicles?.plate)).length;
-                            const regularCount = group.vehicleCount - agasekeCount;
-                            return (
-                              <div className="flex gap-1">
-                                {agasekeCount > 0 && (
-                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                                    {t("allDailyReports.agasekeCount", { count: agasekeCount })}
-                                  </Badge>
-                                )}
-                                {regularCount > 0 && (
-                                  <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
-                                    {t("allDailyReports.regularCount", { count: regularCount })}
-                                  </Badge>
-                                )}
-                              </div>
-                            );
-                          })()}
                         </div>
                         <span className="text-xs text-muted-foreground">
                           {group.reports.map(r => r.vehicles?.plate).join(', ')}
@@ -1659,11 +1629,6 @@ export default function AllDailyReportsPage() {
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium break-words">{format(parseISO(report.report_date), "PP")}</span>
                                 <span className="break-words">{report.vehicles?.plate}</span>
-                                {isAgasekeVehicle(report.vehicles?.plate) && (
-                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                                    {t("status.agaseke")}
-                                  </Badge>
-                                )}
                               </div>
                               {isFlagged && (
                                 <div className="flex items-start gap-1 mt-1">
@@ -1764,11 +1729,6 @@ export default function AllDailyReportsPage() {
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                              )}
-                              {isAgasekeVehicle(report.vehicles?.plate) && (
-                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                                  {t("status.agaseke")}
-                                </Badge>
                               )}
                             </div>
                           </TableCell>

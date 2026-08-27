@@ -124,7 +124,7 @@ export function SlipVerificationPanel({
           <div className="flex items-center gap-1.5 text-xs font-semibold text-red-800">
             <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
             {t("slipVerification.wrongAccountSlips", {
-              type: v.expectedGroup === "agaseke" ? t("form.vehicleTypeAgaseke") : t("form.vehicleTypeRegular"),
+              type: t("form.vehicleTypeRegular"),
             })}
           </div>
           {v.wrongAccountSlipIndexes.map((i) => {

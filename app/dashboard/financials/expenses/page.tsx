@@ -51,7 +51,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -149,7 +148,6 @@ export default function AllExpensesPage() {
   });
   const [groupByDate, setGroupByDate] = useState(true);
   const [expenseTypeFilter, setExpenseTypeFilter] = useState<string>("all");
-  const [reportTypeFilter, setReportTypeFilter] = useState<"all" | "agaseke" | "regular">("all");
 
   // Dialog states for expense operations
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -385,15 +383,7 @@ export default function AllExpensesPage() {
     // Expense type filter
     const typeMatch = expenseTypeFilter === "all" || (expense.category && expense.category.toLowerCase() === expenseTypeFilter.toLowerCase());
     
-    // Report type filter (agaseke vs regular)
-    let reportTypeMatch = true;
-    if (reportTypeFilter === "agaseke") {
-      reportTypeMatch = isAgasekeVehicle(expense.report.vehicle_plate);
-    } else if (reportTypeFilter === "regular") {
-      reportTypeMatch = !isAgasekeVehicle(expense.report.vehicle_plate);
-    }
-    
-    return dateMatch && typeMatch && reportTypeMatch;
+    return dateMatch && typeMatch;
   });
 
   // Pagination logic for individual expenses view
@@ -747,19 +737,6 @@ export default function AllExpensesPage() {
             </div>
 
             {/* Report Type Filter */}
-            <div className="space-y-2">
-              <Label>{t("filters.reportType")}</Label>
-              <Select value={reportTypeFilter} onValueChange={(value: "all" | "agaseke" | "regular") => setReportTypeFilter(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("filters.allVehicles")}</SelectItem>
-                  <SelectItem value="agaseke">{t("filters.agasekeVehicles")}</SelectItem>
-                  <SelectItem value="regular">{t("filters.regularVehicles")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
@@ -840,18 +817,6 @@ export default function AllExpensesPage() {
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span>{group.vehicles.length} vehicles</span>
-                          <div className="flex gap-1">
-                            {group.vehicles.some(plate => isAgasekeVehicle(plate)) && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                                Agaseke
-                              </Badge>
-                            )}
-                            {group.vehicles.some(plate => !isAgasekeVehicle(plate)) && (
-                              <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
-                                Regular
-                              </Badge>
-                            )}
-                          </div>
                         </div>
                         <span className="text-xs text-muted-foreground">
                           {group.vehicles.join(', ')}
@@ -898,11 +863,6 @@ export default function AllExpensesPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span>{expense.report.vehicle_plate}</span>
-                            {isAgasekeVehicle(expense.report.vehicle_plate) && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                                {t("status.agaseke")}
-                              </Badge>
-                            )}
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">{expense.report.route || "-"}</TableCell>
