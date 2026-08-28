@@ -71,7 +71,12 @@ export const AuthProvider = ({ children }) => {
     signOut: () => supabase.auth.signOut(),
     signUp: (email, password) => supabase.auth.signUp({ email, password }),
     signInWithMagicLink: (email) => supabase.auth.signInWithOtp({ email }),
-    resetPassword: (email) => supabase.auth.resetPasswordForEmail(email),
+    // The email link lands on /auth/callback, which exchanges the recovery
+    // code for a session and forwards to the set-new-password page.
+    resetPassword: (email) => supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    }),
+    updatePassword: (password) => supabase.auth.updateUser({ password }),
     // The session is now automatically managed by the middleware and onAuthStateChange,
     // so extendSession is no longer needed.
   };
