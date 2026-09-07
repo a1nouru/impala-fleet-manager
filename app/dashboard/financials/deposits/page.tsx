@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { openStoredFile, signStoredUrls } from "@/lib/storage-url";
 import { extractSlips } from "@/lib/bank-slip/client";
+import { SLIP_VERIFICATION_ENABLED } from "@/lib/bank-slip/config";
 import { verifySlips, type CompanyExpenseLine, type ExtractedSlip, type ReportLine, type SlipVerification } from "@/lib/bank-slip/verify";
 import { SlipVerificationPanel, type SlipExtractionStatus } from "@/components/slip-verification-panel";
 import { SlipVerificationDetail, type DetailReport } from "@/components/slip-verification-detail";
@@ -254,6 +255,7 @@ export default function BankDepositsPage() {
   // changes. Keyed by name+size so re-renders don't re-trigger calls; debounced
   // so attaching several files in a row costs one extraction.
   useEffect(() => {
+    if (!SLIP_VERIFICATION_ENABLED) return;
     const key = bankSlipFiles.map((f) => `${f.name}:${f.size}`).join("|");
     if (key === slipFilesKeyRef.current) return;
     slipFilesKeyRef.current = key;
