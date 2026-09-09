@@ -699,7 +699,8 @@
     "netRevenue": "Net Revenue",
     "subtitle": "Record the station's takings, park expenses, and the deposit slip.",
     "vehiclesHint": "One row per vehicle. Passengers are a head count — the fare is applied automatically.",
-    "slipsHint": "At least one slip is required as proof of the bank deposit."
+    "slipsHint": "At least one slip is required as proof of the bank deposit.",
+    "viewEntry": "View Entry"
   },
   "depositBadge": {
     "verified": "Deposit verified",

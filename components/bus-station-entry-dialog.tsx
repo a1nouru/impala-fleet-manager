@@ -93,11 +93,14 @@ export function BusStationEntryDialog({
   open,
   onOpenChange,
   entry,
+  readOnly = false,
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entry: BusStationEntry | null;
+  /** Past entries are a closed record: everything visible, nothing editable. */
+  readOnly?: boolean;
   onSaved: () => void;
 }) {
   const { t } = useTranslation("financials");
@@ -290,6 +293,7 @@ export function BusStationEntryDialog({
     <Select
       value={row.vehicle_id}
       onValueChange={(v) => updateRow(row.key, { vehicle_id: v })}
+      disabled={readOnly}
     >
       <SelectTrigger>
         <SelectValue placeholder={t("busStations.selectVehicle")} />
@@ -313,6 +317,7 @@ export function BusStationEntryDialog({
       type="number"
       min={0}
       step={1}
+      disabled={readOnly}
       className="w-16 px-1.5"
       placeholder="0"
       value={row.passenger_count || ""}
@@ -327,6 +332,7 @@ export function BusStationEntryDialog({
       type="number"
       min={0}
       step="0.01"
+      disabled={readOnly}
       className="w-full min-w-[80px] px-1.5 text-right tabular-nums"
       placeholder="0"
       value={row.cargo_amount || ""}
@@ -341,7 +347,11 @@ export function BusStationEntryDialog({
       <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-6xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
-            {entry ? t("busStations.editEntry") : t("busStations.newEntry")}
+            {readOnly
+              ? t("busStations.viewEntry")
+              : entry
+              ? t("busStations.editEntry")
+              : t("busStations.newEntry")}
           </DialogTitle>
           <DialogDescription>{t("busStations.subtitle")}</DialogDescription>
         </DialogHeader>
@@ -350,7 +360,11 @@ export function BusStationEntryDialog({
         {/* Station selection sits ABOVE the vehicle rows: an entry is per station. */}
         <div className="grid gap-2 w-full sm:max-w-sm">
           <Label>{t("busStations.busStation")}</Label>
-          <Select value={station} onValueChange={(v) => setStation(v as BusStationId)}>
+          <Select
+            value={station}
+            onValueChange={(v) => setStation(v as BusStationId)}
+            disabled={readOnly}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -407,6 +421,7 @@ export function BusStationEntryDialog({
                       <div className="flex flex-wrap items-center gap-1 min-w-0">
                         <Input
                           type="date"
+                          disabled={readOnly}
                           className="min-w-[105px] flex-1 px-1.5"
                           value={row.start_date}
                           onChange={(e) =>
@@ -415,6 +430,7 @@ export function BusStationEntryDialog({
                         />
                         <Input
                           type="date"
+                          disabled={readOnly}
                           className="min-w-[105px] flex-1 px-1.5"
                           value={row.end_date}
                           onChange={(e) =>
@@ -437,14 +453,16 @@ export function BusStationEntryDialog({
                       {formatCurrency(rowTotal(row))}
                     </TableCell>
                     <TableCell className="p-1 align-middle">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeRow(row.key)}
-                        disabled={rows.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
+                      {!readOnly && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeRow(row.key)}
+                          disabled={rows.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -486,6 +504,7 @@ export function BusStationEntryDialog({
                   <div className="flex items-center gap-1 min-w-0">
                     <Input
                       type="date"
+                      disabled={readOnly}
                       className="min-w-0 flex-1 px-1.5"
                       value={row.start_date}
                       onChange={(e) => updateRow(row.key, { start_date: e.target.value })}
@@ -493,6 +512,7 @@ export function BusStationEntryDialog({
                     <span className="text-muted-foreground shrink-0">–</span>
                     <Input
                       type="date"
+                      disabled={readOnly}
                       className="min-w-0 flex-1 px-1.5"
                       value={row.end_date}
                       onChange={(e) => updateRow(row.key, { end_date: e.target.value })}
@@ -522,14 +542,16 @@ export function BusStationEntryDialog({
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="font-semibold tabular-nums">{formatCurrency(rowTotal(row))}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeRow(row.key)}
-                      disabled={rows.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
+                    {!readOnly && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeRow(row.key)}
+                        disabled={rows.length === 1}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -551,18 +573,21 @@ export function BusStationEntryDialog({
           </div>
 
           {/* Outside the table so it never sits on the dark footer. */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setRows((p) => [...p, blankRow()])}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            {t("busStations.addRow")}
-          </Button>
+          {!readOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRows((p) => [...p, blankRow()])}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {t("busStations.addRow")}
+            </Button>
+          )}
         </div>
 
         {/* Park expenses — the DESPESAS half of the paper sheet. Deducted from
             the entry's revenue everywhere it is displayed. */}
+        {(!readOnly || expenses.length > 0) && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
@@ -596,11 +621,13 @@ export function BusStationEntryDialog({
                   <Input
                     placeholder={t("busStations.expenseName")}
                     value={expense.name}
+                    disabled={readOnly}
                     onChange={(e) => updateExpense(expense.key, { name: e.target.value })}
                   />
                   <Input
                     placeholder={t("busStations.expenseReason")}
                     value={expense.reason}
+                    disabled={readOnly}
                     onChange={(e) =>
                       updateExpense(expense.key, { reason: e.target.value })
                     }
@@ -610,6 +637,7 @@ export function BusStationEntryDialog({
                       type="number"
                       min={0}
                       step="0.01"
+                      disabled={readOnly}
                       className="flex-1 text-right tabular-nums"
                       placeholder="0"
                       value={expense.amount || ""}
@@ -620,36 +648,42 @@ export function BusStationEntryDialog({
                       }
                     />
                     {/* On phones the trash shares the amount line. */}
+                    {!readOnly && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="sm:hidden shrink-0"
+                        onClick={() => removeExpense(expense.key)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    )}
+                  </div>
+                  {!readOnly && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="sm:hidden shrink-0"
+                      className="hidden sm:inline-flex"
                       onClick={() => removeExpense(expense.key)}
                     >
                       <Trash2 className="h-4 w-4 text-red-600" />
                     </Button>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hidden sm:inline-flex"
-                    onClick={() => removeExpense(expense.key)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setExpenses((p) => [...p, blankExpense()])}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            {t("busStations.addExpense")}
-          </Button>
+          {!readOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExpenses((p) => [...p, blankExpense()])}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {t("busStations.addExpense")}
+            </Button>
+          )}
 
           {/* Net strip only earns its place once an expense exists — before
               that the vehicle table's black footer already IS the net. */}
@@ -674,6 +708,7 @@ export function BusStationEntryDialog({
             </div>
           )}
         </div>
+        )}
 
         {/* Bank slips: one plain upload field, like the expense dialog's
             "Upload Receipt". No amount, no date — and a slip is REQUIRED. */}
@@ -684,13 +719,15 @@ export function BusStationEntryDialog({
               {t("busStations.slipsHint")}
             </p>
           </div>
-          <Input
-            type="file"
-            multiple
-            accept="image/*,application/pdf"
-            className="w-full"
-            onChange={(e) => setSlipFiles(Array.from(e.target.files || []))}
-          />
+          {!readOnly && (
+            <Input
+              type="file"
+              multiple
+              accept="image/*,application/pdf"
+              className="w-full"
+              onChange={(e) => setSlipFiles(Array.from(e.target.files || []))}
+            />
+          )}
           {existingSlips.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {existingSlips.map((slip) => (
@@ -706,13 +743,15 @@ export function BusStationEntryDialog({
                     <Eye className="h-4 w-4 mr-1" />
                     {slip.file_name || t("busStations.viewSlip")}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeExistingSlip(slip)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeExistingSlip(slip)}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -734,12 +773,14 @@ export function BusStationEntryDialog({
             </span>
           </div>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            {t("buttons.cancel")}
+            {readOnly ? t("buttons.close") : t("buttons.cancel")}
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {t("buttons.save")}
-          </Button>
+          {!readOnly && (
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {t("buttons.save")}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
