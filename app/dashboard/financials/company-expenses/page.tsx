@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -41,6 +40,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { ExpenseItem, emptyItem, parseItems, serializeItems, sumItems } from "@/lib/expense-items";
 
 // Helper to format currency
 const formatCurrency = (value: number) => {
@@ -102,6 +102,14 @@ export default function CompanyExpensesPage() {
   // Receipt upload states
   const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
   const [noReceiptSelected, setNoReceiptSelected] = useState(false);
+  const [items, setItems] = useState<ExpenseItem[]>([emptyItem()]);
+  const itemsTotal = sumItems(items);
+  const setItem = (i: number, patch: Partial<ExpenseItem>) =>
+    setItems(prev => prev.map((it, j) => (j === i ? { ...it, ...patch } : it)));
+  // Line items drive the amount whenever at least one has a value
+  useEffect(() => {
+    if (itemsTotal > 0) setExpenseFormData(prev => ({ ...prev, amount: String(itemsTotal) }));
+  }, [itemsTotal]);
 
   // Search functionality
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
@@ -357,6 +365,7 @@ export default function CompanyExpensesPage() {
     });
     setReceiptFiles([]);
     setNoReceiptSelected(false);
+    setItems([emptyItem()]);
     setCategorySearchTerm("");
     setShowSearchResults(false);
   };
@@ -385,6 +394,7 @@ export default function CompanyExpensesPage() {
     try {
       const expenseData = {
         ...expenseFormData,
+        description: serializeItems(items),
         amount: parseFloat(expenseFormData.amount as string),
         has_receipt: receiptFiles.length > 0,
         created_by: user?.email,
@@ -433,6 +443,8 @@ export default function CompanyExpensesPage() {
       has_receipt: expense.has_receipt,
     });
     setCategorySearchTerm(expense.category);
+    const parsed = parseItems(expense.description);
+    setItems(parsed.length ? parsed : [emptyItem()]);
     setReceiptFiles([]); // Clear receipt files for edit mode
     setEditExpenseDialogOpen(true);
   };
@@ -458,7 +470,7 @@ export default function CompanyExpensesPage() {
       await financialService.updateCompanyExpense(selectedExpense.id, {
         expense_date: expenseFormData.expense_date,
         category: expenseFormData.category,
-        description: expenseFormData.description,
+        description: serializeItems(items),
         amount: parseFloat(expenseFormData.amount as string),
         has_receipt: hasReceipts,
       });
@@ -526,6 +538,50 @@ export default function CompanyExpensesPage() {
     },
   ];
 
+  const itemsTable = (
+    <div className="space-y-2">
+      <Label>{t("companyExpenses.description")}</Label>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Item</TableHead>
+              <TableHead className="w-40 text-right">{t("companyExpenses.amount")}</TableHead>
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((it, i) => (
+              <TableRow key={i}>
+                <TableCell className="p-1">
+                  <Input value={it.description} onChange={e => setItem(i, { description: e.target.value })} placeholder="e.g. Purchase of spare parts" />
+                </TableCell>
+                <TableCell className="p-1">
+                  <Input className="text-right" value={formatNumberWithCommas(it.amount)} onChange={e => setItem(i, { amount: e.target.value.replace(/[^\d.]/g, "") })} placeholder="0" />
+                </TableCell>
+                <TableCell className="p-1">
+                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setItems(prev => prev.length > 1 ? prev.filter((_, j) => j !== i) : [emptyItem()])}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell className="font-medium">{t("table.total")}</TableCell>
+              <TableCell className="text-right font-bold">{formatCurrency(itemsTotal)}</TableCell>
+              <TableCell />
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={() => setItems(prev => [...prev, emptyItem()])}>
+        <Plus className="mr-1 h-4 w-4" />Add item
+      </Button>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -589,6 +645,7 @@ export default function CompanyExpensesPage() {
                     type="text"
                     value={formatNumberWithCommas(expenseFormData.amount)}
                     onChange={handleInputChange}
+                    readOnly={itemsTotal > 0}
                     placeholder="0.00"
                   />
                 </div>
@@ -622,17 +679,7 @@ export default function CompanyExpensesPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">{t("companyExpenses.description")}</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={expenseFormData.description}
-                  onChange={handleInputChange}
-                  placeholder="Optional description..."
-                  rows={3}
-                />
-              </div>
+              {itemsTable}
 
               {/* Receipt Upload Section */}
               <div className="space-y-2">
@@ -902,7 +949,22 @@ export default function CompanyExpensesPage() {
                         <TableCell>
                           <Badge variant="secondary">{expense.category}</Badge>
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell">{expense.description || "-"}</TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {expense.description ? (
+                            <div className="flex flex-wrap gap-1">
+                              {parseItems(expense.description).map((it, i) =>
+                                it.amount ? (
+                                  <Badge key={i} variant="outline" className="gap-1.5 font-normal whitespace-nowrap">
+                                    {it.description}
+                                    <span className="font-semibold">{Number(it.amount).toLocaleString("en-US")}</span>
+                                  </Badge>
+                                ) : (
+                                  <span key={i} className="text-sm">{it.description}</span>
+                                )
+                              )}
+                            </div>
+                          ) : "-"}
+                        </TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(expense.amount)}</TableCell>
                         <TableCell className="text-center">
                           {expense.has_receipt ? (
@@ -1057,6 +1119,7 @@ export default function CompanyExpensesPage() {
                   type="text"
                   value={formatNumberWithCommas(expenseFormData.amount)}
                   onChange={handleInputChange}
+                  readOnly={itemsTotal > 0}
                 />
               </div>
             </div>
@@ -1071,16 +1134,7 @@ export default function CompanyExpensesPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit_description">{t("companyExpenses.description")}</Label>
-              <Textarea
-                id="edit_description"
-                name="description"
-                value={expenseFormData.description}
-                onChange={handleInputChange}
-                rows={3}
-              />
-            </div>
+            {itemsTable}
 
             {/* Existing Receipts */}
             {selectedExpense && selectedExpense.company_expense_receipts && selectedExpense.company_expense_receipts.length > 0 && (
