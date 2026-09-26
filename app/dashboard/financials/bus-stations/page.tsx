@@ -37,7 +37,6 @@ import {
   ChevronDown,
   ChevronRight,
   Edit,
-  Eye,
   Loader2,
   PlusCircle,
   Trash2,
@@ -105,19 +104,17 @@ export default function BusStationsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<BusStationEntry | null>(null);
-  const [viewing, setViewing] = useState(false);
   const [deleting, setDeleting] = useState<BusStationEntry | null>(null);
   // Explicit user toggles; a week without one defaults to open only when it is
   // the most recent week on screen.
   const [toggledWeeks, setToggledWeeks] = useState<Record<string, boolean>>({});
 
-  // Past entries are a closed day's paper record: view only, no edit/delete.
+  // Past entries stay editable (e.g. to replace a wrong slip) but never deletable.
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const isLocked = (entry: BusStationEntry) => entryEnd(entry) < todayStr;
 
   const openEntry = (entry: BusStationEntry) => {
     setEditing(entry);
-    setViewing(isLocked(entry));
     setDialogOpen(true);
   };
 
@@ -253,7 +250,6 @@ export default function BusStationsPage() {
           <Button
             onClick={() => {
               setEditing(null);
-              setViewing(false);
               setDialogOpen(true);
             }}
           >
@@ -315,23 +311,14 @@ export default function BusStationsPage() {
                                 {busStationLabel(entry.station)}
                               </Badge>
                               <div className="flex items-center">
-                                {locked ? (
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => openEntry(entry)}
                                   >
-                                    <Eye className="h-4 w-4" />
+                                    <Edit className="h-4 w-4" />
                                   </Button>
-                                ) : (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => openEntry(entry)}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
+                                {!locked && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -339,7 +326,6 @@ export default function BusStationsPage() {
                                     >
                                       <Trash2 className="h-4 w-4 text-red-600" />
                                     </Button>
-                                  </>
                                 )}
                               </div>
                             </div>
@@ -474,23 +460,14 @@ export default function BusStationsPage() {
                                   {formatCurrency(s.net)}
                                 </TableCell>
                                 <TableCell className="text-right whitespace-nowrap">
-                                  {locked ? (
                                     <Button
                                       variant="ghost"
                                       size="icon"
                                       onClick={() => openEntry(entry)}
                                     >
-                                      <Eye className="h-4 w-4" />
+                                      <Edit className="h-4 w-4" />
                                     </Button>
-                                  ) : (
-                                    <>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => openEntry(entry)}
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
+                                  {!locked && (
                                       <Button
                                         variant="ghost"
                                         size="icon"
@@ -498,7 +475,6 @@ export default function BusStationsPage() {
                                       >
                                         <Trash2 className="h-4 w-4 text-red-600" />
                                       </Button>
-                                    </>
                                   )}
                                 </TableCell>
                               </TableRow>
@@ -537,7 +513,6 @@ export default function BusStationsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         entry={editing}
-        readOnly={viewing}
         onSaved={load}
       />
 
