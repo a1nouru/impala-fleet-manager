@@ -747,7 +747,7 @@ export default function CompanyExpensesPage() {
                       </div>
                       <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
                         {receiptFiles.map((file, index) => (
-                          <div key={index} className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md group hover:bg-green-100 transition-colors">
+                          <div key={index} className="flex min-w-0 items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md group hover:bg-green-100 transition-colors">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <Paperclip className="h-4 w-4 text-green-600 flex-shrink-0" />
                               <div className="flex-1 min-w-0">
@@ -1142,7 +1142,7 @@ export default function CompanyExpensesPage() {
                 <Label>Current Receipts ({selectedExpense.company_expense_receipts.length})</Label>
                 <div className="max-h-32 overflow-y-auto space-y-2">
                   {selectedExpense.company_expense_receipts.map((receipt, index) => (
-                    <div key={receipt.id || index} className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                    <div key={receipt.id || index} className="flex min-w-0 items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
                       <Paperclip className="h-4 w-4 text-blue-600 flex-shrink-0" />
                       <span className="text-sm text-blue-700 truncate flex-1">{receipt.file_name}</span>
                       <Button
@@ -1207,7 +1207,7 @@ export default function CompanyExpensesPage() {
                     </div>
                     <div className="max-h-32 overflow-y-auto space-y-2">
                       {receiptFiles.map((file, index) => (
-                        <div key={index} className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                        <div key={index} className="flex min-w-0 items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
                           <Paperclip className="h-4 w-4 text-green-600 flex-shrink-0" />
                           <span className="text-sm text-green-700 truncate flex-1">{file.name}</span>
                           <Button
