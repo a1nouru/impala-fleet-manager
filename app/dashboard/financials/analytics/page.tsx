@@ -10,7 +10,7 @@ import { financialService } from "@/services/financialService";
 import { busStationService } from "@/services/busStationService";
 import { toast } from "@/components/ui/use-toast";
 import { AgasekeReport } from "@/components/agaseke-report";
-import { RecentDeposits } from "@/components/recent-deposits";
+import { FuelConsumption } from "@/components/fuel-consumption";
 import { OverviewChart } from "@/components/overview-chart";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
             <OverviewChart dateRange={dateRange} />
           </CardContent>
         </Card>
-        <RecentDeposits />
+        <FuelConsumption dateRange={dateRange} />
       </div>
 
       <div className="grid grid-cols-1 gap-4">

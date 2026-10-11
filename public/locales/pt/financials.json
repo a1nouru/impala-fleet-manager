@@ -115,7 +115,23 @@
     "overview": "Resumo",
     "recentDeposits": "Depósitos Recentes",
     "agasekeReport": "Relatório Agaseke",
-    "failedToLoadAnalytics": "Falha ao carregar análise financeira."
+    "failedToLoadAnalytics": "Falha ao carregar análise financeira.",
+    "fuel": {
+      "title": "Consumo de Combustível",
+      "failedToLoad": "Falha ao carregar o consumo de combustível.",
+      "noData": "Nenhum combustível registado em nenhuma rota neste período.",
+      "noDrivers": "Ainda não há motoristas registados. Adicione o motorista ao lançar uma despesa de combustível.",
+      "liters": "Litros",
+      "trips": "viagens",
+      "average": "média da rota",
+      "daily": "Diário",
+      "weekly": "Semanal",
+      "vehicles": "Viaturas",
+      "drivers": "Motoristas",
+      "worstNote": "{{plate}} é a viatura que mais consome combustível nesta rota ({{rate}} vs média de {{average}}).",
+      "followUpDriver": "Por favor, acompanhe com o motorista, {{driver}}.",
+      "followUp": "Por favor, acompanhe com o motorista."
+    }
   },
   "form": {
     "vehicle": "Veículo",

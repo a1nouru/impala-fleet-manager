@@ -47,6 +47,7 @@ export interface DailyExpense {
   vehicle_id?: string | null; // set on standalone expenses (vehicle is required)
   expense_date?: string | null; // set on standalone expenses (no parent report to borrow the date from)
   route?: string | null; // optional route on standalone expenses
+  driver_name?: string | null; // free-typed driver, captured on fuel expenses
   category: string;
   description?: string;
   amount: number;

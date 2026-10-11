@@ -115,7 +115,23 @@
     "overview": "Overview",
     "recentDeposits": "Recent Deposits",
     "agasekeReport": "Agaseke Report",
-    "failedToLoadAnalytics": "Failed to load financial analytics."
+    "failedToLoadAnalytics": "Failed to load financial analytics.",
+    "fuel": {
+      "title": "Fuel Consumption",
+      "failedToLoad": "Failed to load fuel consumption.",
+      "noData": "No fuel recorded on any route for this period.",
+      "noDrivers": "No drivers recorded yet. Add the driver when entering a fuel expense.",
+      "liters": "Liters",
+      "trips": "trips",
+      "average": "route average",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "vehicles": "Vehicles",
+      "drivers": "Drivers",
+      "worstNote": "{{plate}} is the most fuel-consuming vehicle on this route ({{rate}} vs {{average}} average).",
+      "followUpDriver": "Please follow up with the driver, {{driver}}.",
+      "followUp": "Please follow up with the driver."
+    }
   },
   "form": {
     "vehicle": "Vehicle",

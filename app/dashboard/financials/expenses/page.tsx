@@ -54,6 +54,7 @@ import {
 import { AGASEKE_PLATES, isAgasekeVehicle } from "@/lib/constants";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/context/AuthContext";
+import { FUEL_PRICE_PER_LITER } from "@/lib/fuel/consumption";
 
 // Extended expense interface with report data
 interface ExpenseWithReport extends DailyExpense {
@@ -65,8 +66,6 @@ interface ExpenseWithReport extends DailyExpense {
   };
 }
 
-// Fixed pump price used to derive the fuel amount from liters in the Add Expense dialog.
-const FUEL_PRICE_PER_LITER = 425; // Kz per liter
 
 // Helper to format currency
 const formatCurrency = (value: number) => {
@@ -137,6 +136,8 @@ export default function AllExpensesPage() {
   const { user } = useAuth();
   const pathname = usePathname();
   const [expenses, setExpenses] = useState<ExpenseWithReport[]>([]);
+  // Driver names already typed on earlier expenses, offered as suggestions.
+  const knownDrivers = [...new Set(expenses.map(e => e.driver_name?.trim()).filter(Boolean) as string[])].sort();
   const [isLoading, setIsLoading] = useState(true);
 
   // Filter states
@@ -208,6 +209,7 @@ export default function AllExpensesPage() {
     description: string;
     amount: string;
     liters: string;
+    driver_name: string;
   }>({
     category: "",
     vehicle_id: "",
@@ -216,6 +218,7 @@ export default function AllExpensesPage() {
     description: "",
     amount: "",
     liters: "",
+    driver_name: "",
   });
   const [newReceiptFile, setNewReceiptFile] = useState<File | null>(null);
 
@@ -228,6 +231,7 @@ export default function AllExpensesPage() {
       description: "",
       amount: "",
       liters: "",
+      driver_name: "",
     });
     setNewReceiptFile(null);
   };
@@ -294,6 +298,7 @@ export default function AllExpensesPage() {
         description: newExpense.description.trim() || undefined,
         amount: amountNum,
         receipt_url: receiptUrl || undefined,
+        driver_name: isFuel ? newExpense.driver_name.trim() || null : null,
       } as Omit<DailyExpense, "id" | "created_at" | "updated_at">);
 
       toast({ title: "✅ Success", description: "Expense added successfully." });
@@ -1437,6 +1442,22 @@ export default function AllExpensesPage() {
                     </div>
                   )}
                 </div>
+
+                {newExpense.category === "Fuel" && (
+                  <div className="space-y-2">
+                    <Label>Driver</Label>
+                    {/* Free text; names already used are offered back as suggestions. */}
+                    <Input
+                      list="known-drivers"
+                      placeholder="Who is driving this vehicle?"
+                      value={newExpense.driver_name}
+                      onChange={(e) => setNewExpense(prev => ({ ...prev, driver_name: e.target.value }))}
+                    />
+                    <datalist id="known-drivers">
+                      {knownDrivers.map((name) => <option key={name} value={name} />)}
+                    </datalist>
+                  </div>
+                )}
 
                 {newExpense.category === "Fuel" && (
                   <div className="flex items-center justify-between rounded-md border bg-gray-50 p-3 text-sm">
