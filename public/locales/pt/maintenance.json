@@ -33,7 +33,7 @@
     "applyFilter": "Aplicar Filtro"
   },
   "table": {
-    "vehicle": "Veículo", 
+    "vehicle": "Veículo",
     "date": "Data",
     "description": "Descrição",
     "parts": "Peças",
@@ -96,7 +96,7 @@
   },
   "statusOptions": {
     "pending": "Pendente",
-    "inProgress": "Em Progresso", 
+    "inProgress": "Em Progresso",
     "completed": "Concluído",
     "scheduled": "Agendado",
     "cancelled": "Cancelado"
@@ -110,7 +110,7 @@
   },
   "messages": {
     "recordAdded": "Registo de manutenção adicionado com sucesso",
-    "recordUpdated": "Registo de manutenção actualizado com sucesso", 
+    "recordUpdated": "Registo de manutenção actualizado com sucesso",
     "recordDeleted": "Registo de manutenção eliminado com sucesso",
     "errorAdding": "Erro ao adicionar registo de manutenção",
     "errorUpdating": "Erro ao actualizar registo de manutenção",
@@ -186,5 +186,50 @@
   "validation": {
     "selectInventoryItems": "Por favor, selecione pelo menos um item de inventário para a manutenção.",
     "validationError": "Erro de Validação"
+  },
+  "cleaning": {
+    "tab": "Limpeza",
+    "title": "Limpeza e Controlo de Pragas",
+    "logDeepClean": "Registar Limpeza Profunda",
+    "logInsecticide": "Registar Insecticida",
+    "deepClean": "Limpeza profunda",
+    "insecticide": "Insecticida",
+    "deepCleansThisMonth": "Limpezas Profundas Este Mês",
+    "insecticidesThisMonth": "Aplicações de Insecticida Este Mês",
+    "everyNDays": "Meta: a cada {{count}} dias",
+    "needsAttention": "Viaturas a Precisar de Atenção",
+    "needsAttentionSub": "Em atraso ou nunca tratadas",
+    "costThisMonth": "Custo de Limpeza Este Mês",
+    "vehicleStatus": "Estado das Viaturas",
+    "lastDeepClean": "Última limpeza profunda",
+    "lastInsecticide": "Último insecticida",
+    "never": "Nunca",
+    "daysAgo": "há {{count}} d",
+    "history": "Registo de Limpezas",
+    "allTypes": "Todos os tipos",
+    "allVehicles": "Todas as viaturas",
+    "empty": "Ainda não há limpezas registadas.",
+    "type": "Tipo",
+    "location": "Local",
+    "locationPlaceholder": "ex. garagem de Luanda, nome da lavagem",
+    "performedBy": "Feito por",
+    "performedByPlaceholder": "Pessoa ou empresa",
+    "product": "Insecticida usado",
+    "productPlaceholder": "Nome do produto",
+    "cost": "Custo",
+    "notes": "Observações",
+    "notesPlaceholder": "Algo a registar",
+    "dialogDescription": "Registe uma viatura que acabou de ser tratada.",
+    "validationTitle": "Campos em falta",
+    "requiredFields": "Viatura, data e local são obrigatórios.",
+    "savedTitle": "Guardado",
+    "saved": "Limpeza registada.",
+    "saveError": "Não foi possível guardar",
+    "loadError": "Não foi possível carregar as limpezas",
+    "delete": "Eliminar",
+    "deleteTitle": "Eliminar este registo?",
+    "deleteConfirm": "Esta acção não pode ser desfeita.",
+    "deletedTitle": "Eliminado",
+    "deleted": "Registo de limpeza removido."
   }
-} 
+}

@@ -56,6 +56,7 @@ import "react-datepicker/dist/react-datepicker.css"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { DateRange } from "react-day-picker"
 import InventoryManagement from "@/components/inventory-management"
+import CleaningLog from "@/components/cleaning-log"
 
 // Type definitions (moved to top for use in utility functions)
 interface Vehicle {
@@ -978,12 +979,15 @@ function MaintenanceContent() {
       </div>
 
       <Tabs defaultValue="maintenance" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="maintenance" className="data-[state=active]:bg-black data-[state=active]:text-white">
             Maintenance
           </TabsTrigger>
           <TabsTrigger value="inventory" className="data-[state=active]:bg-black data-[state=active]:text-white">
             Inventory
+          </TabsTrigger>
+          <TabsTrigger value="cleaning" className="data-[state=active]:bg-black data-[state=active]:text-white">
+            {t("cleaning.tab")}
           </TabsTrigger>
         </TabsList>
 
@@ -2099,6 +2103,10 @@ function MaintenanceContent() {
 
         <TabsContent value="inventory" className="space-y-6">
           <InventoryManagement />
+        </TabsContent>
+
+        <TabsContent value="cleaning" className="space-y-6">
+          <CleaningLog />
         </TabsContent>
       </Tabs>
     </div>
