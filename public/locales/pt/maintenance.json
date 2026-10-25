@@ -54,6 +54,14 @@
     "kilometers": "Quilómetros",
     "kilometersPlaceholder": "Quilómetros actuais do veículo",
     "kilometersRequired": "Quilómetros são obrigatórios",
+    "km": {
+      "invalid": "Introduza a leitura do conta-quilómetros como um número inteiro maior que 0",
+      "tooHigh": "A leitura do conta-quilómetros não pode exceder 2.000.000 km",
+      "belowPrevious": "Deve ser pelo menos {{prevKm}} km (última leitura em {{prevDate}})",
+      "aboveNext": "Não pode exceder {{nextKm}} km (leitura posterior em {{nextDate}})",
+      "implausibleJump": "Muito acima da última leitura de {{prevKm}} km em {{prevDate}}. Verifique o conta-quilómetros",
+      "lastReading": "Última leitura: {{km}} km em {{date}}"
+    },
     "technician": "Técnico",
     "selectTechnician": "Atribuir técnico",
     "technicianRequired": "Técnico é obrigatório",

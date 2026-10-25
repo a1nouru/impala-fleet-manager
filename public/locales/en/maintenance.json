@@ -54,6 +54,14 @@
     "kilometers": "Kilometers",
     "kilometersPlaceholder": "Current vehicle kilometers",
     "kilometersRequired": "Kilometers is required",
+    "km": {
+      "invalid": "Enter the odometer reading as a whole number greater than 0",
+      "tooHigh": "Odometer reading cannot exceed 2,000,000 km",
+      "belowPrevious": "Must be at least {{prevKm}} km (last reading on {{prevDate}})",
+      "aboveNext": "Must not exceed {{nextKm}} km (a later reading on {{nextDate}})",
+      "implausibleJump": "Too far above the last reading of {{prevKm}} km on {{prevDate}}. Please check the odometer",
+      "lastReading": "Last reading: {{km}} km on {{date}}"
+    },
     "technician": "Technician",
     "selectTechnician": "Assign technician",
     "technicianRequired": "Technician is required",

@@ -33,10 +33,13 @@ import {
   ResponsiveContainer,
   Cell,
   PieChart as RechartsPieChart,
-  Pie
+  Pie,
+  ReferenceLine
 } from "recharts"
 import { maintenanceService } from "@/services/maintenanceService"
 import { vehicleService } from "@/services/vehicleService"
+import { inventoryService } from "@/services/inventoryService"
+import { buildInsights, kmSincePrevious, lastSundayToSunday, unitPriceByName } from "@/lib/maintenance/insights"
 import { format } from "date-fns"
 import { toast } from "@/components/ui/use-toast"
 import { useTranslation } from "@/hooks/useTranslation"
@@ -90,16 +93,14 @@ export default function ReportsPage() {
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
+  const [inventory, setInventory] = useState<{ item_name: string; amount_unit: number }[]>([]);
   
   // UI state
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   // Filters
   const [selectedVehicle, setSelectedVehicle] = useState<string>("all");
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(new Date().getFullYear(), 0, 1), // Start of current year
-    to: new Date(),
-  });
+  const [dateRange, setDateRange] = useState<DateRange>(lastSundayToSunday);
   const [activeMetric, setActiveMetric] = useState<"cost" | "frequency">("cost");
   
   // Tab state - this replaces the activeTab variable that was causing the error
@@ -133,6 +134,9 @@ export default function ReportsPage() {
         const vehicleData = await vehicleService.getVehicles();
         setVehicles(vehicleData);
         setIsLoading(prev => ({ ...prev, vehicles: false }));
+
+        // Inventory unit prices, used to price parts in the Detailed Analysis tab
+        setInventory(await inventoryService.getInventoryItems());
         
         // Extract parts from maintenance records to get all unique parts
         const uniqueParts = new Set<string>();
@@ -287,6 +291,30 @@ export default function ReportsPage() {
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
   }, [filteredRecords]);
+
+  // Parts insights: per-vehicle parts/tires/cost and most expensive parts
+  const insights = useMemo(() => {
+    const toInsight = (r: MaintenanceRecord) => ({
+      id: r.id,
+      date: r.date,
+      plate: r.vehicles?.plate || r.vehiclePlate || 'Unknown',
+      kilometers: r.kilometers,
+      parts: r.parts,
+    });
+    const result = buildInsights(
+      filteredRecords.map(toInsight),
+      kmSincePrevious(records.map(toInsight)),
+      unitPriceByName(inventory)
+    );
+    return {
+      ...result,
+      vehicles: result.vehicles.sort((a, b) => b.partUnits - a.partUnits),
+      tires: result.vehicles.filter(v => v.tireUnits > 0).sort((a, b) => b.tireUnits - a.tireUnits),
+      expensiveParts: [...result.parts].sort((a, b) => b.totalCost - a.totalCost).slice(0, 10),
+      hasKm: result.vehicles.some(v => v.km > 0),
+      unpricedParts: result.parts.filter(p => p.unitPrice === null).length,
+    };
+  }, [filteredRecords, records, inventory]);
 
   // Total maintenance cost (filtered)
   const totalCost = useMemo(() => {
@@ -765,12 +793,157 @@ export default function ReportsPage() {
               </Card>
             </TabsContent>
             
-            <TabsContent value="details" className="pt-4 sm:pt-6">
+            <TabsContent value="details" className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
+              {/* Tire comparison */}
               <Card>
                 <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">Detailed Maintenance Analysis</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">Tires Replaced per Vehicle</CardTitle>
                   <CardDescription className="text-sm">
-                    Comprehensive view of maintenance metrics
+                    Dashed line = fleet average ({insights.fleetAvg.tireUnits.toFixed(1)} tires per vehicle with maintenance in this period)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-2 sm:px-6">
+                  {insights.tires.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <Info className="h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground text-center text-sm">No tires replaced in the selected period.</p>
+                    </div>
+                  ) : (
+                    <div className="w-full" style={{ height: Math.max(160, insights.tires.length * 36 + 60) }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsBarChart data={insights.tires} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 10 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" allowDecimals={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                          <YAxis dataKey="plate" type="category" tick={{ fill: '#6B7280', fontSize: 12 }} width={100} />
+                          <RechartsTooltip
+                            formatter={(value: number, _name, item) => [`${value} tires · ${formatCost(item.payload.tireCost)}`, 'Replaced']}
+                            labelFormatter={(label) => `Vehicle: ${label}`}
+                          />
+                          <ReferenceLine x={insights.fleetAvg.tireUnits} stroke="#6B7280" strokeDasharray="4 4" />
+                          <Bar dataKey="tireUnits" name="Tires" radius={[0, 4, 4, 0]}>
+                            {insights.tires.map((v) => (
+                              <Cell key={v.plate} fill={v.tireUnits > insights.fleetAvg.tireUnits ? '#E11D48' : '#2563EB'} />
+                            ))}
+                          </Bar>
+                        </RechartsBarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Parts usage by vehicle */}
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Parts Usage by Vehicle</CardTitle>
+                  <CardDescription className="text-sm">
+                    Which vehicles replace the most parts compared to the fleet. Oils and other fluids count once per change. Highlighted rows use over 1.5× the fleet average.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {!insights.hasKm && insights.vehicles.length > 0 && (
+                    <div className="mx-4 mb-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs sm:text-sm text-amber-900">
+                      <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                      <span>No valid odometer readings in this period, so parts per 1,000 km can&apos;t be calculated yet. It fills in once maintenance records carry real kilometer readings.</span>
+                    </div>
+                  )}
+                  {insights.vehicles.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <Info className="h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground text-center text-sm">No data available for the selected filters.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[720px]">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="px-4 py-3 text-left text-sm font-medium">Vehicle</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Records</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Parts Used</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">vs Fleet Avg</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Tires</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Parts Cost</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Km Logged</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Parts / 1,000 km</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {insights.vehicles.map((v) => {
+                            const ratio = insights.fleetAvg.partUnits ? v.partUnits / insights.fleetAvg.partUnits : 0;
+                            return (
+                              <tr key={v.plate} className={`border-b hover:bg-muted/50 ${ratio > 1.5 ? 'bg-rose-50' : ''}`}>
+                                <td className="px-4 py-3 text-sm font-medium">{v.plate}</td>
+                                <td className="px-4 py-3 text-sm text-right">{v.records}</td>
+                                <td className="px-4 py-3 text-sm text-right font-semibold">{v.partUnits}</td>
+                                <td className={`px-4 py-3 text-sm text-right ${ratio > 1.5 ? 'text-rose-700 font-semibold' : 'text-muted-foreground'}`}>
+                                  {ratio.toFixed(1)}×
+                                </td>
+                                <td className="px-4 py-3 text-sm text-right">{v.tireUnits || '—'}</td>
+                                <td className="px-4 py-3 text-sm text-right">{formatCost(v.partsCost)}</td>
+                                <td className="px-4 py-3 text-sm text-right">{v.km ? v.km.toLocaleString() : '—'}</td>
+                                <td className="px-4 py-3 text-sm text-right">{v.partsPer1000Km === null ? '—' : v.partsPer1000Km.toFixed(2)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Most expensive parts */}
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Most Expensive Parts</CardTitle>
+                  <CardDescription className="text-sm">
+                    Top 10 parts by total Kz spent in this period (units × inventory unit price)
+                    {insights.unpricedParts > 0 && ` · ${insights.unpricedParts} part(s) have no inventory price and are excluded`}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {insights.expensiveParts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <Info className="h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground text-center text-sm">No parts data available for the selected filters.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[600px]">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="px-4 py-3 text-left text-sm font-medium">Part</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Units</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Unit Price</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Total</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium">Vehicles</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {insights.expensiveParts.filter(p => p.totalCost > 0).map((p) => (
+                            <tr key={p.name} className="border-b hover:bg-muted/50">
+                              <td className="px-4 py-3 text-sm">
+                                {p.name}
+                                {p.isTire && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Tire</span>}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right">{p.units}</td>
+                              <td className="px-4 py-3 text-sm text-right">{p.unitPrice === null ? '—' : formatCost(p.unitPrice)}</td>
+                              <td className="px-4 py-3 text-sm text-right font-semibold">{formatCost(p.totalCost)}</td>
+                              <td className="px-4 py-3 text-sm text-right">{p.vehicles}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Maintenance Records</CardTitle>
+                  <CardDescription className="text-sm">
+                    Every maintenance record in the selected period
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">

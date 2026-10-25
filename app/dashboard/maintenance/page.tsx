@@ -44,6 +44,7 @@ import { technicianService } from "@/services/technicianService"
 import { partService } from "@/services/partService"
 import { inventoryService } from "@/services/inventoryService"
 import { normalizeItemName, usedQuantitiesByNormalizedName } from "@/lib/inventory/usage"
+import { neighbourReadings, validateOdometer } from "@/lib/maintenance/odometer"
 import { hrService } from "@/services/hrService"
 import type { Employee } from "@/services/hrService"
 import { toast } from "@/components/ui/use-toast"
@@ -499,6 +500,23 @@ function MaintenanceContent() {
     return formattedValue.replace(/,/g, '');
   };
 
+  // Odometer check against this vehicle's other readings (see lib/maintenance/odometer)
+  const kmDate = newRecord.date || format(new Date(), "yyyy-MM-dd");
+  const kmVehicleId = vehicles.find(v => v.plate === newRecord.vehiclePlate)?.id;
+  const kmNeighbours = kmVehicleId
+    ? neighbourReadings(records, kmVehicleId, kmDate, isEditMode ? editRecordId : null)
+    : {};
+  const kmError = newRecord.kilometers
+    ? validateOdometer(Number(parseFormattedNumber(newRecord.kilometers)), kmDate, kmNeighbours.previous, kmNeighbours.next)
+    : null;
+  const formatKmDate = (d: string) => format(parseISO(d), "d MMM yyyy");
+  const kmErrorText = kmError && t(`form.km.${kmError}`, {
+    prevKm: kmNeighbours.previous?.km.toLocaleString('en-US'),
+    prevDate: kmNeighbours.previous && formatKmDate(kmNeighbours.previous.date),
+    nextKm: kmNeighbours.next?.km.toLocaleString('en-US'),
+    nextDate: kmNeighbours.next && formatKmDate(kmNeighbours.next.date),
+  });
+
   // Calculate totals
   const totalLifetimeCost = records.reduce((sum, record) => sum + (record.cost || 0), 0);
   const currentMonth = new Date().getMonth();
@@ -591,7 +609,7 @@ function MaintenanceContent() {
     const hasInventoryItems = selectedParts.length > 0 && 
       Object.values(selectedPartsQuantities).some(qty => qty > 0);
     
-    return allFieldsFilled && hasInventoryItems;
+    return allFieldsFilled && hasInventoryItems && !kmError;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -804,6 +822,7 @@ function MaintenanceContent() {
         errors[field] = true;
       }
     });
+    if (kmError) errors.kilometers = true;
     
     // Additional validation: ensure at least one inventory item is selected
     if (selectedParts.length === 0) {
@@ -1079,11 +1098,17 @@ function MaintenanceContent() {
                     value={newRecord.kilometers}
                     onChange={handleInputChange}
                     required
-                    className={formErrors.kilometers ? "border-red-500" : ""}
+                    className={formErrors.kilometers || kmError ? "border-red-500" : ""}
                   />
-                  {formErrors.kilometers && (
+                  {kmErrorText ? (
+                    <p className="text-xs text-red-500">{kmErrorText}</p>
+                  ) : formErrors.kilometers ? (
                     <p className="text-xs text-red-500">{t("form.kilometersRequired")}</p>
-                  )}
+                  ) : kmNeighbours.previous ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t("form.km.lastReading", { km: kmNeighbours.previous.km.toLocaleString('en-US'), date: formatKmDate(kmNeighbours.previous.date) })}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status" className="text-sm font-medium">
