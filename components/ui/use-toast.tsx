@@ -17,6 +17,8 @@ interface ToastContextType {
   dismissToast: (index: number) => void;
 }
 
+let globalToast: ((props: ToastProps) => void) | null = null;
+
 const ToastContext = React.createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -37,6 +39,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     };
     setToasts((prev) => [...prev, newToast]);
   };
+  globalToast = toast;
 
   const dismissToast = (index: number) => {
     setToasts((prev) => prev.filter((_, i) => i !== index));
@@ -60,7 +63,7 @@ function ToastContainer() {
   const { toasts, dismissToast } = context;
 
   return (
-    <div className="fixed bottom-0 right-0 z-50 p-4 space-y-4 max-w-md w-full">
+    <div className="fixed bottom-0 right-0 z-[100] p-4 space-y-4 max-w-md w-full">
       {toasts.map((toast, index) => (
         <Toast 
           key={index} 
@@ -139,6 +142,7 @@ export function useToast() {
 
 // Export the toast function directly for easier imports
 export const toast = (props: ToastProps) => {
+  if (globalToast) return globalToast(props);
   // When used outside the context, log to console as fallback
   console.log(`${props.variant === 'destructive' ? '❌' : '✅'} ${props.title}: ${props.description}`);
 }; 
