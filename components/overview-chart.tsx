@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   LineChart, 
   Line, 
@@ -33,12 +34,15 @@ import {
   Zap,
   ArrowUpRight,
   ArrowDownRight,
-  Loader2
+  Loader2,
+  Route
 } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { financialService } from "@/services/financialService";
 import { toast } from "@/components/ui/use-toast";
+import { corridorOf } from "@/lib/fuel/consumption";
+import { routePerformance, type RouteReport } from "@/lib/financials/route-performance";
 
 interface OverviewChartProps {
   dateRange: DateRange | undefined;
@@ -111,6 +115,8 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
   const [revenueComposition, setRevenueComposition] = useState<any[]>([]);
   const [monthlyComparison, setMonthlyComparison] = useState<any[]>([]);
   const [kpiMetrics, setKpiMetrics] = useState<any>({});
+  const [routeReports, setRouteReports] = useState<RouteReport[]>([]);
+  const [corridor, setCorridor] = useState("");
 
   // Handle client-side mounting
   useEffect(() => {
@@ -134,14 +140,16 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
           vehicleData,
           compositionData,
           comparisonData,
-          kpiData
+          kpiData,
+          rangeReports
         ] = await Promise.all([
           financialService.getRevenueTrend(startDate, endDate),
           financialService.getExpenseBreakdown(startDate, endDate),
           financialService.getVehiclePerformance(startDate, endDate),
           financialService.getRevenueComposition(startDate, endDate),
           financialService.getMonthlyComparison(currentYear),
-          financialService.getKPIMetrics(startDate, endDate)
+          financialService.getKPIMetrics(startDate, endDate),
+          financialService.getDailyReportsInRange(startDate, endDate)
         ]);
 
         setRevenueTrend(trendData);
@@ -150,6 +158,14 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
         setRevenueComposition(compositionData);
         setMonthlyComparison(comparisonData);
         setKpiMetrics(kpiData);
+        setRouteReports(rangeReports.map((r) => ({
+          plate: r.vehicles?.plate || "Unknown",
+          corridor: r.route?.trim() ? corridorOf(r.route).corridor : null,
+          ticket: Number(r.ticket_revenue) || 0,
+          baggage: Number(r.baggage_revenue) || 0,
+          cargo: Number(r.cargo_revenue) || 0,
+          expenses: (r.daily_expenses || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0),
+        })));
 
       } catch (error) {
         console.error('Error fetching chart data:', error);
@@ -165,6 +181,9 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
 
     fetchChartData();
   }, [dateRange]);
+
+  const routes = useMemo(() => routePerformance(routeReports), [routeReports]);
+  const currentRoute = routes.find((r) => r.corridor === corridor) ?? routes[0];
 
   // Don't render until mounted on client
   if (!isMounted) {
@@ -209,7 +228,7 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
       
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="revenue-trend" className="flex items-center gap-1">
               <TrendingUp className="h-4 w-4" />
               <span className="hidden sm:inline">Trends</span>
@@ -221,6 +240,10 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
             <TabsTrigger value="vehicle-performance" className="flex items-center gap-1">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Vehicles</span>
+            </TabsTrigger>
+            <TabsTrigger value="routes" className="flex items-center gap-1">
+              <Route className="h-4 w-4" />
+              <span className="hidden sm:inline">Routes</span>
             </TabsTrigger>
             <TabsTrigger value="revenue-composition" className="flex items-center gap-1">
               <Zap className="h-4 w-4" />
@@ -379,6 +402,99 @@ export function OverviewChart({ dateRange }: OverviewChartProps) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </TabsContent>
+
+          {/* Route Comparison: vehicles on one corridor, revenue split by type */}
+          <TabsContent value="routes" className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h3 className="text-lg font-medium">Route Performance</h3>
+              {routes.length > 0 && (
+                <Select value={currentRoute?.corridor} onValueChange={setCorridor}>
+                  <SelectTrigger className="w-full sm:w-[260px] h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {routes.map((r) => (
+                      <SelectItem key={r.corridor} value={r.corridor}>{r.corridor}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            {!currentRoute ? (
+              <div className="h-[200px] flex items-center justify-center text-sm text-gray-500">
+                No trips with a route in the selected period.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    { label: "Revenue", value: formatCurrency(currentRoute.total.revenue), sub: `${currentRoute.total.trips} trips · ${formatCurrency(currentRoute.total.revenuePerTrip)} / trip` },
+                    { label: "Expenses", value: formatCurrency(currentRoute.total.expenses), sub: `${currentRoute.vehicles.length} vehicles` },
+                    { label: "Net Profit", value: formatCurrency(currentRoute.total.net), sub: `Margin ${formatPercentage(currentRoute.total.revenue ? (currentRoute.total.net / currentRoute.total.revenue) * 100 : 0)}` },
+                    {
+                      label: "Revenue Breakdown",
+                      value: formatPercentage(currentRoute.total.revenue ? (currentRoute.total.ticket / currentRoute.total.revenue) * 100 : 0) + " tickets",
+                      sub: `Baggage ${formatCurrency(currentRoute.total.baggage)} · Cargo ${formatCurrency(currentRoute.total.cargo)}`,
+                    },
+                  ].map((s) => (
+                    <div key={s.label} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="text-xs text-gray-500">{s.label}</div>
+                      <div className="font-semibold">{s.value}</div>
+                      <div className="text-xs text-gray-500">{s.sub}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="h-[400px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={currentRoute.vehicles} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} angle={-45} textAnchor="end" height={60} />
+                      <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatCurrency} />
+                      <Tooltip content={<CustomTooltip formatter={formatCurrency} />} />
+                      <Legend verticalAlign="top" />
+                      <Bar dataKey="ticket" stackId="revenue" fill={COLORS.primary} name="Ticket" />
+                      <Bar dataKey="baggage" stackId="revenue" fill={COLORS.teal} name="Baggage" />
+                      <Bar dataKey="cargo" stackId="revenue" fill={COLORS.accent} name="Cargo" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="expenses" fill={COLORS.danger} name="Expenses" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="net" fill={COLORS.secondary} name="Net Profit" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[820px] text-sm">
+                    <thead>
+                      <tr className="border-b text-gray-600">
+                        <th className="px-3 py-2 text-left font-medium">Vehicle</th>
+                        <th className="px-3 py-2 text-right font-medium">Trips</th>
+                        <th className="px-3 py-2 text-right font-medium">Ticket</th>
+                        <th className="px-3 py-2 text-right font-medium">Baggage</th>
+                        <th className="px-3 py-2 text-right font-medium">Cargo</th>
+                        <th className="px-3 py-2 text-right font-medium">Revenue</th>
+                        <th className="px-3 py-2 text-right font-medium">Revenue / Trip</th>
+                        <th className="px-3 py-2 text-right font-medium">Expenses</th>
+                        <th className="px-3 py-2 text-right font-medium">Net Profit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...currentRoute.vehicles, { ...currentRoute.total, name: "Total" }].map((v) => (
+                        <tr key={v.name} className={`border-b ${v.name === "Total" ? "font-semibold bg-gray-50" : "hover:bg-gray-50"}`}>
+                          <td className="px-3 py-2">{v.name}</td>
+                          <td className="px-3 py-2 text-right">{v.trips}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(v.ticket)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(v.baggage)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(v.cargo)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(v.revenue)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(v.revenuePerTrip)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(v.expenses)}</td>
+                          <td className={`px-3 py-2 text-right ${v.net < 0 ? "text-red-600" : ""}`}>{formatCurrency(v.net)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </TabsContent>
 
           {/* Revenue Composition Chart */}

@@ -201,6 +201,37 @@ export const financialService = {
   },
 
   /**
+   * Daily reports in a date range with revenue, route and expense amounts only.
+   * Pages through results: PostgREST caps each response at 1,000 rows.
+   */
+  async getDailyReportsInRange(startDate: string, endDate: string): Promise<{
+    route: string | null;
+    ticket_revenue: number;
+    baggage_revenue: number;
+    cargo_revenue: number;
+    vehicles: { plate: string } | null;
+    daily_expenses: { amount: number }[];
+  }[]> {
+    const PAGE = 1000;
+    const rows: any[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from('daily_reports')
+        .select('id, route, ticket_revenue, baggage_revenue, cargo_revenue, vehicles ( plate ), daily_expenses ( amount )')
+        .gte('report_date', startDate)
+        .lte('report_date', endDate)
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error('Error fetching daily reports in range:', error);
+        throw error;
+      }
+      rows.push(...(data || []));
+      if (!data || data.length < PAGE) return rows;
+    }
+  },
+
+  /**
    * Creates a new daily report.
    * @param reportData - The data for the new report.
    */
