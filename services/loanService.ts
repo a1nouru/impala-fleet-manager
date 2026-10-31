@@ -21,6 +21,8 @@ export interface Loan {
   repayment_date: string | null
   slip_url: string | null
   slip_name: string | null
+  document_url: string | null
+  document_name: string | null
   notes: string | null
   created_by: string | null
   created_at: string
@@ -81,19 +83,47 @@ export const loanService = {
     return (data || []) as Loan[]
   },
 
-  createLoan: async (input: LoanInput, createdBy: string): Promise<Loan> => {
+  createLoan: async (
+    input: LoanInput,
+    createdBy: string,
+    documentFile?: File | null
+  ): Promise<Loan> => {
+    const doc = documentFile ? await uploadSlip(documentFile) : null
     const { data, error } = await supabaseClient
       .from('loans')
-      .insert({ ...input, created_by: createdBy })
+      .insert({
+        ...input,
+        created_by: createdBy,
+        ...(doc && { document_url: doc.url, document_name: doc.name }),
+      })
       .select()
       .single()
-    if (error) throw error
+    if (error) {
+      if (doc) await supabaseClient.storage.from(BUCKET).remove([doc.path])
+      throw error
+    }
     return data as Loan
   },
 
-  updateLoan: async (id: string, patch: Partial<LoanInput>): Promise<void> => {
-    const { error } = await supabaseClient.from('loans').update(patch).eq('id', id)
-    if (error) throw error
+  /** Update loan details; a new supporting document replaces the old one. */
+  updateLoan: async (
+    loan: Loan,
+    patch: Partial<LoanInput>,
+    documentFile?: File | null
+  ): Promise<void> => {
+    const doc = documentFile ? await uploadSlip(documentFile) : null
+    const { error } = await supabaseClient
+      .from('loans')
+      .update({ ...patch, ...(doc && { document_url: doc.url, document_name: doc.name }) })
+      .eq('id', loan.id)
+    if (error) {
+      if (doc) await supabaseClient.storage.from(BUCKET).remove([doc.path])
+      throw error
+    }
+    if (doc && loan.document_url) {
+      const oldPath = storagePathFromUrl(loan.document_url)
+      if (oldPath) await supabaseClient.storage.from(BUCKET).remove([oldPath])
+    }
   },
 
   /** Close a loan with the bank slip that confirms repayment. */
@@ -156,9 +186,9 @@ export const loanService = {
   deleteLoan: async (loan: Loan): Promise<void> => {
     const { error } = await supabaseClient.from('loans').delete().eq('id', loan.id)
     if (error) throw error
-    if (loan.slip_url) {
-      const path = storagePathFromUrl(loan.slip_url)
-      if (path) await supabaseClient.storage.from(BUCKET).remove([path])
-    }
+    const paths = [loan.slip_url, loan.document_url]
+      .map((u) => (u ? storagePathFromUrl(u) : null))
+      .filter((p): p is string => !!p)
+    if (paths.length) await supabaseClient.storage.from(BUCKET).remove(paths)
   },
 }

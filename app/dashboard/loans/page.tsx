@@ -60,6 +60,7 @@ import { toast } from "@/components/ui/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/context/AuthContext";
 import { loanService, Loan, LOAN_ACCOUNTS } from "@/services/loanService";
+import { openStoredFile } from "@/lib/storage-url";
 
 // Impala issues loans from a single company account, so the account selector
 // stays off here (Royal Express turns it on in its copy of this page).
@@ -113,6 +114,7 @@ export default function LoansPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [form, setForm] = useState(emptyForm());
+  const [formDocument, setFormDocument] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [closeTarget, setCloseTarget] = useState<Loan | null>(null);
@@ -187,6 +189,7 @@ export default function LoansPage() {
   const openCreate = () => {
     setEditingLoan(null);
     setForm(emptyForm());
+    setFormDocument(null);
     setFormOpen(true);
   };
 
@@ -202,6 +205,7 @@ export default function LoansPage() {
       due_date: loan.due_date || "",
       notes: loan.notes || "",
     });
+    setFormDocument(null);
     setFormOpen(true);
   };
 
@@ -244,13 +248,13 @@ export default function LoansPage() {
       };
 
       if (editingLoan) {
-        await loanService.updateLoan(editingLoan.id, payload);
+        await loanService.updateLoan(editingLoan, payload, formDocument);
         toast({
           title: t("loans.messages.updated", "Loan updated"),
           description: t("loans.messages.updatedDesc", "The loan details were saved."),
         });
       } else {
-        await loanService.createLoan(payload, user?.email || "");
+        await loanService.createLoan(payload, user?.email || "", formDocument);
         toast({
           title: t("loans.messages.created", "Loan recorded"),
           description: t("loans.messages.createdDesc", "The loan was added to the register."),
@@ -606,6 +610,16 @@ export default function LoansPage() {
                             {[loan.borrower_contact, loan.purpose].filter(Boolean).join(" · ")}
                           </div>
                         )}
+                        {loan.document_url && (
+                          <button
+                            type="button"
+                            onClick={() => openStoredFile(loan.document_url)}
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                          >
+                            <Paperclip className="h-3 w-3" />
+                            {t("loans.table.viewDocument", "Supporting document")}
+                          </button>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(Number(loan.amount))}
@@ -644,15 +658,14 @@ export default function LoansPage() {
                       </TableCell>
                       <TableCell>
                         {loan.slip_url ? (
-                          <a
-                            href={loan.slip_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => openStoredFile(loan.slip_url)}
                             className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
                           >
                             <Paperclip className="h-3.5 w-3.5" />
                             {t("loans.table.viewSlip", "View")}
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
@@ -817,6 +830,32 @@ export default function LoansPage() {
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="loan-document">
+                {t("loans.form.document", "Supporting document")}
+              </Label>
+              <Input
+                id="loan-document"
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setFormDocument(e.target.files?.[0] || null)}
+              />
+              {editingLoan?.document_url && !formDocument && (
+                <p className="text-xs text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => openStoredFile(editingLoan.document_url)}
+                    className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+                  >
+                    <Paperclip className="h-3 w-3" />
+                    {editingLoan.document_name ||
+                      t("loans.form.documentOnFile", "Document on file")}
+                  </button>{" "}
+                  {t("loans.form.documentReplaceHint", "— upload a new file to replace it.")}
+                </p>
+              )}
+            </div>
           </div>
 
           <DialogFooter>
@@ -925,7 +964,7 @@ export default function LoansPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t("loans.delete.title", "Delete this loan?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("loans.delete.description", "This removes the loan and its bank slip permanently.")}
+              {t("loans.delete.description", "This removes the loan and its attached files permanently.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
