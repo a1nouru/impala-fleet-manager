@@ -24,6 +24,10 @@ export default function HRLayout({
       name: "Payroll",
       href: "/dashboard/hr/payroll",
     },
+    {
+      name: "Driver Records",
+      href: "/dashboard/hr/drivers",
+    },
   ];
 
   return (

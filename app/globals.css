@@ -21,6 +21,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-chart-label: var(--chart-label);
+  --color-chart-tooltip-background: var(--chart-tooltip-background);
+  --color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --color-chart-tooltip-muted: var(--chart-tooltip-muted);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -45,6 +49,21 @@
 
 :root {
   --radius: 0.625rem;
+  --chart-background: #ffffff;
+  --chart-foreground: #18181b;
+  --chart-foreground-muted: #71717a;
+  --chart-line-primary: #18181b;
+  --chart-line-secondary: #a1a1aa;
+  --chart-crosshair: #a1a1aa;
+  --chart-grid: #ececee;
+  --chart-brush-border: var(--chart-grid);
+  --chart-tooltip-background: oklch(0.21 0.006 285.885 / 0.94);
+  --chart-tooltip-foreground: #fafafa;
+  --chart-tooltip-muted: #a1a1aa;
+  --chart-marker-background: #ffffff;
+  --chart-marker-border: #d4d4d8;
+  --chart-marker-foreground: #18181b;
+  --chart-label: #71717a;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

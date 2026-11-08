@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/client';
 
+import { ESTIMATE_WINDOW_DAYS, type ReportInput, type MaintenanceInput, type DamageInput } from '@/lib/drivers/score';
+
 const supabase = createClient();
+
+export type MaintenanceRow = MaintenanceInput & { id: string; description: string | null; vehicles: { plate: string } | null };
 
 // Types
 export interface Employee {
@@ -551,6 +555,39 @@ class HRService {
       console.error('Unexpected error in calculateMonthlyDeduction:', err);
       return 0;
     }
+  }
+
+  /** Raw inputs for the driver scorecard. Maintenance is widened so report drivers can be estimated near the edges. */
+  async getDriverRecordInputs(from: string, to: string): Promise<{
+    drivers: Employee[];
+    reports: ReportInput[];
+    maintenance: MaintenanceRow[];
+    damages: DamageInput[];
+  }> {
+    const pad = (iso: string, days: number) =>
+      new Date(Date.parse(iso) + days * 86_400_000).toISOString().slice(0, 10);
+    const all = async <T>(query: (lo: number, hi: number) => PromiseLike<{ data: unknown[] | null; error: unknown }>) => {
+      const rows: T[] = [];
+      for (let lo = 0; ; lo += 1000) {
+        const { data, error } = await query(lo, lo + 999);
+        if (error) throw error;
+        rows.push(...((data ?? []) as T[]));
+        if (!data || data.length < 1000) return rows;
+      }
+    };
+    const [drivers, reports, maintenance, damages] = await Promise.all([
+      all<Employee>((lo, hi) => supabase.from('employees').select('*').order('id').range(lo, hi)),
+      all<ReportInput>((lo, hi) => supabase.from('daily_reports')
+        .select('vehicle_id, report_date, status, driver_id, ticket_revenue, baggage_revenue, cargo_revenue')
+        .gte('report_date', from).lte('report_date', to).order('id').range(lo, hi)),
+      all<MaintenanceRow>((lo, hi) => supabase.from('maintenance_records')
+        .select('id, vehicle_id, date, driver_id, cost, parts, description, vehicles ( plate )')
+        .gte('date', pad(from, -ESTIMATE_WINDOW_DAYS)).lte('date', pad(to, ESTIMATE_WINDOW_DAYS)).order('id').range(lo, hi)),
+      all<DamageInput>((lo, hi) => supabase.from('vehicle_damages')
+        .select('employee_id, damage_date, total_damage_cost')
+        .gte('damage_date', from).lte('damage_date', to).order('id').range(lo, hi)),
+    ]);
+    return { drivers, reports, maintenance, damages };
   }
 }
 

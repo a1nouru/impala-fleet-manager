@@ -45,6 +45,7 @@ import { partService } from "@/services/partService"
 import { nilo, type NiloMe, type StockRow } from "@/lib/nilo/client"
 import { neighbourReadings, validateOdometer } from "@/lib/maintenance/odometer"
 import { hrService } from "@/services/hrService"
+import { DriverPicker } from "@/components/driver-picker"
 import type { Employee } from "@/services/hrService"
 import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -299,8 +300,6 @@ function MaintenanceContent() {
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [driverFilter, setDriverFilter] = useState<string>("all");
-  const [driverSearchOpen, setDriverSearchOpen] = useState(false);
-  const [driverSearch, setDriverSearch] = useState("");
   const [busParts, setBusParts] = useState<PartCategory[]>([]);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [partsSearchTerm, setPartsSearchTerm] = useState('');
@@ -817,8 +816,6 @@ function MaintenanceContent() {
 
     // Reset custom parts
     setCustomParts(customParts.map(item => ({ ...item, value: '', showInput: false })));
-    setDriverSearch("");
-    setDriverSearchOpen(false);
 
     // Set selected parts
     // "Name (Qty: n)" strings are stock parts; anything else (custom parts) is kept as-is.
@@ -1012,8 +1009,6 @@ function MaintenanceContent() {
     setEditHeld({});
     setEditKeptParts([]);
     setEditLegacy(null);
-    setDriverSearch("");
-    setDriverSearchOpen(false);
   };
   
   // Handle dialog open state change
@@ -1231,55 +1226,12 @@ function MaintenanceContent() {
                   <Label htmlFor="driver" className="flex items-center text-sm">
                     Driver <span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <Popover open={driverSearchOpen} onOpenChange={setDriverSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={`w-full justify-between font-normal ${formErrors.driver ? "border-red-500" : ""}`}
-                      >
-                        {newRecord.driver
-                          ? employees.find(e => e.id === newRecord.driver)?.nome ?? "Select a driver"
-                          : "Select a driver"}
-                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-2" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                      <Input
-                        placeholder="Search drivers..."
-                        value={driverSearch}
-                        onChange={e => setDriverSearch(e.target.value)}
-                        className="mb-2 h-8"
-                      />
-                      {(() => {
-                        const filteredEmployees = employees.filter(e =>
-                          e.nome.toLowerCase().includes(driverSearch.toLowerCase())
-                        );
-                        return (
-                          <div className="max-h-48 overflow-y-auto space-y-1">
-                            {filteredEmployees.map(e => (
-                              <div
-                                key={e.id}
-                                className={`px-2 py-1.5 rounded text-sm cursor-pointer hover:bg-accent ${
-                                  newRecord.driver === e.id ? "bg-accent font-medium" : ""
-                                }`}
-                                onClick={() => {
-                                  handleSelectChange("driver", e.id);
-                                  setDriverSearchOpen(false);
-                                  setDriverSearch("");
-                                }}
-                              >
-                                {e.nome}
-                              </div>
-                            ))}
-                            {filteredEmployees.length === 0 && (
-                              <p className="text-xs text-muted-foreground px-2 py-1">No drivers found</p>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </PopoverContent>
-                  </Popover>
+                  <DriverPicker
+                    employees={employees}
+                    value={newRecord.driver}
+                    onChange={(id) => handleSelectChange("driver", id)}
+                    invalid={!!formErrors.driver}
+                  />
                   {formErrors.driver && (
                     <p className="text-xs text-red-500">Driver is required</p>
                   )}

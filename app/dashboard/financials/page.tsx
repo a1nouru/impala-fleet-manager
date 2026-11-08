@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, FileText, CheckCircle, Clock, Edit, Trash2, PlusCircle, Download, ChevronLeft, ChevronRight, CalendarIcon, Filter, AlertTriangle, Upload, X, Eye, ChevronDown, Shield, ShieldCheck } from "lucide-react";
 import { financialService, DailyReport, DailyExpense, DateAudit, BankDeposit } from "@/services/financialService";
 import { vehicleService } from "@/services/vehicleService";
+import { hrService, type Employee } from "@/services/hrService";
+import { DriverPicker } from "@/components/driver-picker";
 import { toast } from "@/components/ui/use-toast";
 import {
   Table,
@@ -205,11 +207,17 @@ const exportReportsToExcel = (data: DailyReport[], filename: string) => {
   document.body.removeChild(link);
 };
 
+
+// Only operational days have a driver; non-operational reports never carry one.
+const reportDriverId = (r: { status: string; driver_id: string }) =>
+  r.status === "Operational" && r.driver_id ? r.driver_id : null;
+
 export default function AllDailyReportsPage() {
   const { t } = useTranslation('financials');
   const { user } = useAuth();
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [dateAudits, setDateAudits] = useState<DateAudit[]>([]);
   // Bank deposits (with slip verification verdicts) so each date row can show
   // whether its money was confirmed banked.
@@ -223,6 +231,7 @@ export default function AllDailyReportsPage() {
   const [editingReport, setEditingReport] = useState<DailyReport | null>(null);
   const [editedReportData, setEditedReportData] = useState<{
     vehicle_id: string;
+    driver_id: string;
     report_date: string;
     route: string;
     status: 'Operational' | 'Non-Operational';
@@ -232,6 +241,7 @@ export default function AllDailyReportsPage() {
     cargo_revenue: number;
   }>({
     vehicle_id: "",
+    driver_id: "",
     report_date: "",
     route: "",
     status: "Operational",
@@ -291,6 +301,7 @@ export default function AllDailyReportsPage() {
   // New report form state
   const [newReport, setNewReport] = useState<{
     vehicle_id: string;
+    driver_id: string;
     report_date: string;
     route: string;
     status: 'Operational' | 'Non-Operational';
@@ -300,6 +311,7 @@ export default function AllDailyReportsPage() {
     cargo_revenue: number;
   }>({
     vehicle_id: "",
+    driver_id: "",
     report_date: format(new Date(), "yyyy-MM-dd"),
     route: "",
     status: "Operational",
@@ -325,12 +337,14 @@ export default function AllDailyReportsPage() {
   const fetchReports = async () => {
     try {
       setIsLoading(true);
-      const [reportsData, vehiclesData, depositsData] = await Promise.all([
+      const [reportsData, vehiclesData, depositsData, employeesData] = await Promise.all([
         financialService.getDailyReports(),
         vehicleService.getVehicles(),
         financialService.getBankDeposits().catch(() => [] as BankDeposit[]),
+        hrService.getActiveEmployees(),
       ]);
       setReports(reportsData);
+      setEmployees(employeesData);
       setVehicles(vehiclesData || []);
       setDeposits(depositsData || []);
       
@@ -425,6 +439,7 @@ export default function AllDailyReportsPage() {
   const resetForm = () => {
     setNewReport({
       vehicle_id: "",
+      driver_id: "",
       report_date: format(new Date(), "yyyy-MM-dd"),
       route: "",
       status: "Operational",
@@ -436,10 +451,11 @@ export default function AllDailyReportsPage() {
   };
 
   const handleSubmit = async () => {
-    if (!newReport.vehicle_id || !newReport.report_date || !newReport.status) {
+    const driverMissing = newReport.status === "Operational" && !reportDriverId(newReport);
+    if (!newReport.vehicle_id || !newReport.report_date || !newReport.status || driverMissing) {
       toast({
         title: "Validation Error",
-        description: "Please fill out all required fields.",
+        description: driverMissing ? "Select the driver for this operational report." : "Please fill out all required fields.",
         variant: "destructive",
       });
       return;
@@ -450,6 +466,7 @@ export default function AllDailyReportsPage() {
       // Only send fields that actually exist in the daily_reports table
       const reportData = {
         vehicle_id: newReport.vehicle_id,
+        driver_id: reportDriverId(newReport),
         report_date: newReport.report_date,
         route: newReport.route || null, // Send null if empty string
         status: newReport.status,
@@ -482,6 +499,7 @@ export default function AllDailyReportsPage() {
     setEditingReport(report);
     setEditedReportData({
       vehicle_id: report.vehicle_id,
+      driver_id: report.driver_id ?? "",
       report_date: report.report_date,
       route: report.route || "",
       status: report.status,
@@ -505,7 +523,7 @@ export default function AllDailyReportsPage() {
   const handleUpdateReport = async () => {
     if (!editingReport) return;
     try {
-        await financialService.updateDailyReport(editingReport.id, editedReportData);
+        await financialService.updateDailyReport(editingReport.id, { ...editedReportData, driver_id: reportDriverId(editedReportData) });
         toast({ title: "Success", description: "Report updated successfully." });
         setIsEditDialogOpen(false);
         fetchReports(); // Refresh data
@@ -1114,6 +1132,12 @@ export default function AllDailyReportsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {newReport.status === "Operational" && (
+                <div className="space-y-2">
+                  <Label>Driver <span className="text-red-500">*</span></Label>
+                  <DriverPicker employees={employees} value={newReport.driver_id} onChange={(id) => handleSelectChange("driver_id", id)} />
+                </div>
+              )}
               {newReport.status === "Non-Operational" && (
                 <div className="space-y-2">
                   <Label htmlFor="non_operational_reason">{t("form.reasonForNonOperation")}</Label>
@@ -1924,6 +1948,12 @@ export default function AllDailyReportsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {editedReportData.status === "Operational" && (
+                    <div className="space-y-2">
+                      <Label>Driver</Label>
+                      <DriverPicker employees={employees} value={editedReportData.driver_id} onChange={(id) => handleReportSelectChange("driver_id", id)} />
+                    </div>
+                  )}
                                   {editedReportData.status === "Non-Operational" && (
                     <div className="space-y-2">
                       <Label>{t("form.reasonForNonOperation")}</Label>

@@ -8,6 +8,7 @@ const supabase = createClient();
 export interface DailyReport {
   id: string;
   vehicle_id: string;
+  driver_id?: string | null;
   report_date: string;
   route?: string;
   status: 'Operational' | 'Non-Operational';
@@ -237,6 +238,7 @@ export const financialService = {
    */
   async createDailyReport(reportData: {
     vehicle_id: string;
+    driver_id: string | null;
     report_date: string;
     route?: string | null;
     status: 'Operational' | 'Non-Operational';
