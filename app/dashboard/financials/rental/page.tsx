@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { openStoredFile } from "@/lib/storage-url";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PlusCircle, Edit, CalendarIcon, Filter, Car, Receipt, Eye, Trash2, ChevronDown, ChevronRight, DollarSign } from "lucide-react";
+import { Loader2, PlusCircle, Edit, CalendarIcon, FileText, Filter, Car, Receipt, Eye, Trash2, ChevronDown, ChevronRight, DollarSign } from "lucide-react";
 import { rentalService } from "@/services/rentalService";
 import { vehicleService } from "@/services/vehicleService";
 import { toast } from "@/components/ui/use-toast";
@@ -59,6 +59,26 @@ import {
 } from "@/components/ui/tooltip";
 import type { VehicleRental } from "@/services/financialService";
 import { CreateRentalDialog } from "@/components/create-rental-dialog";
+import { GenerateInvoiceDialog } from "@/components/rental-invoice/generate-invoice-dialog";
+import { rentalInvoiceService, type InvoiceSummary } from "@/services/rentalInvoiceService";
+import { invoiceLabel, paymentState } from "@/lib/rental-invoice/format";
+import Link from "next/link";
+
+// Invoice number + paid state, shown under the client for rentals created from an invoice.
+function InvoiceBadge({ invoice, rental, t }: { invoice?: InvoiceSummary; rental: VehicleRental; t: (k: string, d?: string) => string }) {
+  if (!invoice) return null;
+  const paid = (rental.rental_receipts || []).reduce((s, r) => s + Number(r.amount || 0), 0);
+  const state = paymentState(Number(invoice.total), paid);
+  const cls = state === "paid" ? "bg-emerald-50 text-emerald-700" : state === "partial" ? "bg-amber-50 text-amber-800" : "bg-rose-50 text-rose-700";
+  return (
+    <Link href={`/dashboard/financials/rental/invoices/${invoice.id}`} className="mt-1 inline-flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap text-xs hover:underline">
+      <span className="font-mono text-gray-600">{invoiceLabel(invoice.series, invoice.number)}</span>
+      <span className={`rounded-full px-2 py-0.5 font-medium ${cls}`}>
+        {state === "paid" ? t("rentalInvoice.paid", "Paid") : state === "partial" ? t("rentalInvoice.partial", "Partly paid") : t("rentalInvoice.unpaid", "Not paid")}
+      </span>
+    </Link>
+  );
+}
 
 // Helper function to calculate total expenses
 const calculateTotalExpenses = (rental: VehicleRental): number => {
@@ -124,6 +144,8 @@ export default function RentalPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoices, setInvoices] = useState<Record<string, InvoiceSummary>>({});
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [rentalToDelete, setRentalToDelete] = useState<VehicleRental | null>(null);
   const [selectedRental, setSelectedRental] = useState<VehicleRental | null>(null);
@@ -159,10 +181,12 @@ export default function RentalPage() {
       console.log('Fetching rentals data...');
       
       // Fetch rentals and vehicles in parallel
-      const [rentalsData, vehiclesData] = await Promise.all([
+      const [rentalsData, vehiclesData, invoiceData] = await Promise.all([
         rentalService.getVehicleRentals(),
-        vehicleService.getVehicles()
+        vehicleService.getVehicles(),
+        rentalInvoiceService.summariesByRental().catch(() => ({})),
       ]);
+      setInvoices(invoiceData);
       
       console.log('Fetched rentals data:', rentalsData);
       setRentals(rentalsData);
@@ -331,10 +355,16 @@ export default function RentalPage() {
           <h2 className="text-2xl font-semibold">{t("rental.title")}</h2>
           <p className="text-gray-600">{t("rental.subtitle")}</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="flex items-center gap-2">
-          <PlusCircle className="h-4 w-4" />
-          {t("rental.logNewRental")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setInvoiceOpen(true)} className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            {t("rentalInvoice.generate", "Generate invoice")}
+          </Button>
+          <Button onClick={() => setDialogOpen(true)} className="flex items-center gap-2">
+            <PlusCircle className="h-4 w-4" />
+            {t("rental.logNewRental")}
+          </Button>
+        </div>
       </div>
 
       {/* Date Filter */}
@@ -523,6 +553,7 @@ export default function RentalPage() {
                       <TableCell>
                         <div className="font-medium">{rental.client_name || "N/A"}</div>
                         <div className="text-sm text-gray-500">{rental.client_contact}</div>
+                        <InvoiceBadge invoice={invoices[rental.id]} rental={rental} t={t} />
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -743,6 +774,7 @@ export default function RentalPage() {
       </Dialog>
 
       {/* Create Rental Dialog */}
+      <GenerateInvoiceDialog open={invoiceOpen} onOpenChange={o => { setInvoiceOpen(o); if (!o) fetchPageData(); }} />
       <CreateRentalDialog 
         open={dialogOpen} 
         onOpenChange={setDialogOpen}
