@@ -14,10 +14,12 @@ export const invoiceLabel = (series: string, number: number) => `${series}/${num
 
 const cents = (n: number) => Math.round(n * 100) / 100
 
-export function computeTotals(lines: Pick<InvoiceLine, 'qty' | 'unit_price'>[], ivaRate: number) {
+/** Same arithmetic as create_rental_invoice: IVA applies to the subtotal after the discount. */
+export function computeTotals(lines: Pick<InvoiceLine, 'qty' | 'unit_price'>[], ivaRate: number, discount = 0) {
   const subtotal = cents(lines.reduce((s, l) => s + cents(l.qty * l.unit_price), 0))
-  const iva = cents((subtotal * ivaRate) / 100)
-  return { subtotal, iva, total: cents(subtotal + iva) }
+  const base = cents(subtotal - discount)
+  const total = cents(base * (1 + ivaRate / 100))
+  return { subtotal, iva: cents(total - base), total }
 }
 
 export type PaymentState = 'paid' | 'partial' | 'unpaid'

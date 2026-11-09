@@ -25,13 +25,14 @@ export function GenerateInvoiceDialog({ open, onOpenChange }: { open: boolean; o
   const { t } = useTranslation("financials");
   const router = useRouter();
   const today = format(new Date(), "yyyy-MM-dd");
-  const [f, setF] = useState({ client_name: "", client_nif: "", client_address: "Luanda - Angola", client_contact: "", issue_date: today, due_date: today, rental_start_date: today, rental_end_date: today, notes: "" });
+  const [f, setF] = useState({ client_name: "", client_nif: "", client_address: "Luanda - Angola", client_contact: "", issue_date: today, due_date: today, rental_start_date: today, rental_end_date: today, notes: "", discount: "" });
   const [lines, setLines] = useState<Line[]>([blankLine()]);
   const [busy, setBusy] = useState(false);
 
   const parsed = lines.map(l => ({ code: l.code, description: l.description, unit: "Uni", qty: parseQty(l.qty), unit_price: parseKz(l.unit_price) }));
-  const totals = computeTotals(parsed, 0);
-  const valid = f.client_name.trim() && f.due_date >= f.issue_date && f.rental_end_date >= f.rental_start_date && parsed.length > 0 && parsed.every(l => l.qty > 0 && l.unit_price > 0);
+  const discount = parseKz(f.discount);
+  const totals = computeTotals(parsed, 0, discount);
+  const valid = f.client_name.trim() && f.due_date >= f.issue_date && f.rental_end_date >= f.rental_start_date && parsed.length > 0 && parsed.every(l => l.qty > 0 && l.unit_price > 0) && discount <= totals.subtotal;
   const setLine = (i: number, patch: Partial<Line>) => setLines(ls => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
 
   async function submit(e: FormEvent) {
@@ -39,11 +40,11 @@ export function GenerateInvoiceDialog({ open, onOpenChange }: { open: boolean; o
     if (!valid) return;
     setBusy(true);
     try {
-      const inv = await rentalInvoiceService.create({ ...f, series: seriesFor(COMPANY.seriesPrefix, f.issue_date), iva_rate: 0, lines: parsed });
+      const inv = await rentalInvoiceService.create({ ...f, discount, series: seriesFor(COMPANY.seriesPrefix, f.issue_date), iva_rate: 0, lines: parsed });
       toast({ title: t("rentalInvoice.created", "Invoice generated"), description: t("rentalInvoice.createdHint", "It is in the rental list as not paid until a payment receipt is attached.") });
       onOpenChange(false);
       setLines([blankLine()]);
-      setF(x => ({ ...x, client_name: "", client_nif: "", client_contact: "", notes: "" }));
+      setF(x => ({ ...x, client_name: "", client_nif: "", client_contact: "", notes: "", discount: "" }));
       router.push(`/dashboard/financials/rental/invoices/${inv.id}`);
     } catch (err) {
       toast({ title: t("messages.error", "Error"), description: (err as Error).message, variant: "destructive" });
@@ -104,9 +105,15 @@ export function GenerateInvoiceDialog({ open, onOpenChange }: { open: boolean; o
             <Textarea id="inv-notes" rows={2} value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Os bens/serviços foram colocados à disposição do adquirente na data do documento." />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
-            <span className="text-sm text-gray-500">{t("rentalInvoice.total", "Total (IVA 0%)")}</span>
-            <span className="text-xl font-semibold tabular-nums">{formatKz(totals.total)}</span>
+          <div className="grid items-end gap-3 sm:grid-cols-[220px_1fr]">
+            {field("discount", t("rentalInvoice.discount", "Discount (Kz, optional)"), { inputMode: "decimal", placeholder: "1.980.000", "aria-invalid": discount > totals.subtotal })}
+            <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
+              <span className="text-sm text-gray-500">{t("rentalInvoice.total", "Total (IVA 0%)")}</span>
+              <span className="text-right">
+                {discount > 0 && <span className="block text-xs tabular-nums text-gray-500">{formatKz(totals.subtotal)} − {formatKz(discount)}</span>}
+                <span className="text-xl font-semibold tabular-nums">{formatKz(totals.total)}</span>
+              </span>
+            </div>
           </div>
 
           <DialogFooter>

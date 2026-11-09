@@ -773,6 +773,7 @@
     "cheque": "Cheque",
     "other": "Other",
     "recordPayment": "Record payment",
-    "receiptAdded": "Payment recorded"
+    "receiptAdded": "Payment recorded",
+    "discount": "Discount (Kz, optional)"
   }
 }

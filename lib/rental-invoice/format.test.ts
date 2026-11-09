@@ -20,6 +20,12 @@ test('totals match the ENAPP sample', () => {
   assert.deepEqual(computeTotals([{ qty: 2, unit_price: 100.25 }], 14), { subtotal: 200.5, iva: 28.07, total: 228.57 })
 })
 
+test('discount comes off before IVA, like the ENAPP 2026/03 sample', () => {
+  const lines = [2850000, 2400000, 2850000, 2100000, 3000000].map(p => ({ qty: 1, unit_price: p }))
+  assert.deepEqual(computeTotals(lines, 0, 1980000), { subtotal: 13200000, iva: 0, total: 11220000 })
+  assert.deepEqual(computeTotals([{ qty: 1, unit_price: 1000 }], 14, 100), { subtotal: 1000, iva: 126, total: 1026 })
+})
+
 test('payment state from receipts', () => {
   assert.equal(paymentState(100, 0), 'unpaid')
   assert.equal(paymentState(100, 40), 'partial')

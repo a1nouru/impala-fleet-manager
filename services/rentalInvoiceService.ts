@@ -7,7 +7,7 @@ const supabase = createClient();
 export type NewInvoice = {
   series: string; issue_date: string; due_date: string; rental_start_date: string; rental_end_date: string
   client_name: string; client_nif: string; client_address: string; client_contact: string; notes: string
-  iva_rate: number; lines: InvoiceLine[]
+  discount: number; iva_rate: number; lines: InvoiceLine[]
 }
 export type InvoiceSummary = { id: string; rental_id: string; series: string; number: number; total: number; public_token: string }
 

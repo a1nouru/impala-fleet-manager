@@ -8,7 +8,7 @@ import { formatKz, invoiceLabel, paymentState } from "@/lib/rental-invoice/forma
 export type InvoiceDoc = {
   series: string; number: number; issue_date: string; due_date: string
   client_name: string; client_nif: string | null; client_address: string | null; notes: string | null
-  iva_rate: number; iva_exemption: string | null; subtotal: number; iva_amount: number; total: number
+  iva_rate: number; iva_exemption: string | null; subtotal: number; discount: number; iva_amount: number; total: number
   public_token: string; paid_amount: number; cancelled: boolean
   lines: { code: string | null; description: string; unit: string; qty: number; unit_price: number; line_total: number }[]
 }
@@ -58,10 +58,10 @@ export function InvoiceDocument({ d }: { d: InvoiceDoc }) {
       <header className="grid gap-6 border-b border-slate-200 pb-6 sm:grid-cols-[1fr_auto]">
         <div>
           {COMPANY.logo
-            ? <img src={COMPANY.logo} alt={COMPANY.logoAlt} className="h-10 w-auto" />
+            ? <><img src={COMPANY.logo} alt={COMPANY.logoAlt} className="h-10 w-auto" /><p className="mt-2.5 text-[12.5px] font-medium text-slate-900">{COMPANY.legalName}</p></>
             : <div className="text-[18px] font-semibold tracking-[-0.02em]">{COMPANY.legalName}</div>}
-          <p className="mt-2.5 text-[12.5px] font-medium text-slate-900">{COMPANY.legalName}</p>
-          <p className="mt-0.5 text-[12.5px] text-slate-500">{COMPANY.addressLines.join(" · ")}</p>
+          {COMPANY.addressLines.map(l => <p key={l} className="mt-0.5 text-[12.5px] text-slate-500">{l}</p>)}
+          {COMPANY.contacts.length > 0 && <p className="mt-0.5 text-[12.5px] text-slate-500">{COMPANY.contacts.join(" · ")}</p>}
           <p className="mt-0.5 text-[12.5px] text-slate-500">Contribuinte <span className="font-medium text-slate-900">{COMPANY.nif}</span></p>
         </div>
         <div className="sm:text-right">
@@ -123,6 +123,7 @@ export function InvoiceDocument({ d }: { d: InvoiceDoc }) {
         <div className="min-w-[250px] rounded-lg border border-slate-200 bg-slate-50 px-4 py-3.5">
           <dl className="mb-2.5 grid gap-1 border-b border-slate-200 pb-2.5 text-[12.5px]">
             <div className="flex justify-between gap-4"><dt className="text-slate-500">Incidência (S/IVA)</dt><dd className="font-medium tabular-nums">{formatKz(Number(d.subtotal))}</dd></div>
+            {Number(d.discount) > 0 && <div className="flex justify-between gap-4"><dt className="text-slate-500">Desconto</dt><dd className="font-medium tabular-nums">−{formatKz(Number(d.discount))}</dd></div>}
             <div className="flex justify-between gap-4"><dt className="text-slate-500">IVA {rate}%{rate === 0 && " (1)"}</dt><dd className="font-medium tabular-nums">{formatKz(Number(d.iva_amount))}</dd></div>
           </dl>
           <span className="mb-1 block text-[12px] text-slate-500">Total</span>

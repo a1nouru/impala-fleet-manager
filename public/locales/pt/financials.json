@@ -794,6 +794,7 @@
     "cheque": "Cheque",
     "other": "Outro",
     "recordPayment": "Registar pagamento",
-    "receiptAdded": "Pagamento registado"
+    "receiptAdded": "Pagamento registado",
+    "discount": "Desconto (Kz, opcional)"
   }
 }
