@@ -58,7 +58,7 @@ export function InvoiceDocument({ d }: { d: InvoiceDoc }) {
       <header className="grid gap-6 border-b border-slate-200 pb-6 sm:grid-cols-[1fr_auto]">
         <div>
           {COMPANY.logo
-            ? <><img src={COMPANY.logo} alt={COMPANY.logoAlt} className="h-10 w-auto" /><p className="mt-2.5 text-[12.5px] font-medium text-slate-900">{COMPANY.legalName}</p></>
+            ? <><img src={COMPANY.logo} alt={COMPANY.logoAlt} className="h-auto w-[180px]" /><p className="mt-2.5 text-[12.5px] font-medium text-slate-900">{COMPANY.legalName}</p></>
             : <div className="text-[18px] font-semibold tracking-[-0.02em]">{COMPANY.legalName}</div>}
           {COMPANY.addressLines.map(l => <p key={l} className="mt-0.5 text-[12.5px] text-slate-500">{l}</p>)}
           {COMPANY.contacts.length > 0 && <p className="mt-0.5 text-[12.5px] text-slate-500">{COMPANY.contacts.join(" · ")}</p>}
@@ -133,7 +133,7 @@ export function InvoiceDocument({ d }: { d: InvoiceDoc }) {
 
       <div className="mt-7 flex flex-col gap-1 border-t border-slate-200 pt-3.5 text-[11.5px] text-slate-500 sm:flex-row sm:justify-between sm:gap-4">
         <span>{rate === 0 && <>(1) {d.iva_exemption}. </>}Este documento não serve de fatura.</span>
-        <span>{COMPANY.legalName} · NIF {COMPANY.nif}</span>
+        <span className="sm:whitespace-nowrap">{COMPANY.legalName} · NIF {COMPANY.nif}</span>
       </div>
     </article>
   );

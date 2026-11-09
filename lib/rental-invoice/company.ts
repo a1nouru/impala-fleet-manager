@@ -1,11 +1,10 @@
 /** Issuer details printed on every Fatura Pró-Forma. Differs per app (Royal Express / Impala). */
-// TODO(impala-details): NIF and logo file still to come.
 export const COMPANY = {
-  legalName: 'IMPALA EXPRESS',
+  legalName: 'IMPALA EXPRESS-TRANSPORTES LDA',
   addressLines: ['28G3+HX4, Via Expresso', 'Belas, Angola'],
   contacts: ['+244 924 231 952', 'impalaexpress88@gmail.com'],
-  nif: 'N/A',
-  logo: null as string | null,
-  logoAlt: 'Impala Express',
+  nif: '5000468266',
+  logo: '/invoice-logo.png' as string | null,
+  logoAlt: 'Impala Express Transportes, Lda',
   seriesPrefix: 'PP 01P',
 }
