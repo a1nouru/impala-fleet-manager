@@ -16,19 +16,26 @@ export const maintenanceService = {
   getMaintenanceRecords: async () => {
     try {
       console.log('Fetching maintenance records from Supabase...');
-      const { data, error } = await supabaseClient
-        .from('maintenance_records')
-        .select(`
-          *,
-          vehicles:vehicle_id(plate, model),
-          technicians:technician_id(name),
-          employees:driver_id(id, nome)
-        `)
-        .order('date', { ascending: false });
-      
-      if (error) {
-        console.error('Error in getMaintenanceRecords:', error);
-        throw error;
+      // Supabase returns at most 1000 rows per request; page until all records are loaded.
+      const data = [];
+      for (let from = 0; ; from += 1000) {
+        const { data: page, error } = await supabaseClient
+          .from('maintenance_records')
+          .select(`
+            *,
+            vehicles:vehicle_id(plate, model),
+            technicians:technician_id(name),
+            employees:driver_id(id, nome)
+          `)
+          .order('date', { ascending: false })
+          .order('id', { ascending: true })
+          .range(from, from + 999);
+        if (error) {
+          console.error('Error in getMaintenanceRecords:', error);
+          throw error;
+        }
+        data.push(...page);
+        if (page.length < 1000) break;
       }
       
       // Log the first record to see what's coming back from the database

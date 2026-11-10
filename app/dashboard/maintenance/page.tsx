@@ -1543,7 +1543,7 @@ function MaintenanceContent() {
       ) : (
         <>
           {/* Current Month Cost and Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-4 md:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
             <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-emerald-900">
@@ -1555,20 +1555,6 @@ function MaintenanceContent() {
                 <div className="text-xl md:text-2xl font-bold text-emerald-900">{currentMonthCost.toLocaleString()} Kz</div>
                 <p className="text-xs text-emerald-700">
                   {t("summary.totalExpensesFor")} {new Date().toLocaleString('default', { month: 'long' })} {new Date().getFullYear()}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {t("summary.totalRecords")}
-                </CardTitle>
-                <WrenchIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl md:text-2xl font-bold">{records.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {t("summary.lifetimeRecords")}
                 </p>
               </CardContent>
             </Card>
