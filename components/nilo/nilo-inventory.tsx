@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -43,7 +42,8 @@ type Invoice = {
 type Statement = {
   id: string;
   statement_no: string;
-  period: string;
+  period_start: string | null;
+  period_end: string;
   total: number;
   status: "issued" | "paid";
   payment_proof_path: string | null;
@@ -497,12 +497,9 @@ function CameraScanner({ onCode }: { onCode: (code: string) => void }) {
 function StatementsTab({ me }: { me: NiloMe | null }) {
   const { t } = useTranslation("nilo");
   const [rows, setRows] = useState<Statement[] | null>(null);
-  const [period, setPeriod] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    return d.toISOString().slice(0, 7);
-  });
   const [busy, setBusy] = useState<string | null>(null);
+  // Bumped after issuing, so the running statement reloads (it then starts from the new one).
+  const [issuedCount, setIssuedCount] = useState(0);
 
   const load = useCallback(() => nilo<Statement[]>("statements").then(setRows, fail), []);
   useEffect(() => {
@@ -535,25 +532,33 @@ function StatementsTab({ me }: { me: NiloMe | null }) {
     <Card>
       <CardContent className="space-y-4 px-4 sm:px-6">
         {me?.isApprover && (
-          <div className="grid gap-2 sm:flex sm:items-end">
-            <div className="space-y-1.5">
-              <Label htmlFor="nilo-period">{t("statements.month")}</Label>
-              <Input id="nilo-period" className={tap} type="month" value={period} onChange={(e) => setPeriod(e.target.value)} />
-            </div>
-            <Button className={tap} disabled={busy === "issue"} onClick={() => run("issue", () => nilo("statement", { json: { period } }))}>
-              {t("statements.issue")}
+          <div className="grid gap-2 sm:flex sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">{t("statements.issueHint")}</p>
+            <Button
+              className={tap}
+              disabled={busy === "issue"}
+              onClick={() =>
+                run("issue", async () => {
+                  await nilo("statement", { json: {} });
+                  setIssuedCount((n) => n + 1);
+                })
+              }
+            >
+              {busy === "issue" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("statements.issueNow")}
             </Button>
           </div>
         )}
-        <RunningStatement />
+        <RunningStatement key={issuedCount} />
         {rows.length === 0 && <p className="text-sm text-muted-foreground">{t("statements.empty")}</p>}
         <Table className={stack.table}>
           <TableBody className={stack.table}>
             {rows.map((s) => (
               <TableRow key={s.id} className={stack.row}>
                 <TableCell className={`font-mono ${stack.title}`}>{s.statement_no}</TableCell>
-                <TableCell data-label={t("statements.month")} className={stack.cell}>
-                  {s.period.slice(0, 7)}
+                <TableCell data-label={t("statements.period")} className={stack.cell}>
+                  {s.period_start ? new Date(s.period_start).toLocaleDateString("pt-AO") : "…"} –{" "}
+                  {new Date(s.period_end).toLocaleDateString("pt-AO")}
                 </TableCell>
                 <TableCell data-label={t("statements.amount")} className={`text-right tabular-nums ${stack.cell}`}>
                   {kz(s.total)}

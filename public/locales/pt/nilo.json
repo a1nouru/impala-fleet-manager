@@ -88,25 +88,28 @@
   "statements": {
     "month": "Mês",
     "issue": "Emitir extrato",
-    "empty": "Ainda não há extratos.",
+    "empty": "Ainda não há extratos emitidos.",
     "open": "Abrir",
     "proof": "Comprovativo",
     "markPaid": "Marcar como pago (anexar comprovativo)",
     "issued": "Emitido",
     "paid": "Pago",
-    "running": "Este mês até agora",
+    "running": "Extrato corrente",
     "runningHint": "Todas as peças usadas por esta empresa este mês, em tempo real. Emita o extrato depois do fim do mês.",
     "soFar": "Usado até agora",
     "nothingYet": "Ainda nada usado este mês.",
     "vehicle": "Viatura",
     "parts": "Peças",
     "amount": "Valor",
-    "detail": "Todas as peças"
+    "detail": "Todas as peças",
+    "issueNow": "Emitir extrato agora",
+    "issueHint": "Congela tudo o que foi usado desde o último extrato, até este momento.",
+    "period": "Período"
   },
   "doc": {
     "issuer": "Peças & Serviços · Oficina partilhada da Royal Express e da Impala",
-    "title": "Extrato Mensal",
-    "provisional": "PROVISÓRIO · mês em curso",
+    "title": "Extrato",
+    "provisional": "PROVISÓRIO · ainda não emitido",
     "billedTo": "Cliente",
     "period": "Período",
     "issued": "Data de emissão",
@@ -114,12 +117,12 @@
     "due": "Data de vencimento",
     "accountSummary": "Resumo da conta",
     "previousBalance": "Saldo anterior (extratos por pagar)",
-    "charges": "Peças usadas no período",
+    "charges": "Peças usadas neste período",
     "credits": "Peças devolvidas (crédito)",
     "amountDue": "Total a pagar",
     "dueSoFar": "A pagar até agora",
     "counts": "{{vehicles}} viaturas · {{jobs}} manutenções · {{units}} peças",
-    "provisionalNote": "Os valores atualizam em tempo real até o extrato ser emitido no fim do mês.",
+    "provisionalNote": "Os valores atualizam em tempo real. Emitir congela tudo até esse momento; o extrato seguinte começa daí.",
     "vehicleSummary": "Resumo por viatura",
     "vehicle": "Viatura",
     "jobs": "Manutenções",
@@ -140,6 +143,7 @@
     "reference": "Use a referência {{ref}} na transferência bancária.",
     "pricing": "As peças são faturadas ao custo unitário da fatura de compra. Artigos a granel são faturados pela quantidade usada.",
     "open": "Abrir extrato completo",
-    "print": "Imprimir / PDF"
+    "print": "Imprimir / PDF",
+    "now": "agora"
   }
 }

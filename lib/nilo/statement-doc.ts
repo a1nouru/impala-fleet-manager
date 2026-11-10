@@ -1,12 +1,17 @@
-// The monthly statement Nilo sends each company: account summary, then every vehicle, every
-// job on it and every part on each job. Pure: the API gathers the inputs, the UI renders it.
-import type { Company, Statement, StatementLine } from "./ledger";
+// The statement Nilo sends each company: account summary, then every vehicle, every job on it
+// and every part on each job. It runs continuously: each statement covers everything since the
+// previous one up to the moment it is produced. Pure: the API gathers inputs, the UI renders it.
+import type { Company, Range, Statement, StatementLine } from "./ledger";
+
+// Same rule as the ledger uses for lines; kept local so this module stays type-only on ledger.
+const inRange = (range: Range, at: string) => (range.from === null || at >= range.from) && at < range.to;
 
 export type Job = { date: string; description: string };
 
+// An earlier issued statement of the same company.
 export type PriorStatement = {
   statementNo: string;
-  period: string;
+  to: string;
   total: number;
   status: "issued" | "paid";
   paidAt: string | null;
@@ -41,15 +46,17 @@ export type VehicleSection = {
 
 export type StatementDoc = {
   company: Company;
-  period: string;
-  statementNo: string;
-  // Provisional = the running month, not yet issued.
+  // Covered range [from, to). from = null on a company's first statement: everything before.
+  from: string | null;
+  to: string;
+  // null while provisional (the running statement, not yet issued).
+  statementNo: string | null;
   provisional: boolean;
   issuedAt: string | null;
   dueDate: string;
   account: {
     previousBalance: number;
-    unpaid: { statementNo: string; period: string; total: number }[];
+    unpaid: { statementNo: string; to: string; total: number }[];
     paymentsReceived: { statementNo: string; paidAt: string; total: number }[];
     charges: number;
     credits: number;
@@ -63,19 +70,20 @@ export type StatementDoc = {
 const cents = (n: number) => Math.round(n * 100) / 100;
 const sum = (xs: number[]) => cents(xs.reduce((a, b) => a + b, 0));
 
-export const statementNo = (company: Company, period: string) => `NILO-${company === "royal" ? "RE" : "IM"}-${period}`;
+// NILO-RE-20261110-1: company, statement date, and the how-many-th statement of that day.
+export const statementNo = (company: Company, at: string, nthThatDay: number) =>
+  `NILO-${company === "royal" ? "RE" : "IM"}-${at.slice(0, 10).replaceAll("-", "")}-${nthThatDay}`;
 
-// Payment is due on the 15th of the month after the period.
-export const dueDate = (period: string) => {
-  const [y, m] = period.split("-").map(Number);
-  return new Date(Date.UTC(y, m, 15)).toISOString().slice(0, 10);
-};
+// Payment is due 15 days after the statement date.
+export const PAYMENT_DAYS = 15;
+export const dueDate = (at: string) =>
+  new Date(Date.parse(at.slice(0, 10)) + PAYMENT_DAYS * 86_400_000).toISOString().slice(0, 10);
 
 export function buildStatementDoc(
   st: Statement,
   jobs: Map<string, Job>,
   prior: PriorStatement[],
-  issue: { issuedAt: string | null },
+  issue: { issuedAt: string; statementNo: string } | null,
 ): StatementDoc {
   const byVehicle = new Map<string, Map<string, StatementLine[]>>();
   for (const l of st.lines) {
@@ -116,24 +124,24 @@ export function buildStatementDoc(
     parts.set(l.itemName, { quantity: p.quantity + l.quantity, amount: cents(p.amount + l.amount) });
   }
 
-  const before = prior.filter((p) => p.period < st.period);
-  const unpaid = before.filter((p) => p.status === "issued");
+  const unpaid = prior.filter((p) => p.status === "issued");
   const charges = sum(st.lines.filter((l) => l.amount > 0).map((l) => l.amount));
   const credits = sum(st.lines.filter((l) => l.amount < 0).map((l) => -l.amount));
   const previousBalance = sum(unpaid.map((p) => p.total));
 
   return {
     company: st.company,
-    period: st.period,
-    statementNo: statementNo(st.company, st.period),
-    provisional: issue.issuedAt === null,
-    issuedAt: issue.issuedAt,
-    dueDate: dueDate(st.period),
+    from: st.from,
+    to: st.to,
+    statementNo: issue?.statementNo ?? null,
+    provisional: issue === null,
+    issuedAt: issue?.issuedAt ?? null,
+    dueDate: dueDate(issue?.issuedAt ?? st.to),
     account: {
       previousBalance,
-      unpaid: unpaid.map(({ statementNo, period, total }) => ({ statementNo, period, total })),
+      unpaid: unpaid.map(({ statementNo, to, total }) => ({ statementNo, to, total })),
       paymentsReceived: prior
-        .filter((p) => p.status === "paid" && p.paidAt?.startsWith(st.period))
+        .filter((p) => p.status === "paid" && p.paidAt !== null && inRange(st, p.paidAt))
         .map((p) => ({ statementNo: p.statementNo, paidAt: p.paidAt as string, total: p.total })),
       charges,
       credits,

@@ -14,18 +14,23 @@ const day = (iso: string) =>
     timeZone: "UTC",
   });
 
+// Statements start and end at an exact moment, so the range shows the time too.
+const when = (iso: string) =>
+  `${day(iso)} ${new Date(iso).toLocaleTimeString("pt-AO", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Luanda" })}`;
+
 const num = (n: number) => n.toLocaleString("pt-AO", { maximumFractionDigits: 3 });
 
 const label = "font-mono text-[10px] uppercase tracking-[0.16em] text-gray-500";
 
-// The monthly statement, bank-statement style. Same component on screen and on paper: real
+// The running statement, bank-statement style. Same component on screen and on paper: real
 // text, rows never split across printed pages, phones get stacked cards instead of tables.
 export function StatementDocument({ doc }: { doc: StatementDoc }) {
   const { t } = useTranslation("nilo");
-  const [y, m] = doc.period.split("-").map(Number);
-  const first = `${doc.period}-01`;
-  const last = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
   const a = doc.account;
+  // The first statement has no start; it covers everything from the earliest job on it.
+  const earliest = doc.vehicles.flatMap((v) => v.jobs.map((j) => j.date)).sort()[0];
+  const from = doc.from ? when(doc.from) : earliest ? day(earliest) : "—";
+  const to = doc.provisional ? t("doc.now") : when(doc.to);
 
   return (
     <article className="mx-auto w-full max-w-[182mm] bg-white text-[13px] text-gray-900 print:text-[9.5pt]">
@@ -38,7 +43,7 @@ export function StatementDocument({ doc }: { doc: StatementDoc }) {
         </div>
         <div className="text-right">
           <div className="text-base font-semibold">{t("doc.title")}</div>
-          <div className="font-mono text-sm">{doc.statementNo}</div>
+          {doc.statementNo && <div className="font-mono text-sm">{doc.statementNo}</div>}
           {doc.provisional && (
             <div className="mt-1 inline-block rounded border border-amber-500 px-2 py-0.5 text-[11px] font-medium text-amber-700">
               {t("doc.provisional")}
@@ -49,7 +54,7 @@ export function StatementDocument({ doc }: { doc: StatementDoc }) {
 
       <section className="nilo-keep mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
         <Field k={t("doc.billedTo")} v={COMPANY[doc.company]} strong />
-        <Field k={t("doc.period")} v={`${day(first)} – ${day(last)}`} />
+        <Field k={t("doc.period")} v={`${from} – ${to}`} />
         <Field k={t("doc.issued")} v={doc.issuedAt ? day(doc.issuedAt) : t("doc.notIssued")} />
         <Field k={t("doc.due")} v={day(doc.dueDate)} strong />
       </section>

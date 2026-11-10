@@ -67,21 +67,28 @@ export type StatementLine = {
   amount: number;
 };
 
+// A statement covers [from, to): everything since the previous statement (from = null on the
+// first one) up to the moment it is produced. ISO timestamps.
+export type Range = { from: string | null; to: string };
+
+export const inRange = (range: Range, at: string) => (range.from === null || at >= range.from) && at < range.to;
+
 export type Statement = {
   company: Company;
-  period: string;
+  from: string | null;
+  to: string;
   lines: StatementLine[];
   byVehicle: { vehiclePlate: string; parts: number; amount: number }[];
   total: number;
 };
 
-// period = "YYYY-MM". Bulk is billed per measure: container price / container size.
+// Bulk is billed per measure: container price / container size.
 // Movements with a company are that company's consumption or returns; plain receives have none.
-export function buildStatement(company: Company, period: string, units: Unit[], movements: Movement[]): Statement {
+export function buildStatement(company: Company, range: Range, units: Unit[], movements: Movement[]): Statement {
   const unitById = new Map(units.map((u) => [u.id, u]));
   // A company's receive is a part returned from one of its edited or deleted jobs: a credit.
   const lines = movements
-    .filter((m) => (m.type === "consume" || m.type === "receive") && m.company === company && m.at.startsWith(period))
+    .filter((m) => (m.type === "consume" || m.type === "receive") && m.company === company && inRange(range, m.at))
     .sort((a, b) => a.at.localeCompare(b.at))
     .map((m): StatementLine => {
       const u = unitById.get(m.unitId);
@@ -108,7 +115,8 @@ export function buildStatement(company: Company, period: string, units: Unit[], 
 
   return {
     company,
-    period,
+    from: range.from,
+    to: range.to,
     lines,
     byVehicle: [...vehicles].map(([vehiclePlate, v]) => ({ vehiclePlate, ...v })).sort((a, b) => b.amount - a.amount),
     total: cents(lines.reduce((n, l) => n + l.amount, 0)),

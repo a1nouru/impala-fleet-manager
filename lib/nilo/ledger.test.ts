@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { availableByItem, buildStatement, consumeError, type Movement, type Unit } from "./ledger.ts";
 
+const NOV = { from: "2026-11-01", to: "2026-12-01" };
+
 const tyre = (n: number): Unit => ({
   id: `t${n}`,
   code: `NILO-00000${n}`,
@@ -56,12 +58,12 @@ test("each company's statement bills only its own consumption in that month", ()
     mv("o1", "consume", 4, "royal", "2026-11-05"),
     mv("o1", "consume", 2, "royal", "2026-12-01"),
   ];
-  const royal = buildStatement("royal", "2026-11", units, log);
+  const royal = buildStatement("royal", NOV, units, log);
   assert.deepEqual(royal.lines.map((l) => [l.code, l.amount]), [["NILO-000001", 208284.7], ["NILO-000009", 10000]]);
   assert.equal(royal.total, 218284.7);
   assert.deepEqual(royal.byVehicle, [{ vehiclePlate: "LD-12-34", parts: 2, amount: 218284.7 }]);
 
-  assert.equal(buildStatement("impala", "2026-11", units, log).total, 208284.7);
+  assert.equal(buildStatement("impala", NOV, units, log).total, 208284.7);
 });
 
 test("a part returned from an edited job is credited on that company's statement", () => {
@@ -70,8 +72,22 @@ test("a part returned from an edited job is credited on that company's statement
     mv("o1", "consume", 6, "royal", "2026-11-03"),
     mv("o1", "receive", 2, "royal", "2026-11-04"),
   ];
-  const st = buildStatement("royal", "2026-11", [oil], log);
+  const st = buildStatement("royal", NOV, [oil], log);
   assert.deepEqual(st.lines.map((l) => l.amount), [15000, -5000]);
   assert.equal(st.total, 10000);
   assert.equal(availableByItem([oil], log).get(oil.itemName), 16);
+});
+
+test("a statement covers exactly its range, so back-to-back statements never overlap or skip", () => {
+  const log = [
+    mv("o1", "receive", 20),
+    mv("o1", "consume", 1, "royal", "2026-11-03T10:00:00Z"),
+    mv("o1", "consume", 2, "royal", "2026-11-10T09:00:00Z"),
+    mv("o1", "consume", 4, "royal", "2026-11-20T15:00:00Z"),
+  ];
+  const cut = "2026-11-10T09:00:00Z";
+  const first = buildStatement("royal", { from: null, to: cut }, [oil], log);
+  const second = buildStatement("royal", { from: cut, to: "2026-11-25T00:00:00Z" }, [oil], log);
+  assert.deepEqual(first.lines.map((l) => l.quantity), [1]);
+  assert.deepEqual(second.lines.map((l) => l.quantity), [2, 4]);
 });

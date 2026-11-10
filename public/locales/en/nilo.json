@@ -88,25 +88,28 @@
   "statements": {
     "month": "Month",
     "issue": "Issue statement",
-    "empty": "No statements yet.",
+    "empty": "No statements issued yet.",
     "open": "Open",
     "proof": "Payment proof",
     "markPaid": "Mark paid (attach bank proof)",
     "issued": "Issued",
     "paid": "Paid",
-    "running": "This month so far",
+    "running": "Running statement",
     "runningHint": "Every part this company has used this month, live. Issue the statement after the month ends.",
     "soFar": "Used so far",
     "nothingYet": "Nothing used yet this month.",
     "vehicle": "Vehicle",
     "parts": "Parts",
     "amount": "Amount",
-    "detail": "Every part"
+    "detail": "Every part",
+    "issueNow": "Issue statement now",
+    "issueHint": "Freezes everything used since the last statement, up to this moment.",
+    "period": "Period"
   },
   "doc": {
     "issuer": "Parts & Services · Shared garage of Royal Express and Impala",
-    "title": "Monthly Statement",
-    "provisional": "PROVISIONAL · month in progress",
+    "title": "Statement",
+    "provisional": "PROVISIONAL · not issued yet",
     "billedTo": "Billed to",
     "period": "Period",
     "issued": "Issue date",
@@ -114,12 +117,12 @@
     "due": "Payment due",
     "accountSummary": "Account summary",
     "previousBalance": "Previous balance (unpaid statements)",
-    "charges": "Parts used this period",
+    "charges": "Parts used in this period",
     "credits": "Parts returned (credit)",
     "amountDue": "Total amount due",
     "dueSoFar": "Amount due so far",
     "counts": "{{vehicles}} vehicles · {{jobs}} maintenance jobs · {{units}} parts",
-    "provisionalNote": "Figures update live until the statement is issued after the month ends.",
+    "provisionalNote": "Figures update live. Issuing freezes everything up to that moment; the next statement starts from there.",
     "vehicleSummary": "Summary by vehicle",
     "vehicle": "Vehicle",
     "jobs": "Jobs",
@@ -140,6 +143,7 @@
     "reference": "Use reference {{ref}} on the bank transfer.",
     "pricing": "Parts are billed at the unit cost on their purchase invoice. Bulk items are billed per measure used.",
     "open": "Open full statement",
-    "print": "Print / PDF"
+    "print": "Print / PDF",
+    "now": "now"
   }
 }
