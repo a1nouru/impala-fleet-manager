@@ -52,7 +52,7 @@ export function PushOptIn() {
 
   if (!show) return null;
   return (
-    <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border bg-white p-4 shadow-lg">
+    <div className="print:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border bg-white p-4 shadow-lg">
       <p className="text-sm font-medium">Turn on notifications</p>
       <p className="mt-1 text-xs text-muted-foreground">Get alerts for fleet updates on this device.</p>
       <div className="mt-3 flex gap-2">

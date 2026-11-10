@@ -39,6 +39,7 @@ import {
 import { maintenanceService } from "@/services/maintenanceService"
 import { vehicleService } from "@/services/vehicleService"
 import { inventoryService } from "@/services/inventoryService"
+import { nilo, type StockRow } from "@/lib/nilo/client"
 import { buildInsights, kmSincePrevious, lastSundayToSunday, unitPriceByName } from "@/lib/maintenance/insights"
 import { format } from "date-fns"
 import { toast } from "@/components/ui/use-toast"
@@ -135,8 +136,16 @@ export default function ReportsPage() {
         setVehicles(vehicleData);
         setIsLoading(prev => ({ ...prev, vehicles: false }));
 
-        // Inventory unit prices, used to price parts in the Detailed Analysis tab
-        setInventory(await inventoryService.getInventoryItems());
+        // Unit prices for the Detailed Analysis tab: the pre-Nilo purchase history prices jobs
+        // saved under the old spellings; Nilo prices parts bought since.
+        const [legacyPrices, niloStock] = await Promise.all([
+          inventoryService.getInventoryItems(),
+          nilo<StockRow[]>("stock").catch(() => [] as StockRow[]),
+        ]);
+        setInventory([
+          ...(legacyPrices || []),
+          ...niloStock.map((r) => ({ item_name: r.name, amount_unit: Number(r.avg_cost ?? r.last_known_cost ?? 0) })),
+        ]);
         
         // Extract parts from maintenance records to get all unique parts
         const uniqueParts = new Set<string>();

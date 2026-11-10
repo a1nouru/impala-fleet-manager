@@ -1,0 +1,32 @@
+{
+  "title": "Inventário Nilo",
+  "subtitle": "Um único stock partilhado pela Royal Express e pela Impala. Cada peça é rastreada da fatura até à viatura onde foi aplicada.",
+  "approver": "Aprovador",
+  "search": "Pesquisar peças",
+  "cancel": "Cancelar",
+  "printLabels": "Imprimir etiquetas",
+  "tabs": { "stock": "Stock", "purchases": "Compras", "scan": "Ler código", "statements": "Extratos" },
+  "stock": { "value": "Valor em stock", "item": "Artigo", "available": "Disponível", "awaiting": "A receber", "avgCost": "Custo médio" },
+  "status": { "approved": "Aprovada", "pending_approval": "Requer aprovação", "blocked": "Bloqueada" },
+  "unitStatus": { "labelled": "etiquetada, fora da prateleira", "in_stock": "em stock", "consumed": "usada", "void": "anulada" },
+  "movement": { "receive": "Recebida", "consume": "Usada", "return": "Devolvida", "adjust": "Ajuste de inventário", "void": "Anulada" },
+  "purchases": {
+    "add": "Nova compra", "empty": "Ainda não há compras.", "file": "Ficheiro da fatura", "read": "Ler fatura",
+    "supplier": "Fornecedor", "supplierNif": "NIF do fornecedor", "invoiceNo": "N.º da fatura", "invoiceDate": "Data da fatura", "total": "Total da fatura (Kz)",
+    "kind": "Tipo", "unit": "Peça única", "bulk": "Recipiente a granel", "containerSize": "Tamanho", "measure": "Unid.", "containers": "Recipientes",
+    "qty": "Qtd.", "unitCost": "Custo unit. (Kz)", "labels": "Etiquetas", "reprint": "Reimprimir", "addLine": "Linha", "removeLine": "Linha",
+    "save": "Guardar compra", "approve": "Aprovar", "waitingApprover": "A aguardar um aprovador.",
+    "blocked": "Esta fatura não pode ser registada:", "needFile": "Anexe o ficheiro da fatura.",
+    "savedClean": "Todas as verificações passaram. Imprima as etiquetas.", "savedFlagged": "Algumas verificações falharam. Um aprovador tem de aprovar antes de imprimir etiquetas."
+  },
+  "scan": {
+    "receive": "Receber na prateleira", "trace": "Rastrear peça", "camera": "Câmara",
+    "hint": "Leia com um leitor USB ou a câmara, ou escreva o código e prima Enter.",
+    "received": "na prateleira", "bought": "Comprada", "left": "restante",
+    "noCamera": "Este navegador não lê códigos com a câmara. Use o Chrome no Android, um leitor USB, ou escreva o código."
+  },
+  "statements": {
+    "month": "Mês", "issue": "Emitir extrato", "empty": "Ainda não há extratos.", "open": "Abrir",
+    "proof": "Comprovativo", "markPaid": "Marcar como pago (anexar comprovativo)", "issued": "Emitido", "paid": "Pago"
+  }
+}

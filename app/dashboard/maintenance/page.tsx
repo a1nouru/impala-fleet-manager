@@ -42,8 +42,7 @@ import { maintenanceService } from "@/services/maintenanceService"
 import { vehicleService } from "@/services/vehicleService"
 import { technicianService } from "@/services/technicianService"
 import { partService } from "@/services/partService"
-import { inventoryService } from "@/services/inventoryService"
-import { normalizeItemName, usedQuantitiesByNormalizedName } from "@/lib/inventory/usage"
+import { nilo, type NiloMe, type StockRow } from "@/lib/nilo/client"
 import { neighbourReadings, validateOdometer } from "@/lib/maintenance/odometer"
 import { hrService } from "@/services/hrService"
 import type { Employee } from "@/services/hrService"
@@ -56,7 +55,7 @@ import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { DateRange } from "react-day-picker"
-import InventoryManagement from "@/components/inventory-management"
+import NiloInventory from "@/components/nilo/nilo-inventory"
 import CleaningLog from "@/components/cleaning-log"
 
 // Type definitions (moved to top for use in utility functions)
@@ -89,6 +88,23 @@ interface CustomPartInput {
   showInput: boolean;
 }
 
+// A Nilo stock row in the shape the parts picker already renders.
+const pickerRow = (r: StockRow) => ({
+  item_id: r.item_id,
+  item_name: r.name,
+  description: "",
+  quantity: Number(r.available),
+  amount_unit: Number(r.avg_cost ?? r.last_known_cost ?? 0),
+});
+
+// Stock parts held by a saved job, from its "Name (Qty: n)" strings.
+const heldParts = (parts: string[] | undefined, itemIdByName: Map<string, string>) =>
+  (parts || []).flatMap((p) => {
+    const m = p.match(/^(.+?)\s*\(Qty:\s*(\d+)\)$/);
+    const itemId = m && itemIdByName.get(m[1]);
+    return itemId ? [{ itemId, quantity: Number(m[2]) }] : [];
+  });
+
 interface MaintenanceRecord {
   id: string;
   date: string;
@@ -103,6 +119,7 @@ interface MaintenanceRecord {
   technician?: string;
   parts?: string[];
   created_by?: string;
+  created_at?: string;
   vehicles?: {
     plate: string;
     model: string;
@@ -304,9 +321,13 @@ function MaintenanceContent() {
     return acc;
   }, {});
 
-  // How much of each inventory item has been used in maintenance records, keyed by
-  // normalized item name so case/spacing variants match (see lib/inventory/usage).
-  const usedQuantities = usedQuantitiesByNormalizedName(records);
+  // Nilo stock is already net of every company's usage. While editing a job, the parts it
+  // already holds count as available to it again.
+  const [niloMe, setNiloMe] = useState<NiloMe | null>(null);
+  const [editHeld, setEditHeld] = useState<Record<string, number>>({});
+  const [editKeptParts, setEditKeptParts] = useState<string[]>([]);
+  const [editLegacy, setEditLegacy] = useState<{ cost: number } | null>(null);
+  const loadNiloStock = async () => setInventoryItems((await nilo<StockRow[]>("stock")).map(pickerRow));
   
   // UI state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -399,9 +420,10 @@ function MaintenanceContent() {
           vehicleService.getVehicles(),
           technicianService.getTechnicians(),
           partService.getPartsByCategory(),
-          inventoryService.getInventoryItems(),
+          nilo<StockRow[]>("stock"),
           hrService.getActiveEmployees()
         ]);
+        nilo<NiloMe>("me").then(setNiloMe, (e) => console.error("Nilo:", e));
 
         if (!isMounted) return;
 
@@ -410,7 +432,7 @@ function MaintenanceContent() {
         setVehicles(vehicleData || []);
         setTechnicians(technicianData || []);
         setEmployees(employeeData || []);
-        setInventoryItems(inventoryData || []);
+        setInventoryItems((inventoryData || []).map(pickerRow));
         
         // Transform the parts data
         const formattedParts = partData.map(category => ({
@@ -799,7 +821,20 @@ function MaintenanceContent() {
     setDriverSearchOpen(false);
 
     // Set selected parts
-    setSelectedParts(record.parts || []);
+    // "Name (Qty: n)" strings are stock parts; anything else (custom parts) is kept as-is.
+    const held: Record<string, number> = {};
+    const kept: string[] = [];
+    for (const p of record.parts || []) {
+      const m = p.match(/^(.+?)\s*\(Qty:\s*(\d+)\)$/);
+      if (m) held[m[1]] = (held[m[1]] || 0) + Number(m[2]);
+      else kept.push(p);
+    }
+    const legacy = !niloMe?.cutoverAt || !record.created_at || record.created_at < niloMe.cutoverAt;
+    setEditHeld(legacy ? {} : held);
+    setEditKeptParts(kept);
+    setEditLegacy(legacy ? { cost: record.cost } : null);
+    setSelectedParts(Object.keys(held));
+    setSelectedPartsQuantities(held);
     
     // Open the dialog
     setDialogOpen(true);
@@ -875,11 +910,19 @@ function MaintenanceContent() {
     });
     
     // Add custom parts
+    allParts.push(...editKeptParts);
     customParts.forEach(part => {
       if (part.value.trim() !== "") {
         allParts.push(`${part.category}: ${part.value.trim()}`);
       }
     });
+
+    const itemIdByName = new Map<string, string>(inventoryItems.map((i: { item_name: string; item_id: string }) => [i.item_name, i.item_id]));
+    const niloParts = selectedParts
+      .filter((name) => itemIdByName.has(name))
+      .map((name) => ({ itemId: itemIdByName.get(name), quantity: selectedPartsQuantities[name] || 1 }));
+    const setNiloParts = (recordId: string, parts: { itemId?: string; quantity: number }[] = niloParts) =>
+      nilo("record-parts", { json: { recordId, plate: vehicle.plate, parts } });
 
     const recordToSave = {
       vehicle_id: vehicle.id,
@@ -887,7 +930,8 @@ function MaintenanceContent() {
       status: newRecord.status,
       technician_id: technician.id,
       driver_id: newRecord.driver || null,
-      cost: calculateMaintenanceCost(), // Use calculated cost from inventory
+      // Jobs from before Nilo keep the cost they were saved with.
+      cost: editLegacy ? editLegacy.cost : calculateMaintenanceCost(),
       description: newRecord.description,
       kilometers: parseFormattedNumber(newRecord.kilometers),
     };
@@ -897,8 +941,16 @@ function MaintenanceContent() {
       const created_by_email = user?.email;
       
       if (isEditMode && editRecordId) {
-        // Update existing record
-        savedRecord = await maintenanceService.updateMaintenanceRecord(editRecordId, recordToSave, allParts);
+        // Update existing record. Stock first: if Nilo cannot supply the parts, nothing changes.
+        await setNiloParts(editRecordId);
+        try {
+          savedRecord = await maintenanceService.updateMaintenanceRecord(editRecordId, recordToSave, allParts);
+        } catch (updateError) {
+          // The job did not change, so its stock must not either.
+          const before = records.find((r) => r.id === editRecordId);
+          await setNiloParts(editRecordId, heldParts(before?.parts, itemIdByName)).catch(console.error);
+          throw updateError;
+        }
         toast({
           title: t("form.updateSuccessTitle"),
           description: t("form.updateSuccess"),
@@ -906,6 +958,12 @@ function MaintenanceContent() {
       } else {
         // Create new record
         savedRecord = await maintenanceService.createMaintenanceRecord(recordToSave, allParts, created_by_email);
+        try {
+          await setNiloParts(savedRecord.id);
+        } catch (stockError) {
+          await maintenanceService.deleteMaintenanceRecord(savedRecord.id);
+          throw stockError;
+        }
         toast({
           title: t("form.createSuccessTitle"),
           description: t("form.createSuccess"),
@@ -915,6 +973,7 @@ function MaintenanceContent() {
       // Fetch the updated list of records
       const updatedRecords = await maintenanceService.getMaintenanceRecords();
       setRecords(updatedRecords);
+      await loadNiloStock();
 
       // Close dialog and reset form
       setDialogOpen(false);
@@ -924,7 +983,7 @@ function MaintenanceContent() {
       console.error("Error with maintenance record:", error);
       toast({
         title: "Error",
-        description: "Failed to create maintenance record. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save maintenance record. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -950,6 +1009,9 @@ function MaintenanceContent() {
     setFormErrors({});
     setIsEditMode(false);
     setEditRecordId(null);
+    setEditHeld({});
+    setEditKeptParts([]);
+    setEditLegacy(null);
     setDriverSearch("");
     setDriverSearchOpen(false);
   };
@@ -967,7 +1029,19 @@ function MaintenanceContent() {
   const handleDeleteConfirm = async () => {
     if (recordToDelete) {
       try {
-        await maintenanceService.deleteMaintenanceRecord(recordToDelete);
+        // Return this job's parts to Nilo stock before the record goes.
+        const doomed = records.find((r) => r.id === recordToDelete);
+        const plate = doomed?.vehicles?.plate || doomed?.vehiclePlate || "";
+        await nilo("record-parts", { json: { recordId: recordToDelete, plate, parts: [] } });
+        try {
+          await maintenanceService.deleteMaintenanceRecord(recordToDelete);
+        } catch (deleteError) {
+          // The job still exists, so it keeps its parts.
+          const itemIdByName = new Map<string, string>(inventoryItems.map((i: { item_name: string; item_id: string }) => [i.item_name, i.item_id]));
+          await nilo("record-parts", { json: { recordId: recordToDelete, plate, parts: heldParts(doomed?.parts, itemIdByName) } }).catch(console.error);
+          throw deleteError;
+        }
+        await loadNiloStock();
         const updatedRecords = await maintenanceService.getMaintenanceRecords();
         setRecords(updatedRecords);
         setDeleteDialogOpen(false);
@@ -1326,10 +1400,7 @@ function MaintenanceContent() {
                       {Object.entries(groupedInventoryItems).map(([itemName, items]) => {
                         // Calculate total purchased quantity
                         const totalPurchasedQuantity = items.reduce((sum: number, item: any) => sum + parseFloat(item.quantity || 0), 0);
-                        // Get how much has already been used in maintenance records
-                        const alreadyUsedQuantity = usedQuantities[normalizeItemName(itemName)] || 0;
-                        // Calculate actual available quantity
-                        const availableQuantity = Math.max(0, totalPurchasedQuantity - alreadyUsedQuantity);
+                        const availableQuantity = totalPurchasedQuantity + (editHeld[itemName] || 0);
                         
                         const selectedQuantity = selectedPartsQuantities[itemName] || 0;
                         const isSelected = selectedParts.includes(itemName);
@@ -2127,7 +2198,7 @@ function MaintenanceContent() {
         </TabsContent>
 
         <TabsContent value="inventory" className="space-y-6">
-          <InventoryManagement />
+          <NiloInventory />
         </TabsContent>
 
         <TabsContent value="cleaning" className="space-y-6">

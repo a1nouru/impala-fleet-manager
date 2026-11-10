@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
   const isStaticAsset = path.startsWith('/_next') || path.includes('.') || path.startsWith('/favicon');
 
   // Define protected routes
-  const protectedRoutes = ['/admin', '/dashboard', '/profile'];
+  const protectedRoutes = ['/admin', '/dashboard', '/profile', '/nilo'];
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
 
   // If no user and trying to access a protected route, redirect to login
