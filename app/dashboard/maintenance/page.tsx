@@ -1322,9 +1322,9 @@ function MaintenanceContent() {
                         const itemTotalCost = quantity * averageCostPerUnit;
                         
                         return (
-                          <div key={partName} className="text-xs text-blue-700 flex justify-between">
-                            <span>{partName} ({t("inventory.qty")}: {quantity})</span>
-                            <span>{itemTotalCost.toLocaleString()} Kz</span>
+                          <div key={partName} className="text-xs text-blue-700 flex justify-between gap-2">
+                            <span className="min-w-0 break-words">{partName} ({t("inventory.qty")}: {quantity})</span>
+                            <span className="shrink-0 whitespace-nowrap">{itemTotalCost.toLocaleString()} Kz</span>
                           </div>
                         );
                       })}
@@ -1357,7 +1357,7 @@ function MaintenanceContent() {
                 )}
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-wrap items-center justify-between gap-x-2 mb-2">
                   <Label className="text-sm">{t("inventory.itemsAvailable")}</Label>
                   <span className="text-sm text-muted-foreground">
                     {selectedParts.length} {selectedParts.length === 1 ? t("inventory.itemSelected") : t("inventory.itemsSelected")}
@@ -1370,12 +1370,12 @@ function MaintenanceContent() {
                 </div>
                 {/* Search input for inventory items */}
                 <div className="relative mb-2">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder={t("inventory.searchPlaceholder")}
                     value={partsSearchTerm}
                     onChange={(e) => setPartsSearchTerm(e.target.value)}
-                    className="pl-8 h-9"
+                    className="pl-8 h-11 sm:h-9"
                   />
                 </div>
 
@@ -1437,7 +1437,7 @@ function MaintenanceContent() {
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      className="h-10 w-10 p-0 sm:h-6 sm:w-6"
+                                      className="h-11 w-11 p-0 sm:h-6 sm:w-6"
                                       onClick={() => handleQuantityChange(itemName, selectedQuantity - 1, availableQuantity)}
                                       disabled={selectedQuantity <= 0}
                                     >
@@ -1449,13 +1449,13 @@ function MaintenanceContent() {
                                       max={availableQuantity}
                                       value={selectedQuantity}
                                       onChange={(e) => handleQuantityChange(itemName, parseInt(e.target.value) || 0, availableQuantity)}
-                                      className="h-10 w-20 text-center text-sm sm:h-6 sm:w-16 sm:text-xs"
+                                      className="h-11 w-20 text-center text-sm sm:h-6 sm:w-16 sm:text-xs"
                                     />
                                     <Button
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      className="h-10 w-10 p-0 sm:h-6 sm:w-6"
+                                      className="h-11 w-11 p-0 sm:h-6 sm:w-6"
                                       onClick={() => handleQuantityChange(itemName, selectedQuantity + 1, availableQuantity)}
                                       disabled={selectedQuantity >= availableQuantity}
                                     >
@@ -1479,7 +1479,7 @@ function MaintenanceContent() {
                                 </div>
                                 {items.slice(0, 3).map((item: any, index: number) => (
                                   <div key={item.id} className="text-xs text-muted-foreground">
-                                    • {t("inventory.batch")} {index + 1}: {t("inventory.qty")} {item.quantity} | {item.description?.substring(0, 50)}{item.description?.length > 50 ? '...' : ''}
+                                    • {t("inventory.batch")} {index + 1}: {t("inventory.qty")} {item.quantity}{item.description ? ` | ${item.description.substring(0, 50)}${item.description.length > 50 ? "..." : ""}` : ""}
                                   </div>
                                 ))}
                                 {items.length > 3 && (

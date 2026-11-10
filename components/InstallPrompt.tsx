@@ -24,7 +24,7 @@ export function InstallPrompt() {
 
   if (deferred) {
     return (
-      <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2">
+      <div className="print:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2">
         <Button onClick={async () => { deferred.prompt(); await deferred.userChoice; setDeferred(null); }}>
           Install app
         </Button>
@@ -33,7 +33,7 @@ export function InstallPrompt() {
   }
   if (showIOS) {
     return (
-      <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border bg-white p-4 shadow-lg text-sm">
+      <div className="print:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border bg-white p-4 shadow-lg text-sm">
         Install this app: tap <span className="font-semibold">Share</span> then{" "}
         <span className="font-semibold">Add to Home Screen</span>.
         <button className="ml-2 text-blue-600" onClick={() => setShowIOS(false)}>Dismiss</button>

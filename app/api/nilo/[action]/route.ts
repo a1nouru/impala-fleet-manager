@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
+import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 import { niloSession, type NiloSession } from "@/lib/nilo/server";
 import {
@@ -8,7 +10,10 @@ import {
   type InvoiceDraft,
 } from "@/lib/nilo/invoice-checks";
 import { itemKey } from "@/lib/nilo/ingest";
+import { OCR_SYSTEM, ocrSchema } from "@/lib/nilo/invoice-ocr";
+import { PAGE_TYPES } from "@/lib/nilo/client";
 import { buildStatement, type Movement, type Unit } from "@/lib/nilo/ledger";
+import { buildStatementDoc, type Job, type PriorStatement, type StatementDoc } from "@/lib/nilo/statement-doc";
 
 export const runtime = "nodejs";
 
@@ -33,10 +38,41 @@ const approverOnly = (s: NiloSession) => {
     throw new HttpError(403, "Only Nilo approvers can do this");
 };
 
-const sha256 = async (f: File) =>
-  createHash("sha256")
-    .update(Buffer.from(await f.arrayBuffer()))
-    .digest("hex");
+// One hash over every page in order; a single file hashes the same as before multi-page uploads.
+const sha256 = async (files: File[]) => {
+  const h = createHash("sha256");
+  for (const f of files) h.update(Buffer.from(await f.arrayBuffer()));
+  return h.digest("hex");
+};
+
+const safeName = (f: File) => f.name.replace(/[^\w.-]+/g, "_");
+
+// Invoice pages: phone photos or a PDF. Claude takes images up to 5 MB and requests up to
+// 32 MB (base64 adds a third), so the browser shrinks photos before sending.
+const MAX_PAGES = 10;
+const MAX_IMAGE = 5 * 1024 * 1024;
+const MAX_PDF = 10 * 1024 * 1024;
+const MAX_TOTAL = 20 * 1024 * 1024;
+
+function invoicePages(form: FormData): File[] {
+  const files = form
+    .getAll("files")
+    .filter((f): f is File => typeof f !== "string" && f.size > 0);
+  if (files.length === 0)
+    throw new HttpError(400, "Add a photo or file of the invoice");
+  if (files.length > MAX_PAGES)
+    throw new HttpError(400, `At most ${MAX_PAGES} pages per invoice`);
+  for (const f of files) {
+    if (!PAGE_TYPES.includes(f.type))
+      throw new HttpError(400, `${f.name}: use a photo (JPG, PNG, WebP) or a PDF`);
+    if (f.size > (f.type === "application/pdf" ? MAX_PDF : MAX_IMAGE))
+      throw new HttpError(400, `${f.name} is too large`);
+  }
+  if (files.reduce((n, f) => n + f.size, 0) > MAX_TOTAL)
+    throw new HttpError(400, "The pages are too large together");
+  return files;
+}
+
 
 async function cutoverAt(s: NiloSession): Promise<string | null> {
   const row = must(
@@ -73,6 +109,7 @@ async function statementFor(s: NiloSession, period: string) {
     quantity: number;
     company: Movement["company"];
     vehicle_plate: string | null;
+    maintenance_record_id: string | null;
     created_at: string;
     unit: {
       code: string;
@@ -87,7 +124,7 @@ async function statementFor(s: NiloSession, period: string) {
     s.db
       .from("nilo_movements")
       .select(
-        "unit_id, type, quantity, company, vehicle_plate, created_at, unit:nilo_units(code, line:nilo_invoice_lines(unit_cost, container_size, item:nilo_items(name)))",
+        "unit_id, type, quantity, company, vehicle_plate, maintenance_record_id, created_at, unit:nilo_units(code, line:nilo_invoice_lines(unit_cost, container_size, item:nilo_items(name)))",
       )
       .eq("company", s.company)
       .gte("created_at", `${period}-01T00:00:00Z`)
@@ -117,9 +154,39 @@ async function statementFor(s: NiloSession, period: string) {
     quantity: Number(r.quantity),
     company: r.company,
     vehiclePlate: r.vehicle_plate,
+    recordId: r.maintenance_record_id,
     at: r.created_at,
   }));
   return buildStatement(s.company, period, [...units.values()], movements);
+}
+
+// The full statement document: the month's lines plus each job's date and description (from
+// this app's own maintenance records) and the company's earlier statements for the balance.
+async function statementDocFor(s: NiloSession, period: string, issuedAt: string | null): Promise<StatementDoc> {
+  const st = await statementFor(s, period);
+  const ids = [...new Set(st.lines.map((l) => l.recordId).filter((id): id is string => !!id))];
+  const app = await createSessionClient();
+  const jobs = new Map<string, Job>();
+  for (let i = 0; i < ids.length; i += 200) {
+    const rows = must(
+      await app.from("maintenance_records").select("id, date, description").in("id", ids.slice(i, i + 200)),
+    ) as { id: string; date: string; description: string | null }[];
+    for (const r of rows) jobs.set(r.id, { date: String(r.date).slice(0, 10), description: r.description ?? "" });
+  }
+  const prior = (
+    must(
+      await s.db.from("nilo_statements").select("statement_no, period, total, status, paid_at").eq("company", s.company),
+    ) as { statement_no: string; period: string; total: number; status: "issued" | "paid"; paid_at: string | null }[]
+  ).map(
+    (r): PriorStatement => ({
+      statementNo: r.statement_no,
+      period: String(r.period).slice(0, 7),
+      total: Number(r.total),
+      status: r.status,
+      paidAt: r.paid_at,
+    }),
+  );
+  return buildStatementDoc(st, jobs, prior, { issuedAt });
 }
 
 const READS: Record<string, Handler> = {
@@ -153,7 +220,7 @@ const READS: Record<string, Handler> = {
     ),
 
   // This month so far, for whichever company this app is. Not stored; recomputed each time.
-  running: async (s) => statementFor(s, new Date().toISOString().slice(0, 7)),
+  running: async (s) => statementDocFor(s, new Date().toISOString().slice(0, 7), null),
 
   statements: async (s) =>
     must(
@@ -222,22 +289,93 @@ const READS: Record<string, Handler> = {
     const bucket = req.nextUrl.searchParams.get("bucket") ?? "";
     if (bucket !== "nilo-invoices" && bucket !== "nilo-payments")
       throw new HttpError(400, "bad bucket");
-    const signed = must(
+    const path = req.nextUrl.searchParams.get("path") ?? "";
+    if (!path.endsWith("/")) {
+      const signed = must(
+        await s.db.storage.from(bucket).createSignedUrl(path, 600),
+      );
+      if (!signed) throw new HttpError(404, "file not found");
+      return NextResponse.redirect(signed.signedUrl);
+    }
+    // A multi-page invoice is a folder of pages; show them all, in order, on one page.
+    const pages = must(
       await s.db.storage
         .from(bucket)
-        .createSignedUrl(req.nextUrl.searchParams.get("path") ?? "", 600),
+        .list(path.slice(0, -1), { sortBy: { column: "name", order: "asc" } }),
     );
-    if (!signed) throw new HttpError(404, "file not found");
-    return NextResponse.redirect(signed.signedUrl);
+    const signed = must(
+      await s.db.storage.from(bucket).createSignedUrls(
+        (pages ?? []).map((p) => path + p.name),
+        600,
+      ),
+    );
+    const body = (signed ?? [])
+      .map((p) =>
+        p.path?.endsWith(".pdf")
+          ? `<p><a href="${p.signedUrl}">${p.path.split("/").pop()}</a></p>`
+          : `<img src="${p.signedUrl}" style="display:block;max-width:100%;margin:0 auto 12px">`,
+      )
+      .join("");
+    return new NextResponse(
+      `<!doctype html><meta name="viewport" content="width=device-width"><body style="margin:8px">${body}</body>`,
+      { headers: { "content-type": "text/html; charset=utf-8" } },
+    );
   },
 };
 
 const WRITES: Record<string, Handler> = {
+  // Reads invoice pages with Claude. Writes nothing; the dialog shows the result for review.
+  ocr: async (s, req) => {
+    const files = invoicePages(await req.formData());
+    if (!process.env.ANTHROPIC_API_KEY)
+      throw new HttpError(503, "Invoice reading is not configured (ANTHROPIC_API_KEY)");
+    const names = (
+      await pageAll<{ name: string }>((from, to) =>
+        s.db.from("nilo_items").select("name").order("name").range(from, to),
+      )
+    ).map((i) => i.name);
+    const content: Anthropic.Beta.BetaContentBlockParam[] = [];
+    for (const [i, f] of files.entries()) {
+      const data = Buffer.from(await f.arrayBuffer()).toString("base64");
+      content.push({ type: "text", text: `Page ${i + 1}` });
+      content.push(
+        f.type === "application/pdf"
+          ? { type: "document", source: { type: "base64", media_type: "application/pdf", data } }
+          : {
+              type: "image",
+              source: { type: "base64", media_type: f.type as "image/jpeg" | "image/png" | "image/webp", data },
+            },
+      );
+    }
+    content.push({
+      type: "text",
+      text: `Catalogue of existing part names:\n${names.join("\n") || "(empty)"}\n\nTranscribe this invoice.`,
+    });
+    try {
+      const res = await new Anthropic().beta.messages.parse({
+        model: "claude-opus-5-5",
+        max_tokens: 16000,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        system: OCR_SYSTEM,
+        messages: [{ role: "user", content }],
+        output_config: { format: betaZodOutputFormat(ocrSchema) },
+      });
+      if (res.stop_reason === "refusal" || !res.parsed_output)
+        throw new HttpError(422, "Could not read this invoice. Fill it in by hand.");
+      return res.parsed_output;
+    } catch (e) {
+      if (e instanceof Anthropic.RateLimitError)
+        throw new HttpError(429, "Invoice reading is busy. Try again in a moment.");
+      if (e instanceof Anthropic.APIError)
+        throw new HttpError(502, `Invoice reading failed (${e.status ?? "network"})`);
+      throw e;
+    }
+  },
+
   invoice: async (s, req) => {
     const form = await req.formData();
-    const file = form.get("file");
-    if (!(file instanceof File) || file.size === 0)
-      throw new HttpError(400, "Attach the invoice file");
+    const files = invoicePages(form);
     const meta = JSON.parse(String(form.get("meta"))) as Omit<
       InvoiceDraft,
       "fileSha256" | "lines"
@@ -256,7 +394,7 @@ const WRITES: Record<string, Handler> = {
       throw new HttpError(400, "Every line needs an item name");
     }
 
-    const draft: InvoiceDraft = { ...meta, fileSha256: await sha256(file) };
+    const draft: InvoiceDraft = { ...meta, fileSha256: await sha256(files) };
     const key = nifAndNumber(draft.supplierNif, draft.invoiceNo);
     const [nif, no] = key.split("|");
     const [dupNumber, dupFile] = await Promise.all([
@@ -281,12 +419,16 @@ const WRITES: Record<string, Handler> = {
     if (verdict.status === "blocked")
       return { status: "blocked", checks: verdict.checks };
 
-    const path = `${s.company}/${randomUUID()}-${file.name.replace(/[^\w.-]+/g, "_")}`;
-    must(
-      await s.db.storage
-        .from("nilo-invoices")
-        .upload(path, file, { contentType: file.type }),
-    );
+    // Pages go in their own folder, named so they list back in order.
+    const path = `${s.company}/${randomUUID()}/`;
+    for (const [i, f] of files.entries())
+      must(
+        await s.db.storage
+          .from("nilo-invoices")
+          .upload(`${path}${String(i + 1).padStart(2, "0")}-${safeName(f)}`, f, {
+            contentType: f.type,
+          }),
+      );
     const id = must(
       await s.db.rpc("nilo_create_invoice", {
         p: {
@@ -387,16 +529,19 @@ const WRITES: Record<string, Handler> = {
     const { period } = (await req.json()) as { period: string };
     if (!/^\d{4}-\d{2}$/.test(period))
       throw new HttpError(400, "period must be YYYY-MM");
-    const st = await statementFor(s, period);
+    if (period >= new Date().toISOString().slice(0, 7))
+      throw new HttpError(400, "A month can only be issued after it has ended");
+    const doc = await statementDocFor(s, period, new Date().toISOString());
     return must(
       await s.db
         .from("nilo_statements")
         .insert({
-          statement_no: `NILO-${s.company === "royal" ? "RE" : "IM"}-${period}`,
+          statement_no: doc.statementNo,
           company: s.company,
           period: `${period}-01`,
-          lines: st,
-          total: st.total,
+          lines: doc,
+          // This month's own net charges; earlier unpaid balances live on their own statements.
+          total: Math.round((doc.account.charges - doc.account.credits) * 100) / 100,
           issued_by: s.email,
         })
         .select()
@@ -411,7 +556,7 @@ const WRITES: Record<string, Handler> = {
     if (!(file instanceof File) || file.size === 0)
       throw new HttpError(400, "Attach the bank payment proof");
     const id = String(form.get("statementId"));
-    const path = `${s.company}/${id}-${file.name.replace(/[^\w.-]+/g, "_")}`;
+    const path = `${s.company}/${id}-${safeName(file)}`;
     must(
       await s.db.storage
         .from("nilo-payments")
@@ -425,7 +570,7 @@ const WRITES: Record<string, Handler> = {
           paid_by: s.email,
           paid_at: new Date().toISOString(),
           payment_proof_path: path,
-          payment_proof_sha256: await sha256(file),
+          payment_proof_sha256: await sha256([file]),
         })
         .eq("id", id)
         .eq("company", s.company),

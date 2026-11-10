@@ -34,3 +34,6 @@ export const fileUrl = (bucket: "nilo-invoices" | "nilo-payments", path: string)
 
 export const kz = (n: number | string | null | undefined) =>
   `${Number(n ?? 0).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kz`;
+
+// File types an invoice page may be: what the reader accepts and the server stores.
+export const PAGE_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];

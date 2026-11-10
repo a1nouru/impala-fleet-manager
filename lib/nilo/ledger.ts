@@ -21,6 +21,8 @@ export type Movement = {
   company: Company | null;
   vehiclePlate: string | null;
   at: string;
+  // The maintenance job a consume or return belongs to.
+  recordId?: string | null;
 };
 
 // receive adds stock; everything else takes it away (adjust = stock-take shortfall).
@@ -59,6 +61,7 @@ export type StatementLine = {
   code: string;
   itemName: string;
   vehiclePlate: string;
+  recordId: string | null;
   quantity: number;
   unitPrice: number;
   amount: number;
@@ -90,6 +93,7 @@ export function buildStatement(company: Company, period: string, units: Unit[], 
         code: u.code,
         itemName: u.itemName,
         vehiclePlate: m.vehiclePlate ?? "",
+        recordId: m.recordId ?? null,
         quantity,
         unitPrice: cents(unitPrice),
         amount: cents(unitPrice * quantity),
