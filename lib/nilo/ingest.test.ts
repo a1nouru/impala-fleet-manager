@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { itemKey, openingUnits, planIngest, type SourceRow } from "./ingest.ts";
+import { allocateRecent, itemKey, openingUnits, planIngest, type SourceRow } from "./ingest.ts";
 
 let n = 0;
 const row = (o: Partial<SourceRow>): SourceRow => ({
@@ -89,4 +89,30 @@ test("opening stock is bought minus used across both apps, placed on the newest 
 test("over-used parts open at zero, never negative", () => {
   const plan = planIngest([row({ itemName: "Silicone", quantity: 2 })]);
   assert.deepEqual(openingUnits(plan.lots, new Map([[itemKey("Silicone"), 9]])), [0]);
+});
+
+test("every Golden Crown tyre spelling is one part", () => {
+  const keys = [
+    "PNEU GORDEN CROWN", "PNEU GORDEN CROWN 315/80R22.5", "Pneu Golden Crown 315/80R22.5 Liso",
+    "PNEU GORDEN CROWN 000", "PNEU GORDEN CRIWN", "PNEU GORDEN GROWN", "PNEU GORDEN 2 315/80",
+  ].map(itemKey);
+  assert.equal(new Set(keys).size, 1);
+  assert.notEqual(itemKey("ROLAMENTO CARDAN GOLDEN DRAGON"), keys[0]);
+});
+
+test("this month's jobs land on the newest purchases with room; impossible uses are reported", () => {
+  const plan = planIngest([
+    row({ itemName: "Pneu Roadking", date: "2026-11-08", quantity: 274 }),
+    row({ itemName: "Pneu Roadking", date: "2026-10-01", quantity: 4 }),
+  ]);
+  const opening = openingUnits(plan.lots, new Map([[itemKey("Pneu Roadking"), 50]]));
+  const k = itemKey("Pneu Roadking");
+  const { placed, skipped } = allocateRecent(plan.lots, opening, [
+    { key: k, quantity: 44, meta: "nov" },
+    { key: k, quantity: 10, meta: "too many" },
+  ]);
+  const newest = plan.lots.findIndex((l) => l.date === "2026-11-08");
+  assert.deepEqual(opening[newest], 228);
+  assert.deepEqual(placed.map((p) => [p.lot === newest, p.quantity, p.meta]), [[true, 44, "nov"], [true, 2, "too many"], [false, 4, "too many"]]);
+  assert.deepEqual(skipped.map((s) => s.quantity), [4]);
 });

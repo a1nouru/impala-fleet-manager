@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { fileUrl, kz, nilo, type NiloMe, type StockRow } from "@/lib/nilo/client";
+import type { Statement as RunningStatementData } from "@/lib/nilo/ledger";
 
 type Line = {
   id: string;
@@ -125,6 +126,8 @@ function StockTab() {
           <TableHeader>
             <TableRow>
               <TableHead>{t("stock.item")}</TableHead>
+              <TableHead className="text-right">{t("stock.purchased")}</TableHead>
+              <TableHead className="text-right">{t("stock.used")}</TableHead>
               <TableHead className="text-right">{t("stock.available")}</TableHead>
               <TableHead className="text-right">{t("stock.awaiting")}</TableHead>
               <TableHead className="text-right">{t("stock.avgCost")}</TableHead>
@@ -135,7 +138,13 @@ function StockTab() {
             {shown.map((r) => (
               <TableRow key={r.item_id} className={Number(r.available) <= 0 ? "text-muted-foreground" : ""}>
                 <TableCell className="font-medium">{r.name}</TableCell>
-                <TableCell className="text-right tabular-nums">{qty(r.available, r.measure_unit)}</TableCell>
+                <TableCell className="text-right tabular-nums">{qty(r.purchased, r.measure_unit)}</TableCell>
+                <TableCell className="text-right tabular-nums">{qty(r.used, r.measure_unit)}</TableCell>
+                <TableCell
+                  className={`text-right tabular-nums font-semibold ${Number(r.available) > 0 ? "text-green-700" : "text-muted-foreground"}`}
+                >
+                  {qty(r.available, r.measure_unit)}
+                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {Number(r.awaiting_receipt) > 0 ? qty(r.awaiting_receipt, r.measure_unit) : ""}
                 </TableCell>
@@ -743,6 +752,7 @@ function StatementsTab({ me }: { me: NiloMe | null }) {
             </Button>
           </div>
         )}
+        <RunningStatement />
         {rows.length === 0 && <p className="text-sm text-muted-foreground">{t("statements.empty")}</p>}
         <Table>
           <TableBody>
@@ -781,6 +791,81 @@ function StatementsTab({ me }: { me: NiloMe | null }) {
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+// This month so far: the live statement for this app's company, before anything is issued.
+function RunningStatement() {
+  const { t } = useTranslation("nilo");
+  const [st, setSt] = useState<RunningStatementData | null>(null);
+
+  useEffect(() => {
+    nilo<RunningStatementData>("running").then(setSt, fail);
+  }, []);
+
+  if (!st) return <Loading />;
+  const month = new Date(`${st.period}-01T00:00:00Z`).toLocaleDateString("pt-AO", { month: "long", year: "numeric", timeZone: "UTC" });
+
+  return (
+    <div className="space-y-3 rounded-md border p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h3 className="font-semibold">
+            {t("statements.running")} · {month}
+          </h3>
+          <p className="text-xs text-muted-foreground">{t("statements.runningHint")}</p>
+        </div>
+        <div className="text-right">
+          <div className="text-xs text-muted-foreground">{t("statements.soFar")}</div>
+          <div className="text-xl font-semibold tabular-nums">{kz(st.total)}</div>
+        </div>
+      </div>
+      {st.lines.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("statements.nothingYet")}</p>
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("statements.vehicle")}</TableHead>
+                <TableHead className="text-right">{t("statements.parts")}</TableHead>
+                <TableHead className="text-right">{t("statements.amount")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {st.byVehicle.map((v) => (
+                <TableRow key={v.vehiclePlate}>
+                  <TableCell className="font-mono">{v.vehiclePlate || "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{v.parts}</TableCell>
+                  <TableCell className="text-right tabular-nums">{kz(v.amount)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <details>
+            <summary className="cursor-pointer text-sm underline">
+              {t("statements.detail")} ({st.lines.length})
+            </summary>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableBody>
+                  {st.lines.map((l, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap">{l.at.slice(0, 10)}</TableCell>
+                      <TableCell className="font-mono">{l.vehiclePlate}</TableCell>
+                      <TableCell>{l.itemName}</TableCell>
+                      <TableCell className="text-right tabular-nums">{qty(l.quantity)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{kz(l.unitPrice)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{kz(l.amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </details>
+        </>
+      )}
+    </div>
   );
 }
 

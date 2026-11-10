@@ -2,7 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 import { niloSession, type NiloSession } from "@/lib/nilo/server";
-import { checkInvoice, nifAndNumber, type InvoiceDraft } from "@/lib/nilo/invoice-checks";
+import {
+  checkInvoice,
+  nifAndNumber,
+  type InvoiceDraft,
+} from "@/lib/nilo/invoice-checks";
 import { itemKey } from "@/lib/nilo/ingest";
 import { buildStatement, type Movement, type Unit } from "@/lib/nilo/ledger";
 
@@ -11,28 +15,46 @@ export const runtime = "nodejs";
 type Handler = (s: NiloSession, req: NextRequest) => Promise<unknown>;
 
 class HttpError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
   }
 }
 
-const must = <T,>(r: { data: T; error: { message: string } | null }): T => {
+const must = <T>(r: { data: T; error: { message: string } | null }): T => {
   if (r.error) throw new HttpError(400, r.error.message);
   return r.data;
 };
 
 const approverOnly = (s: NiloSession) => {
-  if (!s.isApprover) throw new HttpError(403, "Only Nilo approvers can do this");
+  if (!s.isApprover)
+    throw new HttpError(403, "Only Nilo approvers can do this");
 };
 
-const sha256 = async (f: File) => createHash("sha256").update(Buffer.from(await f.arrayBuffer())).digest("hex");
+const sha256 = async (f: File) =>
+  createHash("sha256")
+    .update(Buffer.from(await f.arrayBuffer()))
+    .digest("hex");
 
 async function cutoverAt(s: NiloSession): Promise<string | null> {
-  const row = must(await s.db.from("nilo_settings").select("value").eq("key", "cutover_at").maybeSingle());
+  const row = must(
+    await s.db
+      .from("nilo_settings")
+      .select("value")
+      .eq("key", "cutover_at")
+      .maybeSingle(),
+  );
   return row?.value ?? null;
 }
 
-async function pageAll<T>(q: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
+async function pageAll<T>(
+  q: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+) {
   const out: T[] = [];
   for (let from = 0; ; from += 1000) {
     const page = must(await q(from, from + 999)) ?? [];
@@ -41,24 +63,106 @@ async function pageAll<T>(q: (from: number, to: number) => PromiseLike<{ data: T
   }
 }
 
+// The company's statement for a month, computed from the movement log.
+async function statementFor(s: NiloSession, period: string) {
+  const [y, m] = period.split("-").map(Number);
+  const end = new Date(Date.UTC(y, m, 1)).toISOString();
+  type Row = {
+    unit_id: string;
+    type: Movement["type"];
+    quantity: number;
+    company: Movement["company"];
+    vehicle_plate: string | null;
+    created_at: string;
+    unit: {
+      code: string;
+      line: {
+        unit_cost: number;
+        container_size: number | null;
+        item: { name: string };
+      };
+    };
+  };
+  const rows = await pageAll<Row>((from, to) =>
+    s.db
+      .from("nilo_movements")
+      .select(
+        "unit_id, type, quantity, company, vehicle_plate, created_at, unit:nilo_units(code, line:nilo_invoice_lines(unit_cost, container_size, item:nilo_items(name)))",
+      )
+      .eq("company", s.company)
+      .gte("created_at", `${period}-01T00:00:00Z`)
+      .lt("created_at", end)
+      .order("id")
+      .range(from, to)
+      .returns<Row[]>(),
+  );
+  const units = new Map<string, Unit>(
+    rows.map((r) => [
+      r.unit_id,
+      {
+        id: r.unit_id,
+        code: r.unit.code,
+        itemName: r.unit.line.item.name,
+        unitCost: Number(r.unit.line.unit_cost),
+        containerSize:
+          r.unit.line.container_size === null
+            ? null
+            : Number(r.unit.line.container_size),
+      },
+    ]),
+  );
+  const movements: Movement[] = rows.map((r) => ({
+    unitId: r.unit_id,
+    type: r.type,
+    quantity: Number(r.quantity),
+    company: r.company,
+    vehiclePlate: r.vehicle_plate,
+    at: r.created_at,
+  }));
+  return buildStatement(s.company, period, [...units.values()], movements);
+}
+
 const READS: Record<string, Handler> = {
-  me: async (s) => ({ email: s.email, company: s.company, isApprover: s.isApprover, cutoverAt: await cutoverAt(s) }),
+  me: async (s) => ({
+    email: s.email,
+    company: s.company,
+    isApprover: s.isApprover,
+    cutoverAt: await cutoverAt(s),
+  }),
 
   stock: async (s) =>
-    pageAll((from, to) => s.db.from("nilo_stock").select("*").order("name").order("item_id").range(from, to)),
+    pageAll((from, to) =>
+      s.db
+        .from("nilo_stock")
+        .select("*")
+        .order("name")
+        .order("item_id")
+        .range(from, to),
+    ),
 
   invoices: async (s) =>
     must(
       await s.db
         .from("nilo_invoices")
-        .select("*, lines:nilo_invoice_lines(*, item:nilo_items(name, kind, measure_unit))")
+        .select(
+          "*, lines:nilo_invoice_lines(*, item:nilo_items(name, kind, measure_unit))",
+        )
         .neq("origin", "legacy")
         .order("created_at", { ascending: false })
         .limit(200),
     ),
 
+  // This month so far, for whichever company this app is. Not stored; recomputed each time.
+  running: async (s) => statementFor(s, new Date().toISOString().slice(0, 7)),
+
   statements: async (s) =>
-    must(await s.db.from("nilo_statements").select("*").eq("company", s.company).order("period", { ascending: false })),
+    must(
+      await s.db
+        .from("nilo_statements")
+        .select("*")
+        .eq("company", s.company)
+        .order("period", { ascending: false }),
+    ),
 
   statement: async (s, req) =>
     must(
@@ -71,16 +175,26 @@ const READS: Record<string, Handler> = {
     ),
 
   trace: async (s, req) => {
-    const code = (req.nextUrl.searchParams.get("code") ?? "").trim().toUpperCase();
+    const code = (req.nextUrl.searchParams.get("code") ?? "")
+      .trim()
+      .toUpperCase();
     const unit = must(
       await s.db
         .from("nilo_units")
-        .select("*, line:nilo_invoice_lines(*, item:nilo_items(name, kind, measure_unit), invoice:nilo_invoices(*))")
+        .select(
+          "*, line:nilo_invoice_lines(*, item:nilo_items(name, kind, measure_unit), invoice:nilo_invoices(*))",
+        )
         .eq("code", code)
         .maybeSingle(),
     );
     if (!unit) throw new HttpError(404, `Unknown code ${code}`);
-    const movements = must(await s.db.from("nilo_movements").select("*").eq("unit_id", unit.id).order("id"));
+    const movements = must(
+      await s.db
+        .from("nilo_movements")
+        .select("*")
+        .eq("unit_id", unit.id)
+        .order("id"),
+    );
     return { unit, movements };
   },
 
@@ -91,17 +205,28 @@ const READS: Record<string, Handler> = {
     return pageAll((from, to) => {
       const q = s.db
         .from("nilo_units")
-        .select("code, line:nilo_invoice_lines!inner(item_id, item:nilo_items(name), invoice:nilo_invoices(invoice_no))")
+        .select(
+          "code, line:nilo_invoice_lines!inner(item_id, item:nilo_items(name), invoice:nilo_invoices(invoice_no))",
+        )
         .order("code")
         .range(from, to);
-      return line ? q.eq("line_id", line) : q.eq("line.item_id", item ?? "").in("status", ["labelled", "in_stock"]);
+      return line
+        ? q.eq("line_id", line)
+        : q
+            .eq("line.item_id", item ?? "")
+            .in("status", ["labelled", "in_stock"]);
     });
   },
 
   file: async (s, req) => {
     const bucket = req.nextUrl.searchParams.get("bucket") ?? "";
-    if (bucket !== "nilo-invoices" && bucket !== "nilo-payments") throw new HttpError(400, "bad bucket");
-    const signed = must(await s.db.storage.from(bucket).createSignedUrl(req.nextUrl.searchParams.get("path") ?? "", 600));
+    if (bucket !== "nilo-invoices" && bucket !== "nilo-payments")
+      throw new HttpError(400, "bad bucket");
+    const signed = must(
+      await s.db.storage
+        .from(bucket)
+        .createSignedUrl(req.nextUrl.searchParams.get("path") ?? "", 600),
+    );
     if (!signed) throw new HttpError(404, "file not found");
     return NextResponse.redirect(signed.signedUrl);
   },
@@ -111,8 +236,12 @@ const WRITES: Record<string, Handler> = {
   invoice: async (s, req) => {
     const form = await req.formData();
     const file = form.get("file");
-    if (!(file instanceof File) || file.size === 0) throw new HttpError(400, "Attach the invoice file");
-    const meta = JSON.parse(String(form.get("meta"))) as Omit<InvoiceDraft, "fileSha256" | "lines"> & {
+    if (!(file instanceof File) || file.size === 0)
+      throw new HttpError(400, "Attach the invoice file");
+    const meta = JSON.parse(String(form.get("meta"))) as Omit<
+      InvoiceDraft,
+      "fileSha256" | "lines"
+    > & {
       supplier: string;
       ocrRaw?: unknown;
       lines: (InvoiceDraft["lines"][number] & {
@@ -131,8 +260,15 @@ const WRITES: Record<string, Handler> = {
     const key = nifAndNumber(draft.supplierNif, draft.invoiceNo);
     const [nif, no] = key.split("|");
     const [dupNumber, dupFile] = await Promise.all([
-      s.db.from("nilo_invoices").select("id", { count: "exact", head: true }).eq("supplier_nif", nif).eq("invoice_no", no),
-      s.db.from("nilo_invoices").select("id", { count: "exact", head: true }).eq("file_sha256", draft.fileSha256),
+      s.db
+        .from("nilo_invoices")
+        .select("id", { count: "exact", head: true })
+        .eq("supplier_nif", nif)
+        .eq("invoice_no", no),
+      s.db
+        .from("nilo_invoices")
+        .select("id", { count: "exact", head: true })
+        .eq("file_sha256", draft.fileSha256),
     ]);
     const verdict = checkInvoice(
       draft,
@@ -142,10 +278,15 @@ const WRITES: Record<string, Handler> = {
       },
       new Date(),
     );
-    if (verdict.status === "blocked") return { status: "blocked", checks: verdict.checks };
+    if (verdict.status === "blocked")
+      return { status: "blocked", checks: verdict.checks };
 
     const path = `${s.company}/${randomUUID()}-${file.name.replace(/[^\w.-]+/g, "_")}`;
-    must(await s.db.storage.from("nilo-invoices").upload(path, file, { contentType: file.type }));
+    must(
+      await s.db.storage
+        .from("nilo-invoices")
+        .upload(path, file, { contentType: file.type }),
+    );
     const id = must(
       await s.db.rpc("nilo_create_invoice", {
         p: {
@@ -183,7 +324,11 @@ const WRITES: Record<string, Handler> = {
     must(
       await s.db
         .from("nilo_invoices")
-        .update({ status: "approved", approved_by: s.email, approved_at: new Date().toISOString() })
+        .update({
+          status: "approved",
+          approved_by: s.email,
+          approved_at: new Date().toISOString(),
+        })
         .eq("id", invoiceId)
         .eq("status", "pending_approval"),
     );
@@ -197,7 +342,9 @@ const WRITES: Record<string, Handler> = {
 
   receive: async (s, req) => {
     const { code } = await req.json();
-    return must(await s.db.rpc("nilo_receive", { p_code: code, p_user: s.email }));
+    return must(
+      await s.db.rpc("nilo_receive", { p_code: code, p_user: s.email }),
+    );
   },
 
   // Makes a maintenance record's Nilo consumption match its parts list (see nilo_set_record_parts).
@@ -210,17 +357,25 @@ const WRITES: Record<string, Handler> = {
     };
     const [cutover, record] = await Promise.all([
       cutoverAt(s),
-      (await createSessionClient()).from("maintenance_records").select("created_at").eq("id", recordId).maybeSingle(),
+      (await createSessionClient())
+        .from("maintenance_records")
+        .select("created_at")
+        .eq("id", recordId)
+        .maybeSingle(),
     ]);
     // A deleted record has no row left; a record from before the cutover was settled by the import.
-    if (record.data && cutover && record.data.created_at < cutover) return { skipped: "legacy record" };
+    if (record.data && cutover && record.data.created_at < cutover)
+      return { skipped: "legacy record" };
     must(
       await s.db.rpc("nilo_set_record_parts", {
         p_company: s.company,
         p_record: recordId,
         p_plate: plate,
         p_user: s.email,
-        p_parts: parts.map((p) => ({ item_id: p.itemId, quantity: p.quantity })),
+        p_parts: parts.map((p) => ({
+          item_id: p.itemId,
+          quantity: p.quantity,
+        })),
         p_codes: codes ?? [],
       }),
     );
@@ -230,52 +385,9 @@ const WRITES: Record<string, Handler> = {
   statement: async (s, req) => {
     approverOnly(s);
     const { period } = (await req.json()) as { period: string };
-    if (!/^\d{4}-\d{2}$/.test(period)) throw new HttpError(400, "period must be YYYY-MM");
-    const [y, m] = period.split("-").map(Number);
-    const end = new Date(Date.UTC(y, m, 1)).toISOString();
-    type Row = {
-      unit_id: string;
-      type: Movement["type"];
-      quantity: number;
-      company: Movement["company"];
-      vehicle_plate: string | null;
-      created_at: string;
-      unit: { code: string; line: { unit_cost: number; container_size: number | null; item: { name: string } } };
-    };
-    const rows = await pageAll<Row>((from, to) =>
-      s.db
-        .from("nilo_movements")
-        .select(
-          "unit_id, type, quantity, company, vehicle_plate, created_at, unit:nilo_units(code, line:nilo_invoice_lines(unit_cost, container_size, item:nilo_items(name)))",
-        )
-        .eq("company", s.company)
-        .gte("created_at", `${period}-01T00:00:00Z`)
-        .lt("created_at", end)
-        .order("id")
-        .range(from, to)
-        .returns<Row[]>(),
-    );
-    const units = new Map<string, Unit>(
-      rows.map((r) => [
-        r.unit_id,
-        {
-          id: r.unit_id,
-          code: r.unit.code,
-          itemName: r.unit.line.item.name,
-          unitCost: Number(r.unit.line.unit_cost),
-          containerSize: r.unit.line.container_size === null ? null : Number(r.unit.line.container_size),
-        },
-      ]),
-    );
-    const movements: Movement[] = rows.map((r) => ({
-      unitId: r.unit_id,
-      type: r.type,
-      quantity: Number(r.quantity),
-      company: r.company,
-      vehiclePlate: r.vehicle_plate,
-      at: r.created_at,
-    }));
-    const st = buildStatement(s.company, period, [...units.values()], movements);
+    if (!/^\d{4}-\d{2}$/.test(period))
+      throw new HttpError(400, "period must be YYYY-MM");
+    const st = await statementFor(s, period);
     return must(
       await s.db
         .from("nilo_statements")
@@ -296,10 +408,15 @@ const WRITES: Record<string, Handler> = {
     approverOnly(s);
     const form = await req.formData();
     const file = form.get("file");
-    if (!(file instanceof File) || file.size === 0) throw new HttpError(400, "Attach the bank payment proof");
+    if (!(file instanceof File) || file.size === 0)
+      throw new HttpError(400, "Attach the bank payment proof");
     const id = String(form.get("statementId"));
     const path = `${s.company}/${id}-${file.name.replace(/[^\w.-]+/g, "_")}`;
-    must(await s.db.storage.from("nilo-payments").upload(path, file, { contentType: file.type }));
+    must(
+      await s.db.storage
+        .from("nilo-payments")
+        .upload(path, file, { contentType: file.type }),
+    );
     must(
       await s.db
         .from("nilo_statements")
@@ -319,16 +436,21 @@ const WRITES: Record<string, Handler> = {
 
 async function run(table: Record<string, Handler>, req: NextRequest, ctx: Ctx) {
   const handler = table[(await ctx.params).action];
-  if (!handler) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!handler)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   try {
     const s = await niloSession();
-    if (!s) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!s)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const out = await handler(s, req);
     return out instanceof NextResponse ? out : NextResponse.json(out);
   } catch (e) {
     const status = e instanceof HttpError ? e.status : 500;
     if (status === 500) console.error("nilo:", e);
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Nilo error" }, { status });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Nilo error" },
+      { status },
+    );
   }
 }
 

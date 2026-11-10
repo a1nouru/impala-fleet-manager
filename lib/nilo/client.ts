@@ -19,6 +19,8 @@ export type StockRow = {
   name: string;
   kind: "unit" | "bulk";
   measure_unit: string | null;
+  purchased: number;
+  used: number;
   available: number;
   awaiting_receipt: number;
   avg_cost: number | null;

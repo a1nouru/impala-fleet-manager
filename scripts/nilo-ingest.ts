@@ -5,7 +5,7 @@
 //   SUPABASE_ACCESS_TOKEN=sbp_... node --experimental-strip-types scripts/nilo-ingest.ts report.md [--commit|--resync]
 import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
-import { itemKey, openingUnits, planIngest, type Company, type SourceRow } from "../lib/nilo/ingest.ts";
+import { allocateRecent, itemKey, openingUnits, planIngest, type Company, type RecentUse, type SourceRow } from "../lib/nilo/ingest.ts";
 import { usedQuantitiesByNormalizedName } from "../lib/inventory/usage.ts";
 
 const PROJECTS: Record<Company, string> = { royal: "hymravaveedguejtazsc", impala: "depesjavqihzrxswkcso" };
@@ -83,6 +83,27 @@ const plan = planIngest(rows);
 const units = openingUnits(plan.lots, await usedByKey());
 const openingTotal = units.reduce((a, b) => a + b, 0);
 
+// Jobs entered since the start of this month become real Nilo consumption, so this month's
+// running statement is complete and later edits of those jobs adjust stock correctly.
+const now = new Date();
+const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+type UseMeta = { company: Company; recordId: string; plate: string; date: string };
+const recentUses: RecentUse<UseMeta>[] = [];
+for (const company of ["royal", "impala"] as const) {
+  const recs = await sql<{ id: string; date: string; plate: string | null; parts: string[] | null }>(
+    PROJECTS[company],
+    `select m.id, m.date::text date, v.plate, m.parts from maintenance_records m
+     left join vehicles v on v.id = m.vehicle_id where m.created_at >= '${monthStart}' order by m.date, m.created_at`,
+  );
+  for (const r of recs)
+    for (const p of r.parts ?? []) {
+      const m = p.match(/^(.+?)\s*\(Qty:\s*(\d+)\)$/);
+      if (m) recentUses.push({ key: itemKey(m[1]), quantity: Number(m[2]), meta: { company, recordId: r.id, plate: r.plate ?? "", date: r.date } });
+    }
+}
+const recent = allocateRecent(plan.lots, units, recentUses);
+const recentTotal = recent.placed.reduce((n, p) => n + p.quantity, 0);
+
 const kz = (n: number) => n.toLocaleString("pt-AO", { maximumFractionDigits: 2 });
 const who = (r: SourceRow) => `${r.company === "royal" ? "RE" : "IM"} #${r.code}`;
 const line = (r: SourceRow) => `| ${who(r)} | ${r.date} | ${r.itemName.trim()} | ${r.quantity} | ${kz(r.unitCost)} |`;
@@ -102,6 +123,8 @@ const report = [
   `- Junk rows skipped: **${plan.junk.length}**`,
   `- Catalog parts: **${plan.catalog.length}** (from ${new Set(rows.map((r) => r.itemName.trim().toLowerCase())).size} raw names)`,
   `- Opening stock (bought − used, both apps): **${openingTotal}** units`,
+  `- Used since ${monthStart.slice(0, 10)} (brought in as consumption for the running statement): **${recentTotal}** units` +
+    (recent.skipped.length ? `; ${recent.skipped.reduce((n, u) => n + u.quantity, 0)} more logged than were ever bought (not imported)` : ""),
   "",
   "## Split orders joined",
   "| Item | Date | RE | Impala | Nilo lot | Unit Kz |",
@@ -179,10 +202,11 @@ if (commit) {
       source_company: first.company,
       source_ref: l.rows.map(who).join(" + "),
       units: units[i],
+      consumed: recent.placed.filter((p) => p.lot === i).map((p) => ({ quantity: p.quantity, ...p.meta })),
       sources: l.rows.map((r) => ({ company: r.company, id: r.id })),
     };
   });
-  const payload = JSON.stringify({ items, lots });
+  const payload = JSON.stringify({ items, lots, cutover: monthStart });
   if (payload.includes("$payload$")) throw new Error("payload contains the SQL quote tag");
   const script = readFileSync(new URL("../nilo/legacy-import.sql", import.meta.url), "utf8").replace("__PAYLOAD__", payload);
   await sql(NILO, script);

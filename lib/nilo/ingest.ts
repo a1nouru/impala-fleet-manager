@@ -31,20 +31,26 @@ export type IngestPlan = {
 
 const SYNONYMS: [RegExp, string][] = [
   [/\btires?\b/g, "pneu"],
-  [/\bgorden\b|\bgolden\b/g, "golden"],
+  [/\bgord[ae]n\b|\bgolden\b/g, "golden"],
+  [/\bcr[iy]wn\b|\bgrown\b/g, "crown"],
   [/\bbrake disc pads\b/g, "calco"],
 ];
+
+// Parts that are one physical product however they were typed. Every Golden Crown tyre the
+// fleets buy is the 315/80R22.5; the extra words ("000", "liso", "2") are typing noise.
+const CANONICAL: [RegExp, string][] = [[/^pneu golden\b/, "pneu golden crown 315/80r22.5"]];
 
 export function itemKey(name: string): string {
   let s = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   for (const [re, to] of SYNONYMS) s = s.replace(re, to);
-  return s
+  const key = s
     .replace(/[^a-z0-9/.*]+/g, " ")
     .replace(/^\s*\d+\s*t?\s+/, "")
     .replace(/\bjogos? de\b|\bde\b|\bdo\b|\bda\b/g, " ")
     .replace(/\b([a-z]{4,})s\b/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
+  return CANONICAL.find(([re]) => re.test(key))?.[1] ?? key;
 }
 
 const SPLIT_ORDER = /dividid[oa]|contentor dividido|metade da encomenda/i;
@@ -91,6 +97,31 @@ export function openingUnits(lots: Lot[], usedByKey: Map<string, number>): numbe
     }
   }
   return out;
+}
+
+export type RecentUse<M> = { key: string; quantity: number; meta: M };
+
+// Jobs from this month are brought into Nilo as real consumption so the running statement is
+// complete. Each used unit is placed on the newest purchase that still has room after the
+// opening stock. Uses with no room left (more logged than ever bought) come back in skipped.
+export function allocateRecent<M>(lots: Lot[], opening: number[], uses: RecentUse<M>[]) {
+  const room = lots.map((l, i) => Math.floor(l.quantity) - opening[i]);
+  const newestFirst = lots.map((l, i) => i).sort((a, b) => lots[b].date.localeCompare(lots[a].date));
+  const placed: { lot: number; quantity: number; meta: M }[] = [];
+  const skipped: RecentUse<M>[] = [];
+  for (const use of uses) {
+    let need = Math.floor(use.quantity);
+    for (const i of newestFirst) {
+      if (need === 0) break;
+      if (lots[i].itemKey !== use.key || room[i] === 0) continue;
+      const take = Math.min(need, room[i]);
+      room[i] -= take;
+      need -= take;
+      placed.push({ lot: i, quantity: take, meta: use.meta });
+    }
+    if (need > 0) skipped.push({ ...use, quantity: need });
+  }
+  return { placed, skipped };
 }
 
 export function planIngest(all: SourceRow[]): IngestPlan {
