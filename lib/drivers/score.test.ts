@@ -20,6 +20,11 @@ describe("parsePart", () => {
     expect(parsePart("9009 (Qty: 1)")?.kind).toBe("routine");
     expect(parsePart("12R22.5 LISO")?.kind).toBe("tire");
     expect(parsePart("5TIRE 315/80R22.5")?.kind).toBe("tire");
+    expect(parsePart("DISCO DE EMBREAGEM HIGER (Qty: 1)")?.kind).toBe("clutch");
+    expect(parsePart("Disco de embraiagem")?.kind).toBe("clutch");
+    expect(parsePart("DISCO DE EMBREIAGEM")?.kind).toBe("clutch");
+    expect(parsePart("Bomba central de embraiagem")?.kind).toBe("wear");
+    expect(parsePart("Disco de travão Higer")?.kind).toBe("wear");
     expect(parsePart("JOGO DE CINTA DE TRÁS.")?.kind).toBe("wear");
     expect(parsePart("  (Qty: 1)")).toBeNull();
   });
@@ -28,7 +33,7 @@ describe("parsePart", () => {
 describe("scoreDrivers", () => {
   const drivers = [{ id: "a", nome: "Ana" }, { id: "b", nome: "Beto" }, { id: "c", nome: "Caio" }, { id: "d", nome: "Dino" }];
   const maintenance: MaintenanceInput[] = [
-    { vehicle_id: "v2", date: day(10), driver_id: "b", cost: 300000, parts: ["PNEU X (Qty: 2)", "CALÇO (Qty: 1)", "SINOPEC 15W40 (Qty: 23)"] },
+    { vehicle_id: "v2", date: day(10), driver_id: "b", cost: 300000, parts: ["PNEU X (Qty: 2)", "CALÇO (Qty: 1)", "DISCO DE EMBREAGEM (Qty: 1)", "SINOPEC 15W40 (Qty: 23)"] },
     { vehicle_id: "v3", date: day(5), driver_id: "c", cost: 100000, parts: ["Brake disc pads (Qty: 1)"] },
   ];
   const result = scoreDrivers({
@@ -52,6 +57,7 @@ describe("scoreDrivers", () => {
   it("counts tires and wear parts but not routine service, normalised per 30 days", () => {
     expect(byId.b.tires).toBe(2);
     expect(byId.b.wearParts).toBe(1);
+    expect(byId.b.clutches).toBe(1);
     expect(byId.b.per30.tires).toBe(2);
   });
 

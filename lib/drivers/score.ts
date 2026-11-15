@@ -1,11 +1,11 @@
-// Driver scorecard: attributes revenue, tire/spare-part use, maintenance cost and
+// Driver scorecard: attributes revenue, tire/clutch-disc/spare-part use, maintenance cost and
 // damages to drivers, then ranks them against each other for the same period.
 
 export const MIN_DAYS_DRIVEN = 20;
 export const ESTIMATE_WINDOW_DAYS = 7;
 export const TIERS = { raise: 80, good: 60 } as const;
 
-export type PartKind = "tire" | "routine" | "wear";
+export type PartKind = "tire" | "clutch" | "routine" | "wear";
 export type Tier = "raise" | "good" | "watch" | "insufficient";
 
 export interface MaintenanceInput {
@@ -42,6 +42,7 @@ export interface MonthStats {
   days: number;
   revenue: number;
   tires: number;
+  clutches: number;
   wearParts: number;
 }
 
@@ -53,12 +54,13 @@ export interface DriverScore {
   revenue: number;
   revenuePerDay: number;
   tires: number;
+  clutches: number;
   wearParts: number;
   maintenanceCost: number;
   maintenanceEvents: number;
   damageCount: number;
   damageCost: number;
-  per30: { tires: number; wearParts: number; cost: number };
+  per30: { tires: number; clutches: number; wearParts: number; cost: number };
   points: Record<ComponentKey, number> | null;
   score: number | null;
   tier: Tier;
@@ -69,15 +71,19 @@ type Stats = Omit<DriverScore, "points" | "score" | "tier">;
 
 export const COMPONENTS = [
   { key: "revenue", label: "Revenue / day", weight: 40, higherIsBetter: true, value: (d: Stats) => d.revenuePerDay },
-  { key: "tires", label: "Tires", weight: 20, higherIsBetter: false, value: (d: Stats) => d.per30.tires },
-  { key: "parts", label: "Spare parts", weight: 15, higherIsBetter: false, value: (d: Stats) => d.per30.wearParts },
-  { key: "cost", label: "Maintenance cost", weight: 15, higherIsBetter: false, value: (d: Stats) => d.per30.cost },
+  { key: "tires", label: "Tires", weight: 15, higherIsBetter: false, value: (d: Stats) => d.per30.tires },
+  { key: "clutch", label: "Clutch discs", weight: 15, higherIsBetter: false, value: (d: Stats) => d.per30.clutches },
+  { key: "parts", label: "Spare parts", weight: 10, higherIsBetter: false, value: (d: Stats) => d.per30.wearParts },
+  { key: "cost", label: "Maintenance cost", weight: 10, higherIsBetter: false, value: (d: Stats) => d.per30.cost },
   { key: "damages", label: "Damages", weight: 10, higherIsBetter: false, value: (d: Stats) => d.damageCost },
 ] as const;
 
 export type ComponentKey = (typeof COMPONENTS)[number]["key"];
 
 const TIRE = /(pneu|tire|tyre|\d{2}r\s?22)/;
+// "disco de embreagem/embraiagem/embreiagem" — clutch wear is the clearest sign of rough driving.
+// Pumps ("bomba … de embraiagem") are hydraulics, not wear, so they stay spare parts.
+const CLUTCH = /^(?!.*bomba).*(embr[ae]i?agem|clutch)/;
 const ROUTINE = /(oleo|oil|filtro|filro|filter|sinopec|valvo|valvu|vavol|lubrif|massa|\d{2}w\d{2,3}|\blf\s?\d|^9009$|silicone|silcone|cilcone)/;
 
 export function parsePart(raw: string): { name: string; qty: number; kind: PartKind } | null {
@@ -86,7 +92,7 @@ export function parsePart(raw: string): { name: string; qty: number; kind: PartK
   if (!name) return null;
   const qty = m ? Number(m[2]) || 1 : 1;
   const key = name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  const kind: PartKind = TIRE.test(key) ? "tire" : ROUTINE.test(key) ? "routine" : "wear";
+  const kind: PartKind = TIRE.test(key) ? "tire" : CLUTCH.test(key) ? "clutch" : ROUTINE.test(key) ? "routine" : "wear";
   return { name, qty, kind };
 }
 
@@ -144,8 +150,8 @@ export function scoreDrivers(input: {
     if (name === undefined) return null;
     const fresh: Stats = {
       driverId: id, name, daysDriven: 0, estimatedDays: 0, revenue: 0, revenuePerDay: 0,
-      tires: 0, wearParts: 0, maintenanceCost: 0, maintenanceEvents: 0, damageCount: 0, damageCost: 0,
-      per30: { tires: 0, wearParts: 0, cost: 0 }, months: [],
+      tires: 0, clutches: 0, wearParts: 0, maintenanceCost: 0, maintenanceEvents: 0, damageCount: 0, damageCost: 0,
+      per30: { tires: 0, clutches: 0, wearParts: 0, cost: 0 }, months: [],
     };
     stats.set(id, fresh);
     months.set(id, new Map());
@@ -156,7 +162,7 @@ export function scoreDrivers(input: {
     const month = date.slice(0, 7);
     const existing = byMonth.get(month);
     if (existing) return existing;
-    const fresh = { month, days: 0, revenue: 0, tires: 0, wearParts: 0 };
+    const fresh = { month, days: 0, revenue: 0, tires: 0, clutches: 0, wearParts: 0 };
     byMonth.set(month, fresh);
     return fresh;
   };
@@ -185,6 +191,7 @@ export function scoreDrivers(input: {
     for (const raw of rec.parts ?? []) {
       const part = parsePart(raw);
       if (part?.kind === "tire") { s.tires += part.qty; m.tires += part.qty; }
+      if (part?.kind === "clutch") { s.clutches += part.qty; m.clutches += part.qty; }
       if (part?.kind === "wear") { s.wearParts += part.qty; m.wearParts += part.qty; }
     }
   }
@@ -200,7 +207,7 @@ export function scoreDrivers(input: {
   for (const s of stats.values()) {
     const per30 = (n: number) => (s.daysDriven ? (n / s.daysDriven) * 30 : 0);
     s.revenuePerDay = s.daysDriven ? s.revenue / s.daysDriven : 0;
-    s.per30 = { tires: per30(s.tires), wearParts: per30(s.wearParts), cost: per30(s.maintenanceCost) };
+    s.per30 = { tires: per30(s.tires), clutches: per30(s.clutches), wearParts: per30(s.wearParts), cost: per30(s.maintenanceCost) };
     s.months = [...months.get(s.driverId)!.values()].sort((a, b) => a.month.localeCompare(b.month));
   }
 

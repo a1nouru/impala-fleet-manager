@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { format, subMonths, startOfMonth } from "date-fns";
-import { Award, CircleDot, Gauge, Loader2, Trophy, Wrench } from "lucide-react";
+import { Award, CircleDot, Disc, Gauge, Loader2, Trophy, Wrench } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import {
 const COMPONENT_COLORS: Record<ComponentKey, string> = {
   revenue: "#18181b",
   tires: "#2f5bd3",
+  clutch: "#c2410c",
   parts: "#6b93f0",
   cost: "#a5b4fc",
   damages: "#d4d4d8",
@@ -81,7 +82,7 @@ export default function DriverRecordsPage() {
   const estimatedDays = scores.reduce((a, s) => a + s.estimatedDays, 0);
 
   const scoreData = ranked.map((s) => ({ name: s.name, ...s.points }));
-  const wearData = ranked.map((s) => ({ name: s.name, tires: +one(s.per30.tires), parts: +one(s.per30.wearParts) }));
+  const wearData = ranked.map((s) => ({ name: s.name, tires: +one(s.per30.tires), clutch: +one(s.per30.clutches), parts: +one(s.per30.wearParts) }));
   const revenueData = [...ranked]
     .sort((a, b) => b.revenuePerDay - a.revenuePerDay)
     .map((s) => ({ name: s.name, revenue: Math.round(s.revenuePerDay) }));
@@ -124,13 +125,15 @@ export default function DriverRecordsPage() {
             </p>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Kpi icon={Award} title="Raise-eligible" value={ranked.filter((s) => s.tier === "raise").length}
               note={`Score ${TIERS.raise}+ of ${ranked.length} ranked`} />
             <Kpi icon={Gauge} title="Median score" value={median(ranked.map((s) => s.score!))}
               note={`Drivers with ${MIN_DAYS_DRIVEN}+ days driven`} />
             <Kpi icon={CircleDot} title="Tires changed" value={scores.reduce((a, s) => a + s.tires, 0)}
               note="Attributed to drivers" />
+            <Kpi icon={Disc} title="Clutch discs replaced" value={scores.reduce((a, s) => a + s.clutches, 0)}
+              note="Disco de embreagem" />
             <Kpi icon={Wrench} title="Spare parts replaced" value={scores.reduce((a, s) => a + s.wearParts, 0)}
               note="Excludes oil, filters, silicone" />
           </div>
@@ -160,13 +163,14 @@ export default function DriverRecordsPage() {
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Tires & spare parts per 30 days driven</CardTitle>
-                    <Legend items={[{ label: "Tires", color: COMPONENT_COLORS.tires }, { label: "Spare parts", color: COMPONENT_COLORS.parts }]} />
+                    <CardTitle className="text-base">Tires, clutch discs & spare parts per 30 days driven</CardTitle>
+                    <Legend items={[{ label: "Tires", color: COMPONENT_COLORS.tires }, { label: "Clutch discs", color: COMPONENT_COLORS.clutch }, { label: "Spare parts", color: COMPONENT_COLORS.parts }]} />
                   </CardHeader>
                   <CardContent>
                     <BarChart className="w-full" data={wearData} orientation="horizontal" stacked stackGap={2} barGap={0.45}
                       aspectRatio={rowsAspect(wearData.length)} margin={{ left: 210, right: 16, top: 4, bottom: 4 }}>
                       <Bar dataKey="tires" fill={COMPONENT_COLORS.tires} />
+                      <Bar dataKey="clutch" fill={COMPONENT_COLORS.clutch} />
                       <Bar dataKey="parts" fill={COMPONENT_COLORS.parts} />
                       <BarYAxis />
                       <ChartTooltip showDatePill={false} showCrosshair={false} />
@@ -202,6 +206,7 @@ export default function DriverRecordsPage() {
                     <TableHead className="text-right">Days driven</TableHead>
                     <TableHead className="text-right">Revenue / day</TableHead>
                     <TableHead className="text-right">Tires</TableHead>
+                    <TableHead className="text-right">Clutch discs</TableHead>
                     <TableHead className="text-right">Spare parts</TableHead>
                     <TableHead className="text-right">Maintenance cost</TableHead>
                     <TableHead className="text-right">Damages</TableHead>
@@ -219,6 +224,7 @@ export default function DriverRecordsPage() {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{aoa(s.revenuePerDay)}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.tires}</TableCell>
+                      <TableCell className="text-right tabular-nums">{s.clutches}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.wearParts}</TableCell>
                       <TableCell className="text-right tabular-nums">{aoa(s.maintenanceCost)}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.damageCount ? `${s.damageCount} · ${aoa(s.damageCost)}` : "0"}</TableCell>
@@ -300,6 +306,7 @@ function DriverDialog({ driver, ranked, maintenance, range, onClose }: {
             ))}
             <dt className="text-muted-foreground">Revenue / day</dt><dd className="text-right tabular-nums">{aoa(driver.revenuePerDay)}</dd>
             <dt className="text-muted-foreground">Tires / 30 days</dt><dd className="text-right tabular-nums">{one(driver.per30.tires)}</dd>
+            <dt className="text-muted-foreground">Clutch discs / 30 days</dt><dd className="text-right tabular-nums">{one(driver.per30.clutches)}</dd>
             <dt className="text-muted-foreground">Spare parts / 30 days</dt><dd className="text-right tabular-nums">{one(driver.per30.wearParts)}</dd>
             <dt className="text-muted-foreground">Maintenance cost</dt><dd className="text-right tabular-nums">{aoa(driver.maintenanceCost)}</dd>
           </dl>
@@ -307,10 +314,11 @@ function DriverDialog({ driver, ranked, maintenance, range, onClose }: {
 
         {driver.months.length > 0 && (
           <div>
-            <h4 className="mb-2 text-sm font-medium">Tires & spare parts by month</h4>
-            <BarChart className="w-full" data={driver.months.map((m) => ({ name: m.month, tires: m.tires, parts: m.wearParts }))}
+            <h4 className="mb-2 text-sm font-medium">Tires, clutch discs & spare parts by month</h4>
+            <BarChart className="w-full" data={driver.months.map((m) => ({ name: m.month, tires: m.tires, clutch: m.clutches, parts: m.wearParts }))}
               stacked stackGap={2} aspectRatio="3 / 1" margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
               <Bar dataKey="tires" fill={COMPONENT_COLORS.tires} />
+              <Bar dataKey="clutch" fill={COMPONENT_COLORS.clutch} />
               <Bar dataKey="parts" fill={COMPONENT_COLORS.parts} />
               <BarXAxis />
               <ChartTooltip showDatePill={false} showCrosshair={false} />
@@ -334,7 +342,7 @@ function DriverDialog({ driver, ranked, maintenance, range, onClose }: {
                     const part = parsePart(raw);
                     if (!part) return null;
                     return (
-                      <Badge key={i} variant="outline" className={part.kind === "tire" ? "border-blue-300 text-blue-800" : part.kind === "routine" ? "text-muted-foreground" : ""}>
+                      <Badge key={i} variant="outline" className={part.kind === "tire" ? "border-blue-300 text-blue-800" : part.kind === "clutch" ? "border-orange-300 text-orange-800" : part.kind === "routine" ? "text-muted-foreground" : ""}>
                         {part.name}{part.qty !== 1 ? ` ×${part.qty}` : ""}
                       </Badge>
                     );
