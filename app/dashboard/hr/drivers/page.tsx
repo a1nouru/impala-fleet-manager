@@ -31,6 +31,7 @@ const COMPONENT_COLORS: Record<ComponentKey, string> = {
   revenue: "#18181b",
   tires: "#2f5bd3",
   clutch: "#c2410c",
+  brakes: "#f59e0b",
   parts: "#6b93f0",
   cost: "#a5b4fc",
   damages: "#d4d4d8",
@@ -82,7 +83,7 @@ export default function DriverRecordsPage() {
   const estimatedDays = scores.reduce((a, s) => a + s.estimatedDays, 0);
 
   const scoreData = ranked.map((s) => ({ name: s.name, ...s.points }));
-  const wearData = ranked.map((s) => ({ name: s.name, tires: +one(s.per30.tires), clutch: +one(s.per30.clutches), parts: +one(s.per30.wearParts) }));
+  const wearData = ranked.map((s) => ({ name: s.name, tires: +one(s.per30.tires), clutch: +one(s.per30.clutches), brakes: +one(s.per30.brakes), parts: +one(s.per30.wearParts) }));
   const revenueData = [...ranked]
     .sort((a, b) => b.revenuePerDay - a.revenuePerDay)
     .map((s) => ({ name: s.name, revenue: Math.round(s.revenuePerDay) }));
@@ -163,14 +164,15 @@ export default function DriverRecordsPage() {
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Tires, clutch discs & spare parts per 30 days driven</CardTitle>
-                    <Legend items={[{ label: "Tires", color: COMPONENT_COLORS.tires }, { label: "Clutch discs", color: COMPONENT_COLORS.clutch }, { label: "Spare parts", color: COMPONENT_COLORS.parts }]} />
+                    <CardTitle className="text-base">Tires, clutch, brakes & spare parts per 30 days driven</CardTitle>
+                    <Legend items={[{ label: "Tires", color: COMPONENT_COLORS.tires }, { label: "Clutch discs", color: COMPONENT_COLORS.clutch }, { label: "Brakes", color: COMPONENT_COLORS.brakes }, { label: "Spare parts", color: COMPONENT_COLORS.parts }]} />
                   </CardHeader>
                   <CardContent>
                     <BarChart className="w-full" data={wearData} orientation="horizontal" stacked stackGap={2} barGap={0.45}
                       aspectRatio={rowsAspect(wearData.length)} margin={{ left: 210, right: 16, top: 4, bottom: 4 }}>
                       <Bar dataKey="tires" fill={COMPONENT_COLORS.tires} />
                       <Bar dataKey="clutch" fill={COMPONENT_COLORS.clutch} />
+                      <Bar dataKey="brakes" fill={COMPONENT_COLORS.brakes} />
                       <Bar dataKey="parts" fill={COMPONENT_COLORS.parts} />
                       <BarYAxis />
                       <ChartTooltip showDatePill={false} showCrosshair={false} />
@@ -193,6 +195,8 @@ export default function DriverRecordsPage() {
             </>
           )}
 
+          {ranked.length > 0 && <LowestScores ranked={ranked} onSelect={setSelected} />}
+
           <Card>
             <CardHeader><CardTitle className="text-base">All drivers</CardTitle></CardHeader>
             <CardContent className="overflow-x-auto">
@@ -207,6 +211,7 @@ export default function DriverRecordsPage() {
                     <TableHead className="text-right">Revenue / day</TableHead>
                     <TableHead className="text-right">Tires</TableHead>
                     <TableHead className="text-right">Clutch discs</TableHead>
+                    <TableHead className="text-right">Brakes</TableHead>
                     <TableHead className="text-right">Spare parts</TableHead>
                     <TableHead className="text-right">Maintenance cost</TableHead>
                     <TableHead className="text-right">Damages</TableHead>
@@ -225,6 +230,7 @@ export default function DriverRecordsPage() {
                       <TableCell className="text-right tabular-nums">{aoa(s.revenuePerDay)}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.tires}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.clutches}</TableCell>
+                      <TableCell className="text-right tabular-nums">{s.brakes}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.wearParts}</TableCell>
                       <TableCell className="text-right tabular-nums">{aoa(s.maintenanceCost)}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.damageCount ? `${s.damageCount} · ${aoa(s.damageCost)}` : "0"}</TableCell>
@@ -307,6 +313,7 @@ function DriverDialog({ driver, ranked, maintenance, range, onClose }: {
             <dt className="text-muted-foreground">Revenue / day</dt><dd className="text-right tabular-nums">{aoa(driver.revenuePerDay)}</dd>
             <dt className="text-muted-foreground">Tires / 30 days</dt><dd className="text-right tabular-nums">{one(driver.per30.tires)}</dd>
             <dt className="text-muted-foreground">Clutch discs / 30 days</dt><dd className="text-right tabular-nums">{one(driver.per30.clutches)}</dd>
+            <dt className="text-muted-foreground">Brakes / 30 days</dt><dd className="text-right tabular-nums">{one(driver.per30.brakes)}</dd>
             <dt className="text-muted-foreground">Spare parts / 30 days</dt><dd className="text-right tabular-nums">{one(driver.per30.wearParts)}</dd>
             <dt className="text-muted-foreground">Maintenance cost</dt><dd className="text-right tabular-nums">{aoa(driver.maintenanceCost)}</dd>
           </dl>
@@ -314,11 +321,12 @@ function DriverDialog({ driver, ranked, maintenance, range, onClose }: {
 
         {driver.months.length > 0 && (
           <div>
-            <h4 className="mb-2 text-sm font-medium">Tires, clutch discs & spare parts by month</h4>
-            <BarChart className="w-full" data={driver.months.map((m) => ({ name: m.month, tires: m.tires, clutch: m.clutches, parts: m.wearParts }))}
+            <h4 className="mb-2 text-sm font-medium">Tires, clutch, brakes & spare parts by month</h4>
+            <BarChart className="w-full" data={driver.months.map((m) => ({ name: m.month, tires: m.tires, clutch: m.clutches, brakes: m.brakes, parts: m.wearParts }))}
               stacked stackGap={2} aspectRatio="3 / 1" margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
               <Bar dataKey="tires" fill={COMPONENT_COLORS.tires} />
               <Bar dataKey="clutch" fill={COMPONENT_COLORS.clutch} />
+              <Bar dataKey="brakes" fill={COMPONENT_COLORS.brakes} />
               <Bar dataKey="parts" fill={COMPONENT_COLORS.parts} />
               <BarXAxis />
               <ChartTooltip showDatePill={false} showCrosshair={false} />
@@ -342,7 +350,7 @@ function DriverDialog({ driver, ranked, maintenance, range, onClose }: {
                     const part = parsePart(raw);
                     if (!part) return null;
                     return (
-                      <Badge key={i} variant="outline" className={part.kind === "tire" ? "border-blue-300 text-blue-800" : part.kind === "clutch" ? "border-orange-300 text-orange-800" : part.kind === "routine" ? "text-muted-foreground" : ""}>
+                      <Badge key={i} variant="outline" className={part.kind === "tire" ? "border-blue-300 text-blue-800" : part.kind === "clutch" ? "border-orange-300 text-orange-800" : part.kind === "brake" ? "border-amber-300 text-amber-800" : part.kind === "routine" ? "text-muted-foreground" : ""}>
                         {part.name}{part.qty !== 1 ? ` ×${part.qty}` : ""}
                       </Badge>
                     );
@@ -389,4 +397,49 @@ function median(values: number[]): number {
   const s = [...values].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);
   return Math.round(s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2);
+}
+
+const LOWEST_COUNT = 5;
+
+/** Bottom of the ranking, with the components that cost each driver the most points. */
+function LowestScores({ ranked, onSelect }: { ranked: DriverScore[]; onSelect: (s: DriverScore) => void }) {
+  const lowest = [...ranked].sort((a, b) => a.score! - b.score!).slice(0, LOWEST_COUNT);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Fewest points — where they lose them</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Points lost per component, out of its weight. Maintenance is counted against the driver it was logged on. Click a driver for their maintenance history.
+        </p>
+      </CardHeader>
+      <CardContent className="divide-y">
+        {lowest.map((s) => {
+          const lost = COMPONENTS
+            .map((c) => ({ ...c, lost: Math.round((c.weight - s.points![c.key]) * 10) / 10 }))
+            .filter((c) => c.lost > 0)
+            .sort((a, b) => b.lost - a.lost);
+          return (
+            <button key={s.driverId} type="button" onClick={() => onSelect(s)}
+              className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 py-3 text-left hover:bg-muted/50">
+              <span className="w-12 text-2xl font-semibold tabular-nums">{s.score}</span>
+              <span className="min-w-40 flex-1">
+                <span className="block font-medium">{s.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {s.maintenanceEvents} maintenance logged · {aoa(s.maintenanceCost)} · {s.daysDriven} days
+                </span>
+              </span>
+              <span className="flex flex-wrap gap-1">
+                {lost.map((c) => (
+                  <Badge key={c.key} variant="outline" className="gap-1.5 font-normal">
+                    <span className="h-2 w-2 rounded-full" style={{ background: COMPONENT_COLORS[c.key] }} />
+                    {c.label} −{c.lost}/{c.weight}
+                  </Badge>
+                ))}
+              </span>
+            </button>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
 }

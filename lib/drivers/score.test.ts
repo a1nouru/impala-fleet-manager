@@ -14,7 +14,7 @@ describe("parsePart", () => {
     expect(parsePart("Tire - 315/80R22.5")?.kind).toBe("tire");
     expect(parsePart("Óleo Do Motor Sinopec 15W40 (Qty: 23)")?.kind).toBe("routine");
     expect(parsePart("FILTRO DE ÓLEO JX0818 (Qty: 2)")?.kind).toBe("routine");
-    expect(parsePart("Brake disc pads (Qty: 1)")?.kind).toBe("wear");
+    expect(parsePart("Brake disc pads (Qty: 1)")?.kind).toBe("brake");
     expect(parsePart("VALVUNINA MAMBA GEAR 85W140")?.kind).toBe("routine");
     expect(parsePart("LF9009")?.kind).toBe("routine");
     expect(parsePart("9009 (Qty: 1)")?.kind).toBe("routine");
@@ -24,8 +24,20 @@ describe("parsePart", () => {
     expect(parsePart("Disco de embraiagem")?.kind).toBe("clutch");
     expect(parsePart("DISCO DE EMBREIAGEM")?.kind).toBe("clutch");
     expect(parsePart("Bomba central de embraiagem")?.kind).toBe("wear");
-    expect(parsePart("Disco de travão Higer")?.kind).toBe("wear");
-    expect(parsePart("JOGO DE CINTA DE TRÁS.")?.kind).toBe("wear");
+    expect(parsePart("Disco de travão Higer")?.kind).toBe("brake");
+    expect(parsePart("JOGO DE PASTILHAS DE FREIO YUTONG")?.kind).toBe("brake");
+    expect(parsePart("LONA FREIO TRASEIRA")?.kind).toBe("brake");
+    expect(parsePart("Óleo de travão")?.kind).toBe("routine");
+    expect(parsePart("TUBO TRAVAO")?.kind).toBe("wear");
+    expect(parsePart("JOGO DE CINTA DE TRÁS.")?.kind).toBe("brake");
+    expect(parsePart("JOGO DE CALÇO")?.kind).toBe("brake");
+    expect(parsePart("PIPE DE PNEU")?.kind).toBe("wear");
+    expect(parsePart("PNEU MONTAGEM")?.kind).toBe("wear");
+    expect(parsePart("COLAGEM REMEIO DE PNEU")?.kind).toBe("wear");
+    expect(parsePart("PRENÇA DE EMBREAGEM 430M")?.kind).toBe("wear");
+    expect(parsePart("DISCO DE EMBREAGEAM")?.kind).toBe("clutch");
+    expect(parsePart("RYMAX ATEXIO VI MV HYDROLIC 55-70")?.kind).toBe("routine");
+    expect(parsePart("MAMBA GEAR 1")?.kind).toBe("routine");
     expect(parsePart("  (Qty: 1)")).toBeNull();
   });
 });
@@ -33,7 +45,7 @@ describe("parsePart", () => {
 describe("scoreDrivers", () => {
   const drivers = [{ id: "a", nome: "Ana" }, { id: "b", nome: "Beto" }, { id: "c", nome: "Caio" }, { id: "d", nome: "Dino" }];
   const maintenance: MaintenanceInput[] = [
-    { vehicle_id: "v2", date: day(10), driver_id: "b", cost: 300000, parts: ["PNEU X (Qty: 2)", "CALÇO (Qty: 1)", "DISCO DE EMBREAGEM (Qty: 1)", "SINOPEC 15W40 (Qty: 23)"] },
+    { vehicle_id: "v2", date: day(10), driver_id: "b", cost: 300000, parts: ["PNEU X (Qty: 2)", "RETENTOR DE CUBO (Qty: 1)", "DISCO DE EMBREAGEM (Qty: 1)", "SINOPEC 15W40 (Qty: 23)"] },
     { vehicle_id: "v3", date: day(5), driver_id: "c", cost: 100000, parts: ["Brake disc pads (Qty: 1)"] },
   ];
   const result = scoreDrivers({
@@ -70,7 +82,7 @@ describe("scoreDrivers", () => {
   it("ranks the clean high earner above the driver with tires, parts and a damage", () => {
     expect(byId.a.score).toBe(100);
     expect(byId.a.tier).toBe("raise");
-    expect(byId.b.score).toBe(0);
+    expect(byId.b.score).toBe(2); // no brake parts, so b keeps the 2 brake points
     expect(byId.b.tier).toBe("watch");
     expect(result[0].driverId).toBe("a");
   });
