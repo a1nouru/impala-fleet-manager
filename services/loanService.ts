@@ -5,6 +5,11 @@ const supabaseClient = createClient()
 export const LOAN_ACCOUNTS = ['Caixa Angola', 'Agaseke'] as const
 export type LoanAccount = (typeof LOAN_ACCOUNTS)[number]
 
+export interface LoanDocument {
+  url: string
+  name: string
+}
+
 export interface Loan {
   id: string
   borrower_name: string
@@ -21,8 +26,7 @@ export interface Loan {
   repayment_date: string | null
   slip_url: string | null
   slip_name: string | null
-  document_url: string | null
-  document_name: string | null
+  documents: LoanDocument[]
   notes: string | null
   created_by: string | null
   created_at: string
@@ -59,6 +63,26 @@ async function uploadSlip(file: File): Promise<{ url: string; name: string; path
   return { url: urlData.publicUrl, name: file.name, path: data.path }
 }
 
+async function removeFiles(urls: string[]): Promise<void> {
+  const paths = urls.map(storagePathFromUrl).filter((p): p is string => !!p)
+  if (paths.length) await supabaseClient.storage.from(BUCKET).remove(paths)
+}
+
+/** Upload every file, or none: a failure removes the ones already uploaded. */
+async function uploadDocuments(files: File[]): Promise<LoanDocument[]> {
+  const uploaded: LoanDocument[] = []
+  try {
+    for (const file of files) {
+      const { url, name } = await uploadSlip(file)
+      uploaded.push({ url, name })
+    }
+  } catch (error) {
+    await removeFiles(uploaded.map((d) => d.url))
+    throw error
+  }
+  return uploaded
+}
+
 export const loanService = {
   /**
    * Password check runs entirely in Postgres (SECURITY DEFINER function against
@@ -83,47 +107,46 @@ export const loanService = {
     return (data || []) as Loan[]
   },
 
-  createLoan: async (
-    input: LoanInput,
-    createdBy: string,
-    documentFile?: File | null
-  ): Promise<Loan> => {
-    const doc = documentFile ? await uploadSlip(documentFile) : null
+  createLoan: async (input: LoanInput, createdBy: string, files: File[] = []): Promise<Loan> => {
+    const uploaded = await uploadDocuments(files)
     const { data, error } = await supabaseClient
       .from('loans')
       .insert({
         ...input,
         created_by: createdBy,
-        ...(doc && { document_url: doc.url, document_name: doc.name }),
+        documents: uploaded,
       })
       .select()
       .single()
     if (error) {
-      if (doc) await supabaseClient.storage.from(BUCKET).remove([doc.path])
+      await removeFiles(uploaded.map((d) => d.url))
       throw error
     }
     return data as Loan
   },
 
-  /** Update loan details; a new supporting document replaces the old one. */
+  /**
+   * Update loan details. `keptDocuments` are the existing documents the user
+   * left in place; `newFiles` are appended. Anything dropped is deleted from
+   * storage once the row is safely updated.
+   */
   updateLoan: async (
     loan: Loan,
     patch: Partial<LoanInput>,
-    documentFile?: File | null
+    keptDocuments: LoanDocument[],
+    newFiles: File[] = []
   ): Promise<void> => {
-    const doc = documentFile ? await uploadSlip(documentFile) : null
+    const uploaded = await uploadDocuments(newFiles)
     const { error } = await supabaseClient
       .from('loans')
-      .update({ ...patch, ...(doc && { document_url: doc.url, document_name: doc.name }) })
+      .update({ ...patch, documents: [...keptDocuments, ...uploaded] })
       .eq('id', loan.id)
     if (error) {
-      if (doc) await supabaseClient.storage.from(BUCKET).remove([doc.path])
+      await removeFiles(uploaded.map((d) => d.url))
       throw error
     }
-    if (doc && loan.document_url) {
-      const oldPath = storagePathFromUrl(loan.document_url)
-      if (oldPath) await supabaseClient.storage.from(BUCKET).remove([oldPath])
-    }
+    const kept = new Set(keptDocuments.map((d) => d.url))
+    await removeFiles(loan.documents.map((d) => d.url).filter((url) => !kept.has(url)))
   },
 
   /** Close a loan with the bank slip that confirms repayment. */
@@ -186,9 +209,6 @@ export const loanService = {
   deleteLoan: async (loan: Loan): Promise<void> => {
     const { error } = await supabaseClient.from('loans').delete().eq('id', loan.id)
     if (error) throw error
-    const paths = [loan.slip_url, loan.document_url]
-      .map((u) => (u ? storagePathFromUrl(u) : null))
-      .filter((p): p is string => !!p)
-    if (paths.length) await supabaseClient.storage.from(BUCKET).remove(paths)
+    await removeFiles([loan.slip_url, ...loan.documents.map((d) => d.url)].filter((u): u is string => !!u))
   },
 }

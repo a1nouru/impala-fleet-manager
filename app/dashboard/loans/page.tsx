@@ -59,8 +59,9 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/context/AuthContext";
-import { loanService, Loan, LOAN_ACCOUNTS } from "@/services/loanService";
+import { loanService, Loan, LoanDocument, LOAN_ACCOUNTS } from "@/services/loanService";
 import { openStoredFile } from "@/lib/storage-url";
+import { LoanDocumentsField } from "./loan-documents-field";
 
 // Impala issues loans from a single company account, so the account selector
 // stays off here (Royal Express turns it on in its copy of this page).
@@ -114,7 +115,8 @@ export default function LoansPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [form, setForm] = useState(emptyForm());
-  const [formDocument, setFormDocument] = useState<File | null>(null);
+  const [formFiles, setFormFiles] = useState<File[]>([]);
+  const [keptDocuments, setKeptDocuments] = useState<LoanDocument[]>([]);
   const [saving, setSaving] = useState(false);
 
   const [closeTarget, setCloseTarget] = useState<Loan | null>(null);
@@ -189,7 +191,8 @@ export default function LoansPage() {
   const openCreate = () => {
     setEditingLoan(null);
     setForm(emptyForm());
-    setFormDocument(null);
+    setFormFiles([]);
+    setKeptDocuments([]);
     setFormOpen(true);
   };
 
@@ -205,7 +208,8 @@ export default function LoansPage() {
       due_date: loan.due_date || "",
       notes: loan.notes || "",
     });
-    setFormDocument(null);
+    setFormFiles([]);
+    setKeptDocuments(loan.documents);
     setFormOpen(true);
   };
 
@@ -248,13 +252,13 @@ export default function LoansPage() {
       };
 
       if (editingLoan) {
-        await loanService.updateLoan(editingLoan, payload, formDocument);
+        await loanService.updateLoan(editingLoan, payload, keptDocuments, formFiles);
         toast({
           title: t("loans.messages.updated", "Loan updated"),
           description: t("loans.messages.updatedDesc", "The loan details were saved."),
         });
       } else {
-        await loanService.createLoan(payload, user?.email || "", formDocument);
+        await loanService.createLoan(payload, user?.email || "", formFiles);
         toast({
           title: t("loans.messages.created", "Loan recorded"),
           description: t("loans.messages.createdDesc", "The loan was added to the register."),
@@ -610,16 +614,17 @@ export default function LoansPage() {
                             {[loan.borrower_contact, loan.purpose].filter(Boolean).join(" · ")}
                           </div>
                         )}
-                        {loan.document_url && (
+                        {loan.documents.map((doc) => (
                           <button
+                            key={doc.url}
                             type="button"
-                            onClick={() => openStoredFile(loan.document_url)}
-                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                            onClick={() => openStoredFile(doc.url)}
+                            className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
                           >
-                            <Paperclip className="h-3 w-3" />
-                            {t("loans.table.viewDocument", "Supporting document")}
+                            <Paperclip className="h-3 w-3 shrink-0" />
+                            {doc.name}
                           </button>
-                        )}
+                        ))}
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(Number(loan.amount))}
@@ -831,31 +836,12 @@ export default function LoansPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="loan-document">
-                {t("loans.form.document", "Supporting document")}
-              </Label>
-              <Input
-                id="loan-document"
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => setFormDocument(e.target.files?.[0] || null)}
-              />
-              {editingLoan?.document_url && !formDocument && (
-                <p className="text-xs text-muted-foreground">
-                  <button
-                    type="button"
-                    onClick={() => openStoredFile(editingLoan.document_url)}
-                    className="inline-flex items-center gap-1 text-blue-600 hover:underline"
-                  >
-                    <Paperclip className="h-3 w-3" />
-                    {editingLoan.document_name ||
-                      t("loans.form.documentOnFile", "Document on file")}
-                  </button>{" "}
-                  {t("loans.form.documentReplaceHint", "— upload a new file to replace it.")}
-                </p>
-              )}
-            </div>
+            <LoanDocumentsField
+              documents={keptDocuments}
+              onDocumentsChange={setKeptDocuments}
+              files={formFiles}
+              onFilesChange={setFormFiles}
+            />
           </div>
 
           <DialogFooter>
