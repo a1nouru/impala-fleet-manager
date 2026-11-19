@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Source_Serif_4 } from "next/font/google";
-import { nilo, type Invoice } from "@/lib/nilo/client";
+import { fileUrl, nilo, type Invoice } from "@/lib/nilo/client";
 import { buildPurchasesReport, lineTotal, purchasesCsv, supplierName } from "@/lib/nilo/purchases-report";
 
 const serif = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600"], display: "swap" });
@@ -168,6 +168,20 @@ function PurchasesReport() {
                             <span className="font-semibold">{supplierName(inv)}</span>
                             <span className={`text-xs tabular-nums ${muted}`}>
                               {shortDay(inv.invoice_date)} · No. {inv.invoice_no || "—"} · NIF {inv.supplier_nif || "—"}
+                              {inv.file_path && (
+                                <>
+                                  {" · "}
+                                  {/* Absolute so the link still works when clicked inside the saved PDF. */}
+                                  <a
+                                    href={`${window.location.origin}${fileUrl("nilo-invoices", inv.file_path)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className={`text-[#1C1B19] underline decoration-[#B9B2A4] underline-offset-2 hover:decoration-[#1C1B19] ${focus}`}
+                                  >
+                                    View invoice
+                                  </a>
+                                </>
+                              )}
                             </span>
                           </div>
                           {inv.status !== "approved" && <div className="text-xs text-[#8A4B00]">Awaiting approval</div>}
