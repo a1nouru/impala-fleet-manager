@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Printer, QrCode, ScanLine, ShieldCheck, Upload } from "lucide-react";
+import { FileDown, Loader2, Printer, QrCode, ScanLine, ShieldCheck, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,34 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "@/hooks/useTranslation";
 import type { StatementDoc } from "@/lib/nilo/statement-doc";
 import { StatementDocument } from "@/components/nilo/statement-document";
-import { fileUrl, kz, nilo, type NiloMe, type StockRow } from "@/lib/nilo/client";
+import { fileUrl, kz, nilo, type Invoice, type InvoiceLine as Line, type NiloMe, type StockRow } from "@/lib/nilo/client";
 import NewPurchaseDialog from "./new-purchase-dialog";
 import { fail, link, qty, stack, tap } from "./ui";
 
-type Line = {
-  id: string;
-  ocr_description: string;
-  quantity: number;
-  unit_cost: number;
-  container_size: number | null;
-  labels_generated: number;
-  item: { name: string; kind: string; measure_unit: string | null } | null;
-};
-type Invoice = {
-  id: string;
-  supplier: string | null;
-  supplier_nif: string | null;
-  invoice_no: string | null;
-  invoice_date: string;
-  total: number | null;
-  file_path: string | null;
-  status: "pending_approval" | "approved";
-  checks: { level: string; reason: string }[];
-  approved_by: string | null;
-  uploaded_by: string;
-  source_company: string;
-  lines: Line[];
-};
 type Statement = {
   id: string;
   statement_no: string;
@@ -204,7 +180,12 @@ function PurchasesTab({ me }: { me: NiloMe | null }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-col justify-end gap-2 sm:flex-row">
+        <Button asChild variant="outline" className={`${tap} w-full sm:w-auto`}>
+          <a href="/nilo/purchases" target="_blank" rel="noreferrer">
+            <FileDown className="h-4 w-4" /> Export purchases
+          </a>
+        </Button>
         <Button className={`${tap} w-full sm:w-auto`} onClick={() => setAdding(true)}>
           <Upload className="h-4 w-4" /> {t("purchases.add")}
         </Button>

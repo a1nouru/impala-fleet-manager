@@ -37,3 +37,28 @@ export const kz = (n: number | string | null | undefined) =>
 
 // File types an invoice page may be: what the reader accepts and the server stores.
 export const PAGE_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+
+export type InvoiceLine = {
+  id: string;
+  ocr_description: string;
+  quantity: number;
+  unit_cost: number;
+  container_size: number | null;
+  labels_generated: number;
+  item: { name: string; kind: string; measure_unit: string | null } | null;
+};
+export type Invoice = {
+  id: string;
+  supplier: string | null;
+  supplier_nif: string | null;
+  invoice_no: string | null;
+  invoice_date: string;
+  total: number | null;
+  file_path: string | null;
+  status: "pending_approval" | "approved";
+  checks: { level: string; reason: string }[];
+  approved_by: string | null;
+  uploaded_by: string;
+  source_company: string;
+  lines: InvoiceLine[];
+};

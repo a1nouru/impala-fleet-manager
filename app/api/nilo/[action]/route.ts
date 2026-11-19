@@ -259,6 +259,28 @@ const READS: Record<string, Handler> = {
         .limit(200),
     ),
 
+  // Every invoice dated within [from, to] (YYYY-MM-DD, inclusive), oldest first, for the purchases report.
+  purchases: async (s, req) => {
+    const from = req.nextUrl.searchParams.get("from") ?? "";
+    const to = req.nextUrl.searchParams.get("to") ?? "";
+    const isDay = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
+    if (!isDay(from) || !isDay(to) || from > to)
+      throw new HttpError(400, "Pick a valid date range");
+    return pageAll((f, t) =>
+      s.db
+        .from("nilo_invoices")
+        .select(
+          "*, lines:nilo_invoice_lines(*, item:nilo_items(name, kind, measure_unit))",
+        )
+        .neq("origin", "legacy")
+        .gte("invoice_date", from)
+        .lte("invoice_date", to)
+        .order("invoice_date")
+        .order("created_at")
+        .range(f, t),
+    );
+  },
+
   // This month so far, for whichever company this app is. Not stored; recomputed each time.
   // Everything not yet on a statement, up to now. Not stored; recomputed each time.
   running: async (s) => statementDocFor(s, new Date().toISOString(), null),
